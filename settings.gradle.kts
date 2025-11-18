@@ -11,12 +11,24 @@ pluginManagement {
         gradlePluginPortal()
     }
 }
+
 dependencyResolutionManagement {
     repositoriesMode.set(RepositoriesMode.FAIL_ON_PROJECT_REPOS)
     repositories {
         google()
         mavenCentral()
-        // Add explicit Maven repository as fallback
+
+        // JitPack - Required for GitHub-hosted libraries
+        maven {
+            url = uri("https://jitpack.io")
+        }
+
+        // Solana Maven Repository - Required for Solana Mobile Wallet Adapter
+        maven {
+            url = uri("https://maven.pkg.github.com/solana-mobile/mobile-wallet-adapter")
+        }
+
+        // Maven Central as explicit fallback
         maven {
             url = uri("https://repo1.maven.org/maven2/")
             isAllowInsecureProtocol = false

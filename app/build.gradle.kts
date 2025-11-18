@@ -5,7 +5,7 @@ plugins {
     alias(libs.plugins.ksp)
     alias(libs.plugins.compose.compiler)
     alias(libs.plugins.sqldelight)
-    alias(libs.plugins.ktorfit) // ADD Ktorfit plugin
+    alias(libs.plugins.ktorfit)
 }
 
 android {
@@ -43,7 +43,7 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        freeCompilerArgs = freeCompilerArgs //+ "-Xexplicit-api=strict"
+        freeCompilerArgs = freeCompilerArgs
     }
 
     buildFeatures {
@@ -63,7 +63,6 @@ android {
     }
 }
 
-// SQLDelight configuration
 sqldelight {
     databases {
         create("OctaneDatabase") {
@@ -73,13 +72,13 @@ sqldelight {
 }
 
 dependencies {
-    // Core dependencies & Desugaring
+    // Core Android
     coreLibraryDesugaring(libs.android.desugarJdkLibs)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
 
-    // Compose BOM
+    // Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.ui)
     implementation(libs.androidx.ui.graphics)
@@ -88,17 +87,17 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // Koin
+    // Dependency Injection
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.compose)
 
-    // Voyager
+    // Navigation
     implementation(libs.voyager.navigator)
     implementation(libs.voyager.screenmodel)
     implementation(libs.voyager.transitions)
 
-    // Ktor & Serialization
+    // Networking & Serialization
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.okhttp)
     implementation(libs.ktor.client.content.negotiation)
@@ -108,19 +107,18 @@ dependencies {
 
     // Ktorfit
     implementation(libs.ktorfit.lib)
-    ksp(libs.ktorfit.ksp) // This is correct for Ktorfit
+    ksp(libs.ktorfit.ksp)
 
-    // Utilities
+    // Utilities & Logging
     implementation(libs.napier)
     implementation(libs.androidx.biometric)
 
     // Image Loading
     implementation(libs.coil.compose)
 
-    // SQLDelight - CORRECTED
+    // Database
     implementation(libs.sqldelight.android.driver)
     implementation(libs.sqldelight.coroutines.extensions)
-    // REMOVED: ksp(libs.sqldelight.gradle.plugin) - this was wrong
 
     // Immutable Collections
     implementation(libs.kotlinx.collections.immutable)
@@ -130,7 +128,6 @@ dependencies {
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
     testImplementation(libs.mockk)
-
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
@@ -140,4 +137,54 @@ dependencies {
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.ui.tooling.preview)
+
+    // AndroidX Additions
+    implementation(libs.androidx.paging.compose)
+    implementation(libs.androidx.startup.runtime)
+    implementation(libs.androidx.work.runtime.ktx)
+
+    // Firebase (Optional - comment out if not using Firebase)
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging.ktx)
+    implementation(libs.firebase.crashlytics.ktx)
+    implementation(libs.firebase.remote.config.ktx)
+
+    // Security & Compliance
+    implementation(libs.scottyab.rootbeer.lib)  // Now using correct JitPack coordinate
+    implementation(libs.play.integrity)
+    debugImplementation(libs.leakcanary.android)
+    implementation(libs.androidx.security.crypto)
+
+    // Preferences Storage
+    implementation(libs.androidx.datastore.preferences)
+
+    // Benchmarking
+    androidTestImplementation(libs.androidx.benchmark.macro)
+
+    /* TEMPORARILY COMMENTED OUT - Dependencies with Repository Issues
+     *
+     * WalletConnect and Solana Mobile Wallet Adapter require additional setup:
+     *
+     * 1. WalletConnect: The 'android-core' artifact has transitive dependencies on:
+     *    - Scarlet libraries (custom fork, may need JitPack or custom Maven repo)
+     *    - Kethereum libraries (available on JitPack as com.github.komputing)
+     *    - java-multibase (available on JitPack as com.github.multiformats)
+     *
+     * 2. Solana Mobile Wallet Adapter: Requires authentication to GitHub Packages
+     *
+     * To re-enable these:
+     * A. For WalletConnect:
+     *    - Verify the correct Maven repository for Scarlet libraries
+     *    - Or implement WalletConnect integration manually using WebSockets
+     *
+     * B. For Solana Mobile Wallet Adapter:
+     *    - Add GitHub token to gradle.properties:
+     *      gpr.user=your_github_username
+     *      gpr.key=your_github_personal_access_token
+     *    - Or use alternative Solana SDK that doesn't require authentication
+     *
+     * Uncomment when ready:
+     * implementation(libs.walletconnect.core)
+     * implementation(libs.solana.mobile.wallet.adapter)
+     */
 }
