@@ -87,6 +87,15 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
+    // Room Core and Kotlin Extensions
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx) // For Flow and Coroutines support
+    // Room Paging (Required for LimitOffsetPagingSource error)
+    implementation(libs.androidx.room.paging)
+
+    // Room Compiler using KSP
+    ksp(libs.androidx.room.compiler)
+
     // Dependency Injection
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
@@ -107,6 +116,7 @@ dependencies {
 
     // Ktorfit
     implementation(libs.ktorfit.lib)
+    implementation(libs.ktor.client.logging)
     ksp(libs.ktorfit.ksp)
 
     // Utilities & Logging
