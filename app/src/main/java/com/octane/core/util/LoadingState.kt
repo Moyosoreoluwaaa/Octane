@@ -4,6 +4,7 @@ package com.octane.core.util
  * Type-safe loading state for any async operation.
  * Prevents impossible states (loading + success simultaneously).
  */
+
 sealed interface LoadingState<out T> {
     /**
      * Initial state before any operation.
