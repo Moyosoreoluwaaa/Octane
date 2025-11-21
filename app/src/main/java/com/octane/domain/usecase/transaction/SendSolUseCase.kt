@@ -19,11 +19,10 @@ import com.octane.domain.repository.TransactionRepository
 import com.octane.domain.repository.WalletRepository
 import kotlinx.coroutines.flow.first
 import java.util.UUID
-import javax.inject.Inject
 
 /**
  * Sends SOL to another wallet.
- * 
+ *
  * Flow:
  * 1. Validate recipient address
  * 2. Check sufficient balance
@@ -32,7 +31,7 @@ import javax.inject.Inject
  * 5. Prompt user for confirmation
  * 6. Sign and broadcast transaction
  * 7. Monitor confirmation status
- * 
+ *
  * Business Rules:
  * - Minimum send amount: 0.000001 SOL (1000 lamports)
  * - Reserves 0.001 SOL for rent exemption
@@ -40,7 +39,7 @@ import javax.inject.Inject
  * - Supports custom memos
  */
 
-class SendSolUseCase @Inject constructor(
+class SendSolUseCase(
     private val transactionRepository: TransactionRepository,
     private val walletRepository: WalletRepository,
     private val assetRepository: AssetRepository,

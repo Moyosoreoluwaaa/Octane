@@ -9,11 +9,10 @@ import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
 
 /**
  * Observes transaction history with pagination.
- * 
+ *
  * Features:
  * - Paged loading for performance
  * - Real-time status updates
@@ -21,7 +20,7 @@ import javax.inject.Inject
  * - Filterable by type (send/receive/swap/etc.)
  */
 
-class ObserveTransactionHistoryUseCase @Inject constructor(
+class ObserveTransactionHistoryUseCase(
     private val transactionRepository: TransactionRepository,
     private val walletRepository: WalletRepository
 ) {

@@ -4,7 +4,6 @@ import androidx.fragment.app.FragmentActivity
 import com.octane.core.security.BiometricConfig
 import com.octane.core.security.BiometricManager
 import kotlinx.coroutines.suspendCancellableCoroutine
-import javax.inject.Inject
 
 /**
  * Authenticates user with biometrics before sensitive operations.
@@ -15,7 +14,7 @@ import javax.inject.Inject
  * - Before deleting wallet
  * - App unlock after background
  */
-class AuthenticateWithBiometricsUseCase @Inject constructor(
+class AuthenticateWithBiometricsUseCase(
     private val biometricManager: BiometricManager
 ) {
     /**

@@ -13,7 +13,7 @@ import javax.inject.Inject
  * - Triggers asset refresh for new wallet
  * - Saves selection to preferences
  */
-class SwitchActiveWalletUseCase @Inject constructor(
+class SwitchActiveWalletUseCase (
     private val walletRepository: WalletRepository,
     private val userPreferencesStore: UserPreferencesStore
 ) {

@@ -6,7 +6,7 @@ import javax.inject.Inject
 /**
  * Updates user currency preference.
  */
-class UpdateCurrencyPreferenceUseCase @Inject constructor(
+class UpdateCurrencyPreferenceUseCase (
     private val preferencesStore: UserPreferencesStore
 ) {
     suspend operator fun invoke(currency: String) {

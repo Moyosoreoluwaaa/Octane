@@ -2,9 +2,11 @@ package com.octane
 
 import android.app.Application
 import com.octane.core.di.coreModule
+import com.octane.core.di.networkModule
 import com.octane.di.dataModule
 import com.octane.di.repositoryModule
 import com.octane.domain.di.domainModule
+import com.octane.presentation.di.viewModelModule
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
@@ -24,7 +26,8 @@ class OctaneApplication : Application() {
                 dataModule,        // Database, DataStore, API clients
                 repositoryModule,   // Repository implementations
                 domainModule,      // Domain layer (use cases, repositories)
-                // TODO: Add presentationModule (ViewModels)
+                networkModule,
+                viewModelModule
             )
         }
     }

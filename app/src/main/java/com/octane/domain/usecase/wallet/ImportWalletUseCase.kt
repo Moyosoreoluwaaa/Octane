@@ -5,17 +5,16 @@ import com.octane.core.security.KeystoreManager
 import com.octane.domain.models.Wallet
 import com.octane.domain.repository.WalletRepository
 import java.util.UUID
-import javax.inject.Inject
 
 /**
  * Imports an existing wallet from seed phrase or private key.
- * 
+ *
  * Business Rules:
  * - Validates seed phrase format (12 or 24 words)
  * - Checks if wallet already exists (prevents duplicates)
  * - Imports as inactive wallet (user must manually activate)
  * - Supports BIP39 seed phrases
- * 
+ *
  * Usage:
  * ```
  * val result = importWalletUseCase(
@@ -24,7 +23,7 @@ import javax.inject.Inject
  * )
  * ```
  */
-class ImportWalletUseCase @Inject constructor(
+class ImportWalletUseCase(
     private val walletRepository: WalletRepository,
     private val keystoreManager: KeystoreManager,
     private val solanaKeyGenerator: SolanaKeyGenerator

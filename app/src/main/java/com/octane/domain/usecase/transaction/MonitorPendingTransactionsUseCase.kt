@@ -5,7 +5,6 @@ import com.octane.data.remote.dto.solana.RpcRequest
 import com.octane.domain.models.TransactionStatus
 import com.octane.domain.repository.TransactionRepository
 import kotlinx.coroutines.flow.first
-import javax.inject.Inject
 
 /**
  * Monitors pending transactions and updates their status.
@@ -16,7 +15,7 @@ import javax.inject.Inject
  * - Notifies user when confirmed/failed
  * - Auto-retries failed transactions (optional)
  */
-class MonitorPendingTransactionsUseCase @Inject constructor(
+class MonitorPendingTransactionsUseCase(
     private val transactionRepository: TransactionRepository,
     private val solanaRpcApi: SolanaRpcApi
 ) {

@@ -8,7 +8,9 @@ enum class TransactionType {
     UNSTAKE,
     CLAIM_REWARDS,
     APPROVE,
-    REVOKE
+    REVOKE,
+    NFT_MINT,
+    NFT_TRANSFER
 }
 
 enum class TransactionStatus {

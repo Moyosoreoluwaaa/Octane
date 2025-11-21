@@ -6,7 +6,6 @@ import com.octane.domain.repository.AssetRepository
 import com.octane.domain.repository.WalletRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
-import javax.inject.Inject
 
 /**
  * Observes portfolio assets for a wallet.
@@ -17,7 +16,7 @@ import javax.inject.Inject
  * - Filters hidden assets
  * - Calculates total portfolio value
  */
-class ObservePortfolioUseCase @Inject constructor(
+class ObservePortfolioUseCase(
     private val assetRepository: AssetRepository,
     private val walletRepository: WalletRepository
 ) {

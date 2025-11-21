@@ -5,11 +5,10 @@ import com.octane.core.util.LoadingState
 import com.octane.domain.repository.AssetRepository
 import com.octane.domain.repository.WalletRepository
 import kotlinx.coroutines.flow.first
-import javax.inject.Inject
 
 /**
  * Refreshes asset balances and prices.
- * 
+ *
  * Business Rules:
  * - Fetches on-chain balances from Solana RPC
  * - Updates prices from CoinGecko
@@ -17,7 +16,7 @@ import javax.inject.Inject
  * - Returns stale data if offline
  */
 
-class RefreshAssetsUseCase @Inject constructor(
+class RefreshAssetsUseCase(
     private val assetRepository: AssetRepository,
     private val walletRepository: WalletRepository,
     private val networkMonitor: NetworkMonitor
@@ -29,13 +28,13 @@ class RefreshAssetsUseCase @Inject constructor(
                 Exception("No internet connection. Showing cached data.")
             )
         }
-        
+
         // Get active wallet
         val wallet = walletRepository.observeActiveWallet().first()
             ?: return LoadingState.Error(
                 IllegalStateException("No active wallet")
             )
-        
+
         // Refresh assets
         return assetRepository.refreshAssets(wallet.id, wallet.publicKey)
     }

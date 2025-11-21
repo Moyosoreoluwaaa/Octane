@@ -1,11 +1,10 @@
 package com.octane.domain.usecase.asset
 
 import com.octane.domain.repository.AssetRepository
-import javax.inject.Inject
 
 /**
  * Hides or shows an asset in portfolio view.
- * 
+ *
  * Business Rules:
  * - Hidden assets still exist in database
  * - Hidden assets excluded from portfolio totals
@@ -13,7 +12,7 @@ import javax.inject.Inject
  * - Useful for spam tokens or dust
  */
 
-class ToggleAssetVisibilityUseCase @Inject constructor(
+class ToggleAssetVisibilityUseCase(
     private val assetRepository: AssetRepository
 ) {
     suspend operator fun invoke(

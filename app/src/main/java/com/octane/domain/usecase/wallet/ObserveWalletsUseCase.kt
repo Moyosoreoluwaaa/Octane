@@ -7,17 +7,16 @@ import com.octane.domain.repository.WalletRepository
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
-import javax.inject.Inject
 
 /**
  * Observes all wallets reactively.
- * 
+ *
  * Returns:
  * - Loading state during initial fetch
  * - Success with list of wallets
  * - Error if database access fails
  */
-class ObserveWalletsUseCase @Inject constructor(
+class ObserveWalletsUseCase(
     private val walletRepository: WalletRepository
 ) {
     operator fun invoke(): Flow<LoadingState<List<Wallet>>> {

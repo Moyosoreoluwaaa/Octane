@@ -23,6 +23,8 @@ fun TransactionType.toEntity(): EntityType = when (this) {
     TransactionType.CLAIM_REWARDS -> EntityType.CLAIM_REWARDS
     TransactionType.APPROVE -> EntityType.APPROVE
     TransactionType.REVOKE -> EntityType.REVOKE
+    TransactionType.NFT_MINT -> TODO()
+    TransactionType.NFT_TRANSFER -> TODO()
 }
 
 fun EntityStatus.toDomain(): TransactionStatus = when (this) {

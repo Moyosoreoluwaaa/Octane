@@ -1,5 +1,3 @@
-// app/core/data/local/datastore/UserPreferencesStore.kt
-
 package com.octane.data.local.datastore
 
 import android.content.Context
@@ -8,106 +6,219 @@ import androidx.datastore.preferences.core.*
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import org.koin.android.ext.koin.androidContext
+import org.koin.dsl.module
 
 /**
- * DataStore for user preferences.
- * Supports v0.7-v1.9 settings (currency, privacy, RPC, filters).
+ * User Preferences Store (DataStore implementation)
+ *
+ * Stores all app-wide settings, including UI, security, and domain-specific settings.
  */
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(name = "user_preferences")
+interface UserPreferencesStore {
+    // UI, Security, and Core Settings
+    val currencyPreference: Flow<String>
+    val privacyMode: Flow<Boolean>
+    val biometricEnabled: Flow<Boolean>
+    val autoLockTimeout: Flow<Int>
+    val theme: Flow<String>
+    val language: Flow<String>
+    val testnetEnabled: Flow<Boolean>
 
-class UserPreferencesStore(private val context: Context) {
-    
-    // Keys
-    private object PreferenceKeys {
+    // Domain-Specific Settings
+    val lastActiveWalletId: Flow<String?>
+    val selectedChainId: Flow<String>
+    val hideZeroBalances: Flow<Boolean>
+    val sortBy: Flow<String>
+    val rpcEndpoint: Flow<String>
+    val customRpcUrl: Flow<String?>
+
+    // Setters - Core
+    suspend fun setCurrency(currency: String)
+    suspend fun setPrivacyMode(enabled: Boolean)
+    suspend fun setBiometricEnabled(enabled: Boolean)
+    suspend fun setAutoLockTimeout(seconds: Int)
+    suspend fun setTheme(theme: String)
+    suspend fun setLanguage(language: String)
+    suspend fun setTestnetEnabled(enabled: Boolean)
+
+    // Setters - Domain
+    suspend fun setLastActiveWalletId(walletId: String?)
+    suspend fun setSelectedChainId(chainId: String)
+    suspend fun setHideZeroBalances(hide: Boolean)
+    suspend fun setSortBy(sortBy: String)
+    suspend fun setRpcEndpoint(endpoint: String)
+    suspend fun setCustomRpcUrl(url: String?)
+
+    // Utility
+    suspend fun clearAll()
+}
+
+/**
+ * DataStore implementation
+ */
+class UserPreferencesStoreImpl(
+    private val dataStore: DataStore<Preferences>
+) : UserPreferencesStore {
+
+    /**
+     * Preference keys for all settings.
+     */
+    private object PreferencesKeys {
+        // UI, Security, and Core Settings
         val CURRENCY = stringPreferencesKey("currency")
-        val PRIVACY_MODE_ENABLED = booleanPreferencesKey("privacy_mode_enabled")
+        val PRIVACY_MODE = booleanPreferencesKey("privacy_mode")
+        val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
+        val AUTO_LOCK_TIMEOUT = intPreferencesKey("auto_lock_timeout")
+        val THEME = stringPreferencesKey("theme")
+        val LANGUAGE = stringPreferencesKey("language")
+        val TESTNET_ENABLED = booleanPreferencesKey("testnet_enabled")
+
+        // Domain-Specific Settings
         val LAST_ACTIVE_WALLET_ID = stringPreferencesKey("last_active_wallet_id")
         val SELECTED_CHAIN_ID = stringPreferencesKey("selected_chain_id")
         val HIDE_ZERO_BALANCES = booleanPreferencesKey("hide_zero_balances")
         val SORT_BY = stringPreferencesKey("sort_by")
         val RPC_ENDPOINT = stringPreferencesKey("rpc_endpoint")
         val CUSTOM_RPC_URL = stringPreferencesKey("custom_rpc_url")
-        val BIOMETRIC_ENABLED = booleanPreferencesKey("biometric_enabled")
     }
-    
-    // Flows
-    val currencyPreference: Flow<String> = context.dataStore.data
-        .map { it[PreferenceKeys.CURRENCY] ?: "USD" }
-    
-    val privacyModeEnabled: Flow<Boolean> = context.dataStore.data
-        .map { it[PreferenceKeys.PRIVACY_MODE_ENABLED] ?: false }
-    
-    val lastActiveWalletId: Flow<String?> = context.dataStore.data
-        .map { it[PreferenceKeys.LAST_ACTIVE_WALLET_ID] }
-    
-    val selectedChainId: Flow<String> = context.dataStore.data
-        .map { it[PreferenceKeys.SELECTED_CHAIN_ID] ?: "solana" }
-    
-    val hideZeroBalances: Flow<Boolean> = context.dataStore.data
-        .map { it[PreferenceKeys.HIDE_ZERO_BALANCES] ?: false }
-    
-    val sortBy: Flow<String> = context.dataStore.data
-        .map { it[PreferenceKeys.SORT_BY] ?: "VALUE_DESC" }
-    
-    val rpcEndpoint: Flow<String> = context.dataStore.data
-        .map { it[PreferenceKeys.RPC_ENDPOINT] ?: "DEFAULT" }
-    
-    val customRpcUrl: Flow<String?> = context.dataStore.data
-        .map { it[PreferenceKeys.CUSTOM_RPC_URL] }
-    
-    val biometricEnabled: Flow<Boolean> = context.dataStore.data
-        .map { it[PreferenceKeys.BIOMETRIC_ENABLED] ?: false }
-    
-    // Setters
-    suspend fun setCurrency(currency: String) {
-        context.dataStore.edit { it[PreferenceKeys.CURRENCY] = currency }
+
+    // --- Flow Observables ---
+
+    // UI, Security, and Core Settings
+    override val currencyPreference: Flow<String> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.CURRENCY] ?: "USD" }
+
+    override val privacyMode: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.PRIVACY_MODE] == true }
+
+    override val biometricEnabled: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.BIOMETRIC_ENABLED] == true }
+
+    override val autoLockTimeout: Flow<Int> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.AUTO_LOCK_TIMEOUT] ?: 300 }
+
+    override val theme: Flow<String> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.THEME] ?: "AUTO" }
+
+    override val language: Flow<String> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.LANGUAGE] ?: "en" }
+
+    override val testnetEnabled: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.TESTNET_ENABLED] == true }
+
+    // Domain-Specific Settings
+    override val lastActiveWalletId: Flow<String?> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.LAST_ACTIVE_WALLET_ID] }
+
+    override val selectedChainId: Flow<String> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SELECTED_CHAIN_ID] ?: "solana" }
+
+    override val hideZeroBalances: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.HIDE_ZERO_BALANCES] == true }
+
+    override val sortBy: Flow<String> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.SORT_BY] ?: "VALUE_DESC" }
+
+    override val rpcEndpoint: Flow<String> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.RPC_ENDPOINT] ?: "DEFAULT" }
+
+    override val customRpcUrl: Flow<String?> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.CUSTOM_RPC_URL] }
+
+
+    // --- Suspend Setters ---
+
+    // Core Setters
+    override suspend fun setCurrency(currency: String) {
+        dataStore.edit { it[PreferencesKeys.CURRENCY] = currency }
     }
-    
-    suspend fun setPrivacyMode(enabled: Boolean) {
-        context.dataStore.edit { it[PreferenceKeys.PRIVACY_MODE_ENABLED] = enabled }
+
+    override suspend fun setPrivacyMode(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.PRIVACY_MODE] = enabled }
     }
-    
-    suspend fun setLastActiveWalletId(walletId: String?) {
-        context.dataStore.edit { 
+
+    override suspend fun setBiometricEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.BIOMETRIC_ENABLED] = enabled }
+    }
+
+    override suspend fun setAutoLockTimeout(seconds: Int) {
+        dataStore.edit { it[PreferencesKeys.AUTO_LOCK_TIMEOUT] = seconds }
+    }
+
+    override suspend fun setTheme(theme: String) {
+        dataStore.edit { it[PreferencesKeys.THEME] = theme }
+    }
+
+    override suspend fun setLanguage(language: String) {
+        dataStore.edit { it[PreferencesKeys.LANGUAGE] = language }
+    }
+
+    override suspend fun setTestnetEnabled(enabled: Boolean) {
+        dataStore.edit { it[PreferencesKeys.TESTNET_ENABLED] = enabled }
+    }
+
+    // Domain Setters
+    override suspend fun setSelectedChainId(chainId: String) {
+        dataStore.edit { it[PreferencesKeys.SELECTED_CHAIN_ID] = chainId }
+    }
+
+    override suspend fun setHideZeroBalances(hide: Boolean) {
+        dataStore.edit { it[PreferencesKeys.HIDE_ZERO_BALANCES] = hide }
+    }
+
+    override suspend fun setSortBy(sortBy: String) {
+        dataStore.edit { it[PreferencesKeys.SORT_BY] = sortBy }
+    }
+
+    override suspend fun setRpcEndpoint(endpoint: String) {
+        dataStore.edit { it[PreferencesKeys.RPC_ENDPOINT] = endpoint }
+    }
+
+    // Nullable Setters (Require remove logic)
+    override suspend fun setLastActiveWalletId(walletId: String?) {
+        dataStore.edit { preferences ->
             if (walletId != null) {
-                it[PreferenceKeys.LAST_ACTIVE_WALLET_ID] = walletId
+                preferences[PreferencesKeys.LAST_ACTIVE_WALLET_ID] = walletId
             } else {
-                it.remove(PreferenceKeys.LAST_ACTIVE_WALLET_ID)
+                preferences.remove(PreferencesKeys.LAST_ACTIVE_WALLET_ID)
             }
         }
     }
-    
-    suspend fun setSelectedChainId(chainId: String) {
-        context.dataStore.edit { it[PreferenceKeys.SELECTED_CHAIN_ID] = chainId }
-    }
-    
-    suspend fun setHideZeroBalances(hide: Boolean) {
-        context.dataStore.edit { it[PreferenceKeys.HIDE_ZERO_BALANCES] = hide }
-    }
-    
-    suspend fun setSortBy(sortBy: String) {
-        context.dataStore.edit { it[PreferenceKeys.SORT_BY] = sortBy }
-    }
-    
-    suspend fun setRpcEndpoint(endpoint: String) {
-        context.dataStore.edit { it[PreferenceKeys.RPC_ENDPOINT] = endpoint }
-    }
-    
-    suspend fun setCustomRpcUrl(url: String?) {
-        context.dataStore.edit { 
+
+    override suspend fun setCustomRpcUrl(url: String?) {
+        dataStore.edit { preferences ->
             if (url != null) {
-                it[PreferenceKeys.CUSTOM_RPC_URL] = url
+                preferences[PreferencesKeys.CUSTOM_RPC_URL] = url
             } else {
-                it.remove(PreferenceKeys.CUSTOM_RPC_URL)
+                preferences.remove(PreferencesKeys.CUSTOM_RPC_URL)
             }
         }
     }
-    
-    suspend fun setBiometricEnabled(enabled: Boolean) {
-        context.dataStore.edit { it[PreferenceKeys.BIOMETRIC_ENABLED] = enabled }
-    }
-    
-    suspend fun clearAll() {
-        context.dataStore.edit { it.clear() }
+
+    // Utility
+    override suspend fun clearAll() {
+        dataStore.edit { it.clear() }
     }
 }
+
+/**
+ * Koin Module for UserPreferencesStore setup
+ */
+val preferencesModule = module {
+    // 1. Provide the DataStore instance
+    single {
+        androidContext().dataStore
+    }
+
+    // 2. Bind the implementation to the interface for DI
+    single<UserPreferencesStore> {
+        UserPreferencesStoreImpl(dataStore = get())
+    }
+}
+
+/**
+ * DataStore extension for Context
+ */
+private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
+    name = "octane_preferences"
+)

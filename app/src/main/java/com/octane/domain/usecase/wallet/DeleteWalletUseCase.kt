@@ -3,11 +3,10 @@ package com.octane.domain.usecase.wallet
 import com.octane.core.security.KeystoreManager
 import com.octane.domain.repository.WalletRepository
 import kotlinx.coroutines.flow.first
-import javax.inject.Inject
 
 /**
  * Deletes a wallet permanently.
- * 
+ *
  * Business Rules:
  * - Cannot delete if it's the only wallet
  * - If deleting active wallet, activates next available wallet
@@ -15,7 +14,7 @@ import javax.inject.Inject
  * - Cascades deletion to assets and transactions (handled by database)
  */
 
-class DeleteWalletUseCase @Inject constructor(
+class DeleteWalletUseCase(
     private val walletRepository: WalletRepository,
     private val keystoreManager: KeystoreManager
 ) {
@@ -28,17 +27,17 @@ class DeleteWalletUseCase @Inject constructor(
                     IllegalStateException("Cannot delete the only wallet")
                 )
             }
-            
+
             // Check if deleting active wallet
             val wallet = walletRepository.getWalletById(walletId)
             val needsNewActive = wallet?.isActive == true
-            
+
             // Delete private key from secure storage
             keystoreManager.deletePrivateKey(walletId)
-            
+
             // Delete wallet from database
             walletRepository.deleteWallet(walletId)
-            
+
             // Activate another wallet if needed
             if (needsNewActive) {
                 val remainingWallets = walletRepository.observeAllWallets().first()
@@ -46,7 +45,7 @@ class DeleteWalletUseCase @Inject constructor(
                     walletRepository.setActiveWallet(nextWallet.id)
                 }
             }
-            
+
             Result.success(Unit)
         } catch (e: Exception) {
             Result.failure(e)

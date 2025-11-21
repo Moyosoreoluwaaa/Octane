@@ -42,9 +42,6 @@ val dataModule = module {
     single { get<OctaneDatabase>().approvalDao() }
     single { get<OctaneDatabase>().stakingDao() }
 
-    // ===== DATASTORE =====
-    single { UserPreferencesStore(androidContext()) }
-
     // ===== HTTP CLIENT =====
     single {
         HttpClient(OkHttp) {

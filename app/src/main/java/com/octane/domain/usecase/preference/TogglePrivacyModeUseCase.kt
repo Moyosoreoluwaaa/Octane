@@ -7,7 +7,7 @@ import javax.inject.Inject
  * Toggles privacy mode (hides balances).
  */
 
-class TogglePrivacyModeUseCase @Inject constructor(
+class TogglePrivacyModeUseCase(
     private val preferencesStore: UserPreferencesStore
 ) {
     suspend operator fun invoke(enabled: Boolean) {
