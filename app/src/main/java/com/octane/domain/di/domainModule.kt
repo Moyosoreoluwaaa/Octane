@@ -1,13 +1,13 @@
 package com.octane.domain.di
 
-import com.octane.domain.usecase.wallet.*
-import com.octane.domain.usecase.asset.*
-import com.octane.domain.usecase.transaction.*
-import com.octane.domain.usecase.security.*
-import com.octane.domain.usecase.network.*
-import com.octane.domain.usecase.preference.ObserveCurrencyPreferenceUseCase
-import com.octane.domain.usecase.preference.TogglePrivacyModeUseCase
-import com.octane.domain.usecase.preference.UpdateCurrencyPreferenceUseCase
+import com.octane.domain.usecases.wallet.*
+import com.octane.domain.usecases.asset.*
+import com.octane.domain.usecases.transaction.*
+import com.octane.domain.usecases.security.*
+import com.octane.domain.usecases.network.*
+import com.octane.domain.usecases.preference.ObserveCurrencyPreferenceUseCase
+import com.octane.domain.usecases.preference.TogglePrivacyModeUseCase
+import com.octane.domain.usecases.preference.UpdateCurrencyPreferenceUseCase
 import org.koin.dsl.module
 
 val domainModule = module {

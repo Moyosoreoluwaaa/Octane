@@ -8,8 +8,8 @@ import com.octane.domain.models.Transaction
 import com.octane.domain.models.TransactionStatus
 import com.octane.domain.models.TransactionType
 import com.octane.domain.repository.WalletRepository
-import com.octane.domain.usecase.transaction.MonitorPendingTransactionsUseCase
-import com.octane.domain.usecase.transaction.ObserveTransactionHistoryUseCase
+import com.octane.domain.usecases.transaction.MonitorPendingTransactionsUseCase
+import com.octane.domain.usecases.transaction.ObserveTransactionHistoryUseCase
 import kotlinx.coroutines.NonCancellable.isActive
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,18 +17,6 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-
-/**
- * Shared transaction history state.
- * Used by: ActivityScreen, TransactionDetailsSheet, HomeScreen (recent txs)
- *
- * RESPONSIBILITY:
- * - Transaction history observation
- * - Pending transaction monitoring
- * - Transaction status updates
- *
- * Pattern: shared/BaseTransactionViewModel.kt
- */
 
 open class BaseTransactionViewModel(
     private val observeTransactionHistoryUseCase: ObserveTransactionHistoryUseCase,
@@ -52,6 +40,7 @@ open class BaseTransactionViewModel(
                 is LoadingState.Success -> state.data.count {
                     it.status == TransactionStatus.PENDING
                 }
+
                 else -> 0
             }
         }

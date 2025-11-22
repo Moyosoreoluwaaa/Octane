@@ -1,7 +1,7 @@
 [versions]
 # Build & Kotlin
-agp = "8.9.1"
-kotlin = "2.0.21"
+agp = "8.9.3"
+kotlin = "2.2.21"
 ksp = "2.3.1"  # UPDATED - correct KSP version for Kotlin 2.0.21
 kotlinxCollectionsImmutable = "0.3.7"
 androidDesugarJdkLibs = "2.1.4"
@@ -15,8 +15,9 @@ appcompat = "1.7.1"
 material = "1.13.0"
 
 # Compose & Lifecycle
-composeBom = "2025.11.00"
-composeIcons = "1.7.5"
+composeBom = "2025.11.01"
+composeIcons = "1.7.8"
+navigation-compose = "2.9.6"
 activityCompose = "1.11.0"
 lifecycleRuntimeKtx = "2.9.4"
 lifecycleViewmodelCompose = "2.9.4"
@@ -28,7 +29,7 @@ ktorfit = "2.6.4"  # Latest version with automatic KSP dependency handling
 # Serialization
 kotlinxSerialization = "1.9.0"
 kotlinxCoroutines = "1.10.2"
-kotlinxDateTime = "0.6.1"
+kotlinxDateTime = "0.7.0"
 
 # Database (KMP Compatible)
 sqldelight = "2.0.2"
@@ -117,6 +118,8 @@ androidx-room-paging = { group = "androidx.room", name = "room-paging", version.
 
 # Compose BOM
 androidx-compose-bom = { group = "androidx.compose", name = "compose-bom", version.ref = "composeBom" }
+compose-animation = { group = "androidx.compose.animation", name = "animation" }  # Version managed by BOM
+navigation-compose = { group = "androidx.navigation", name = "navigation-compose", version.ref = "navigation-compose" }
 androidx-ui = { group = "androidx.compose.ui", name = "ui" }
 androidx-ui-graphics = { group = "androidx.compose.ui", name = "ui-graphics" }
 androidx-ui-tooling = { group = "androidx.compose.ui", name = "ui-tooling" }
