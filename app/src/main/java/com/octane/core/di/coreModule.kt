@@ -25,6 +25,7 @@ val coreModule = module {
     single { SolanaNetworkMonitor(get()) }
 
     // Blockchain
+    single<SolanaKeyGenerator> { SolanaKeyGeneratorImpl() }
     single { SolanaRpcManager(get()) }
     single { GasFeeEstimator() }
     single<TransactionSimulator> { TransactionSimulatorImpl() }

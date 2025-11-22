@@ -1,14 +1,25 @@
 package com.octane.di
 
+import android.content.Context
+import androidx.datastore.core.DataStore
+import androidx.datastore.preferences.core.Preferences
+import androidx.datastore.preferences.preferencesDataStore
 import androidx.room.Room
 import com.octane.data.local.database.OctaneDatabase
 import com.octane.data.local.datastore.UserPreferencesStore
+import com.octane.data.local.datastore.UserPreferencesStoreImpl
 import com.octane.data.remote.api.PriceApi
 import com.octane.data.remote.api.SolanaRpcApi
 import com.octane.data.remote.api.SwapAggregatorApi
 import com.octane.data.remote.api.createPriceApi
 import com.octane.data.remote.api.createSolanaRpcApi
 import com.octane.data.remote.api.createSwapAggregatorApi
+import com.octane.data.repository.ApprovalRepositoryImpl
+import com.octane.data.repository.AssetRepositoryImpl
+import com.octane.data.repository.TransactionRepositoryImpl
+import com.octane.domain.repository.ApprovalRepository
+import com.octane.domain.repository.AssetRepository
+import com.octane.domain.repository.TransactionRepository
 import de.jensklingenberg.ktorfit.Ktorfit
 import io.ktor.client.*
 import io.ktor.client.engine.okhttp.*
@@ -86,5 +97,12 @@ val dataModule = module {
             .httpClient(get<HttpClient>())
             .build()
             .createSwapAggregatorApi()
+    }
+
+    single<AssetRepository> {
+        AssetRepositoryImpl(get(), get(), get(), get())
+    }
+    single<ApprovalRepository> {
+        ApprovalRepositoryImpl(get(), get())
     }
 }

@@ -1,5 +1,8 @@
 package com.octane.domain.di
 
+import com.octane.domain.usecases.EstimateTransactionFeeUseCase
+import com.octane.domain.usecases.SetActiveWalletUseCase
+import com.octane.domain.usecases.SwapTokensUseCase
 import com.octane.domain.usecases.wallet.*
 import com.octane.domain.usecases.asset.*
 import com.octane.domain.usecases.transaction.*
@@ -15,6 +18,7 @@ val domainModule = module {
     // Wallet Use Cases
     factory { CreateWalletUseCase(get(), get(), get()) }
     factory { ImportWalletUseCase(get(), get(), get()) }
+    factory { SetActiveWalletUseCase(get()) }
     factory { SwitchActiveWalletUseCase(get(), get()) }
     factory { ObserveWalletsUseCase(get()) }
     factory { DeleteWalletUseCase(get(), get()) }
@@ -24,8 +28,11 @@ val domainModule = module {
     factory { RefreshAssetsUseCase(get(), get(), get()) }
     factory { ToggleAssetVisibilityUseCase(get()) }
 
+    factory { SwapTokensUseCase(get(), get(), get(), get(), get()) }
+
     // Transaction Use Cases
     factory { SendSolUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
+    factory { EstimateTransactionFeeUseCase(get(), get()) }
     factory { ObserveTransactionHistoryUseCase(get(), get()) }
     factory { MonitorPendingTransactionsUseCase(get(), get()) }
 

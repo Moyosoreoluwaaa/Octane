@@ -200,25 +200,3 @@ class UserPreferencesStoreImpl(
         dataStore.edit { it.clear() }
     }
 }
-
-/**
- * Koin Module for UserPreferencesStore setup
- */
-val preferencesModule = module {
-    // 1. Provide the DataStore instance
-    single {
-        androidContext().dataStore
-    }
-
-    // 2. Bind the implementation to the interface for DI
-    single<UserPreferencesStore> {
-        UserPreferencesStoreImpl(dataStore = get())
-    }
-}
-
-/**
- * DataStore extension for Context
- */
-private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
-    name = "octane_preferences"
-)

@@ -10,6 +10,7 @@ import androidx.core.content.getSystemService
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -17,6 +18,15 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 
+/**
+ * Android implementation of NetworkMonitor.
+ * Monitors device connectivity using ConnectivityManager.
+ *
+ * CRITICAL: Initialization order matters!
+ * 1. Declare StateFlows with simple initial values
+ * 2. In init{}, update values AFTER all fields initialized
+ * 3. Register callbacks LAST
+ */
 class NetworkMonitorImpl(
     context: Context
 ) : NetworkMonitor {
@@ -26,10 +36,11 @@ class NetworkMonitorImpl(
 
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    private val _isConnected = MutableStateFlow(checkInitialConnectivity())
+    // ✅ Simple initial values - updated in init{}
+    private val _isConnected = MutableStateFlow(false)
     override val isConnected: StateFlow<Boolean> = _isConnected.asStateFlow()
 
-    private val _connectionType = MutableStateFlow(getInitialConnectionType())
+    private val _connectionType = MutableStateFlow(ConnectionType.NONE)
     override val connectionType: StateFlow<ConnectionType> = _connectionType.asStateFlow()
 
     override val isMetered: StateFlow<Boolean> = _connectionType
@@ -60,24 +71,32 @@ class NetworkMonitorImpl(
     }
 
     init {
-        when {
-            true -> {
-                connectivityManager.registerDefaultNetworkCallback(networkCallback)
-            }
-            else -> {
-                val request = NetworkRequest.Builder()
-                    .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-                    .build()
-                connectivityManager.registerNetworkCallback(request, networkCallback)
-            }
+        // ✅ STEP 1: Check initial connectivity state
+        _isConnected.value = checkInitialConnectivity()
+
+        // ✅ STEP 2: Determine initial connection type
+        updateConnectionType()
+
+        // ✅ STEP 3: Register callback (AFTER state initialized)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            // Modern API: Default network callback
+            connectivityManager.registerDefaultNetworkCallback(networkCallback)
+        } else {
+            // Legacy API: Explicit network request
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            connectivityManager.registerNetworkCallback(request, networkCallback)
         }
     }
 
-
+    /**
+     * Update connection type based on current network capabilities.
+     * Called both during init and when network changes.
+     */
     private fun updateConnectionType() {
-        val capabilities = connectivityManager.getNetworkCapabilities(
-            connectivityManager.activeNetwork
-        )
+        val network = connectivityManager.activeNetwork
+        val capabilities = network?.let { connectivityManager.getNetworkCapabilities(it) }
 
         _connectionType.value = when {
             capabilities == null -> ConnectionType.NONE
@@ -91,18 +110,26 @@ class NetworkMonitorImpl(
         }
     }
 
+    /**
+     * Check if device is currently connected to internet.
+     * Used during initialization.
+     */
     private fun checkInitialConnectivity(): Boolean {
         val network = connectivityManager.activeNetwork ?: return false
         val capabilities = connectivityManager.getNetworkCapabilities(network) ?: return false
         return capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
     }
 
-    private fun getInitialConnectionType(): ConnectionType {
-        updateConnectionType()
-        return _connectionType.value
-    }
-
+    /**
+     * Cleanup: Unregister callback and cancel scope.
+     * Call from Application.onTerminate() or DI cleanup.
+     */
     fun unregister() {
-        connectivityManager.unregisterNetworkCallback(networkCallback)
+        try {
+            connectivityManager.unregisterNetworkCallback(networkCallback)
+        } catch (e: IllegalArgumentException) {
+            // Callback already unregistered, safe to ignore
+        }
+        scope.cancel()
     }
 }

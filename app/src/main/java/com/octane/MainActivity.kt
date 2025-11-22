@@ -11,8 +11,8 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
+import com.octane.presentation.navigation.AppNavHost
 import com.octane.ui.theme.OctaneTheme
-
 
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -25,6 +25,10 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     val navController = rememberNavController()
+                    AppNavHost(
+                        navController = navController,
+                        modifier = Modifier
+                    )
                 }
             }
         }

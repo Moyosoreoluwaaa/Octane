@@ -3,6 +3,7 @@ package com.octane
 import android.app.Application
 import com.octane.core.di.coreModule
 import com.octane.core.di.networkModule
+import com.octane.data.di.preferencesModule
 import com.octane.di.dataModule
 import com.octane.di.repositoryModule
 import com.octane.domain.di.domainModule
@@ -19,17 +20,29 @@ class OctaneApplication : Application() {
 
         // Initialize Koin DI
         startKoin {
-            androidLogger(Level.ERROR) // Only show errors in production
+            // Logging: ERROR in production, DEBUG in development
+            androidLogger(if (BuildConfig.DEBUG) Level.DEBUG else Level.ERROR)
+
+            // Provide Android Context to modules
             androidContext(this@OctaneApplication)
+
+            // Load modules IN ORDER (dependencies first)
             modules(
-                coreModule,        // Core utilities (NetworkMonitor, LoadingState, etc.)
-                dataModule,        // Database, DataStore, API clients
-                repositoryModule,   // Repository implementations
-                domainModule,      // Domain layer (use cases, repositories)
-                networkModule,
-                viewModelModule
+                // Layer 0: Core Infrastructure (no dependencies)
+                coreModule,        // NetworkMonitor, LoadingState, Analytics, etc.
+                networkModule,     // Retrofit, OkHttp, Ktor clients
+
+                // Layer 1: Data Sources (depend on Core)
+                dataModule,        // Room Database, API services
+                preferencesModule, // ✅ UserPreferencesStore (DataStore)
+
+                // Layer 2: Domain Logic (depend on Data)
+                repositoryModule,  // Repository implementations
+                domainModule,      // Use cases
+
+                // Layer 3: Presentation (depend on Domain)
+                viewModelModule    // ViewModels
             )
         }
     }
 }
-
