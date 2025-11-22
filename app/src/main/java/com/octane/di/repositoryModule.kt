@@ -35,4 +35,9 @@ val repositoryModule = module {
             networkMonitor = get()
         )
     }
+
+    single<WalletRepository> { WalletRepositoryImpl(get()) }
+    single<AssetRepository> { AssetRepositoryImpl(get(), get(), get(), get()) }
+    single<TransactionRepository> { TransactionRepositoryImpl(get(), get(), get()) }
+
 }

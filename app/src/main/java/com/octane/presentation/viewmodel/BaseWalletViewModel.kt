@@ -4,11 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.octane.core.util.LoadingState
 import com.octane.domain.models.Wallet
-import com.octane.domain.usecase.SetActiveWalletUseCase
-import com.octane.domain.usecase.wallet.CreateWalletUseCase
-import com.octane.domain.usecase.wallet.DeleteWalletUseCase
-import com.octane.domain.usecase.wallet.ImportWalletUseCase
-import com.octane.domain.usecase.wallet.ObserveWalletsUseCase
+import com.octane.domain.usecases.SetActiveWalletUseCase
+import com.octane.domain.usecases.wallet.CreateWalletUseCase
+import com.octane.domain.usecases.wallet.DeleteWalletUseCase
+import com.octane.domain.usecases.wallet.ImportWalletUseCase
+import com.octane.domain.usecases.wallet.ObserveWalletsUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -17,7 +17,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 
 /**

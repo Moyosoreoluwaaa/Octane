@@ -6,11 +6,11 @@ import androidx.lifecycle.viewModelScope
 import com.octane.core.network.ConnectionType
 import com.octane.core.network.NetworkMonitor
 import com.octane.core.util.LoadingState
-import com.octane.domain.usecase.asset.ObservePortfolioUseCase
-import com.octane.domain.usecase.asset.PortfolioState
-import com.octane.domain.usecase.asset.RefreshAssetsUseCase
-import com.octane.domain.usecase.asset.ToggleAssetVisibilityUseCase
-import com.octane.domain.usecase.preference.ObserveCurrencyPreferenceUseCase
+import com.octane.domain.usecases.asset.ObservePortfolioUseCase
+import com.octane.domain.usecases.asset.PortfolioState
+import com.octane.domain.usecases.asset.RefreshAssetsUseCase
+import com.octane.domain.usecases.asset.ToggleAssetVisibilityUseCase
+import com.octane.domain.usecases.preference.ObserveCurrencyPreferenceUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -19,7 +19,6 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Shared portfolio state management.

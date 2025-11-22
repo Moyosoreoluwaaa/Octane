@@ -4,10 +4,10 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.octane.core.util.LoadingState
-import com.octane.domain.usecase.EstimateTransactionFeeUseCase
-import com.octane.domain.usecase.SendTokenUseCase
-import com.octane.domain.usecase.ValidateSolanaAddressUseCase
-import com.octane.domain.usecase.security.AuthenticateWithBiometricsUseCase
+import com.octane.domain.usecases.EstimateTransactionFeeUseCase
+import com.octane.domain.usecases.SendTokenUseCase
+import com.octane.domain.usecases.ValidateSolanaAddressUseCase
+import com.octane.domain.usecases.security.AuthenticateWithBiometricsUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -16,7 +16,6 @@ import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
-import javax.inject.Inject
 
 /**
  * Send screen ViewModel.

@@ -7,7 +7,7 @@ import com.octane.core.util.LoadingState
 import com.octane.domain.models.Transaction
 import com.octane.domain.models.TransactionStatus
 import com.octane.domain.models.TransactionType
-import com.octane.domain.usecase.transaction.ObserveTransactionHistoryUseCase
+import com.octane.domain.usecases.transaction.ObserveTransactionHistoryUseCase
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow

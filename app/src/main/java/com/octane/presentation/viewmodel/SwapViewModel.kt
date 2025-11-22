@@ -7,9 +7,9 @@ import androidx.lifecycle.viewModelScope
 import com.octane.core.blockchain.JupiterApiService
 import com.octane.core.blockchain.JupiterQuoteResponse
 import com.octane.core.util.LoadingState
-import com.octane.domain.usecase.EstimateTransactionFeeUseCase
-import com.octane.domain.usecase.SwapTokensUseCase
-import com.octane.domain.usecase.security.AuthenticateWithBiometricsUseCase
+import com.octane.domain.usecases.EstimateTransactionFeeUseCase
+import com.octane.domain.usecases.SwapTokensUseCase
+import com.octane.domain.usecases.security.AuthenticateWithBiometricsUseCase
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableSharedFlow

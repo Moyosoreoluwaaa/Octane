@@ -1,13 +1,18 @@
 package com.octane.core.blockchain
 
 import com.octane.core.network.NetworkMonitor
+import com.octane.domain.models.NetworkHealth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlin.time.Duration.Companion.seconds
@@ -135,6 +140,30 @@ class SolanaRpcManager(
             )
         }
     }
+
+    /**
+     * Observes the network health based on the current RPC endpoint's status.
+     */
+    fun observeNetworkHealth(): Flow<NetworkHealth> =
+        // 1. Combine the latest current endpoint with the map of all endpoint healths
+        currentEndpoint.combine(endpointHealth) { current, healthMap ->
+            // 2. Look up the health of the current endpoint using its URL as the key
+            val currentHealth = healthMap[current.url]
+
+            // 3. Map the RpcHealth status to the NetworkHealth sealed interface
+            currentHealth?.let { rpcHealth ->
+                when (rpcHealth.status) {
+                    HealthStatus.HEALTHY -> NetworkHealth.Healthy(rpcHealth.latency)
+                    HealthStatus.SLOW -> NetworkHealth.Slow(rpcHealth.latency)
+                    HealthStatus.DEGRADED -> NetworkHealth.Degraded(rpcHealth.latency)
+                    HealthStatus.DOWN -> NetworkHealth.Down(rpcHealth.error ?: "RPC Down")
+                }
+            } ?: NetworkHealth.Unknown // Handle case where current health isn't in the map yet
+        }
+            // 4. Start with an initial state
+            .onStart { emit(NetworkHealth.Unknown) }
+            // 5. Ensure continuous observation
+            .distinctUntilChanged()
 }
 
 /**
