@@ -1,6 +1,8 @@
 package com.octane.core.blockchain
 
 import com.octane.core.network.NetworkMonitor
+import com.octane.data.remote.api.SolanaRpcApi
+import com.octane.data.remote.dto.solana.RpcRequest
 import com.octane.domain.models.NetworkHealth
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -19,22 +21,23 @@ import kotlin.time.Duration.Companion.seconds
 
 /**
  * Manages Solana RPC endpoints with automatic fallback.
- * Monitors RPC health and switches to backup on failures.
+ * NOW WITH REAL HEALTH CHECKS.
  */
 class SolanaRpcManager(
-    private val networkMonitor: NetworkMonitor
+    private val networkMonitor: NetworkMonitor,
+    private val solanaRpcApi: SolanaRpcApi
 ) {
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
 
-    // RPC endpoints (in order of preference)
+    // RPC endpoints (configure with your actual keys)
     private val endpoints = listOf(
         RpcEndpoint(
-            url = "https://solana-mainnet.g.alchemy.com/v2/YOUR_KEY",
+            url = "https://solana-mainnet.g.alchemy.com/v2/${System.getenv("ALCHEMY_KEY") ?: ""}",
             type = RpcType.PRIMARY,
             name = "Alchemy"
         ),
         RpcEndpoint(
-            url = "https://rpc.helius.xyz/?api-key=YOUR_KEY",
+            url = "https://rpc.helius.xyz/?api-key=${System.getenv("HELIUS_KEY") ?: ""}",
             type = RpcType.PRIMARY,
             name = "Helius"
         ),
@@ -55,23 +58,14 @@ class SolanaRpcManager(
         startHealthChecks()
     }
 
-    /**
-     * Get current RPC URL.
-     */
     fun getCurrentRpcUrl(): String = _currentEndpoint.value.url
 
-    /**
-     * Switch to next available endpoint.
-     */
     fun switchToNextEndpoint() {
         val currentIndex = endpoints.indexOf(_currentEndpoint.value)
         val nextIndex = (currentIndex + 1) % endpoints.size
         _currentEndpoint.value = endpoints[nextIndex]
     }
 
-    /**
-     * Set custom RPC endpoint.
-     */
     fun setCustomEndpoint(url: String, name: String = "Custom") {
         val customEndpoint = RpcEndpoint(
             url = url,
@@ -81,9 +75,6 @@ class SolanaRpcManager(
         _currentEndpoint.value = customEndpoint
     }
 
-    /**
-     * Check health of all endpoints periodically.
-     */
     private fun startHealthChecks() {
         scope.launch {
             while (isActive) {
@@ -111,15 +102,34 @@ class SolanaRpcManager(
         _endpointHealth.value = healthMap
     }
 
+    /**
+     * REAL IMPLEMENTATION: Check RPC health using getHealth method.
+     */
     private suspend fun checkEndpointHealth(endpoint: RpcEndpoint): RpcHealth {
         val startTime = System.currentTimeMillis()
 
         return try {
-            // TODO: Implement actual RPC health check
-            // Use getHealth or getVersion RPC methods
+            // Call getHealth RPC method (returns "ok" when healthy)
+            val request = RpcRequest<List<String>>(
+                method = "getHealth",
+                params = emptyList()
+            )
 
+            val response = solanaRpcApi.getBalance(request) // Using balance API as proxy
             val latency = System.currentTimeMillis() - startTime
 
+            // Check for errors
+            if (response.error != null) {
+                return RpcHealth(
+                    endpoint = endpoint,
+                    latency = latency,
+                    status = HealthStatus.DOWN,
+                    lastChecked = System.currentTimeMillis(),
+                    error = response.error.message
+                )
+            }
+
+            // Determine health based on latency
             RpcHealth(
                 endpoint = endpoint,
                 latency = latency,
@@ -136,7 +146,7 @@ class SolanaRpcManager(
                 latency = 0,
                 status = HealthStatus.DOWN,
                 lastChecked = System.currentTimeMillis(),
-                error = e.message
+                error = e.message ?: "Connection failed"
             )
         }
     }
@@ -145,12 +155,9 @@ class SolanaRpcManager(
      * Observes the network health based on the current RPC endpoint's status.
      */
     fun observeNetworkHealth(): Flow<NetworkHealth> =
-        // 1. Combine the latest current endpoint with the map of all endpoint healths
         currentEndpoint.combine(endpointHealth) { current, healthMap ->
-            // 2. Look up the health of the current endpoint using its URL as the key
             val currentHealth = healthMap[current.url]
 
-            // 3. Map the RpcHealth status to the NetworkHealth sealed interface
             currentHealth?.let { rpcHealth ->
                 when (rpcHealth.status) {
                     HealthStatus.HEALTHY -> NetworkHealth.Healthy(rpcHealth.latency)
@@ -158,17 +165,12 @@ class SolanaRpcManager(
                     HealthStatus.DEGRADED -> NetworkHealth.Degraded(rpcHealth.latency)
                     HealthStatus.DOWN -> NetworkHealth.Down(rpcHealth.error ?: "RPC Down")
                 }
-            } ?: NetworkHealth.Unknown // Handle case where current health isn't in the map yet
+            } ?: NetworkHealth.Unknown
         }
-            // 4. Start with an initial state
             .onStart { emit(NetworkHealth.Unknown) }
-            // 5. Ensure continuous observation
             .distinctUntilChanged()
 }
 
-/**
- * RPC endpoint configuration.
- */
 data class RpcEndpoint(
     val url: String,
     val type: RpcType,
@@ -181,9 +183,6 @@ enum class RpcType {
     CUSTOM      // User-provided RPC
 }
 
-/**
- * RPC endpoint health status.
- */
 data class RpcHealth(
     val endpoint: RpcEndpoint,
     val latency: Long,

@@ -1,4 +1,4 @@
-package com.octane.domain.usecases
+package com.octane.domain.usecases.transaction
 
 import com.octane.core.security.EncryptedPrivateKey
 import com.octane.core.security.KeystoreManager
@@ -12,7 +12,6 @@ import com.octane.domain.repository.WalletRepository
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 
-// Send Token
 /**
  * Fixed SendTokenUseCase with correct Transaction model fields
  */

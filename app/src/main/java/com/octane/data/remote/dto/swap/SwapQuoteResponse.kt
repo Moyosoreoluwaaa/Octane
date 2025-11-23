@@ -5,14 +5,14 @@ import kotlinx.serialization.Serializable
 @Serializable
 data class SwapQuoteResponse(
     val inputMint: String,
-    val outputMint: String,
     val inAmount: String,
+    val outputMint: String,
     val outAmount: String,
     val otherAmountThreshold: String,
     val swapMode: String,
     val slippageBps: Int,
     val priceImpactPct: String,
-    val routePlan:List<RoutePlan>
+    val routePlan: List<RoutePlan>
 )
 
 @Serializable
@@ -24,7 +24,7 @@ data class RoutePlan(
 @Serializable
 data class SwapInfo(
     val ammKey: String,
-    val label: String,
+    val label: String?,
     val inputMint: String,
     val outputMint: String,
     val inAmount: String,
@@ -35,9 +35,12 @@ data class SwapInfo(
 
 @Serializable
 data class SwapRequest(
-    val quoteResponse: SwapQuoteResponse,
     val userPublicKey: String,
-    val wrapUnwrapSOL: Boolean = true
+    val quoteResponse: SwapQuoteResponse,
+    val wrapUnwrapSOL: Boolean = true,
+    val prioritizationFeeLamports: Long? = null,
+    val asLegacyTransaction: Boolean = false,
+    val dynamicComputeUnitLimit: Boolean = true
 )
 
 @Serializable

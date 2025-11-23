@@ -1,4 +1,4 @@
-package com.octane.domain.usecases
+package com.octane.domain.usecases.security
 
 // Validate Solana Address
 class ValidateSolanaAddressUseCase {

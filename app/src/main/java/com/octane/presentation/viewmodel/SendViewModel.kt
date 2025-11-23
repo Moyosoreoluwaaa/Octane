@@ -4,9 +4,9 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.octane.core.util.LoadingState
-import com.octane.domain.usecases.EstimateTransactionFeeUseCase
-import com.octane.domain.usecases.SendTokenUseCase
-import com.octane.domain.usecases.ValidateSolanaAddressUseCase
+import com.octane.domain.usecases.transaction.EstimateTransactionFeeUseCase
+import com.octane.domain.usecases.transaction.SendTokenUseCase
+import com.octane.domain.usecases.security.ValidateSolanaAddressUseCase
 import com.octane.domain.usecases.security.AuthenticateWithBiometricsUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.MutableStateFlow

@@ -4,8 +4,8 @@ import android.app.Application
 import com.octane.core.di.coreModule
 import com.octane.core.di.networkModule
 import com.octane.data.di.preferencesModule
-import com.octane.di.dataModule
-import com.octane.di.repositoryModule
+import com.octane.data.di.dataModule
+import com.octane.data.di.repositoryModule
 import com.octane.domain.di.domainModule
 import com.octane.presentation.di.viewModelModule
 import org.koin.android.ext.koin.androidContext

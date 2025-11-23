@@ -113,4 +113,6 @@ interface TransactionDao {
      */
     @Query("SELECT COUNT(*) FROM transactions WHERE wallet_id = :walletId")
     fun observeTransactionCount(walletId: String): Flow<Int>
+
+
 }

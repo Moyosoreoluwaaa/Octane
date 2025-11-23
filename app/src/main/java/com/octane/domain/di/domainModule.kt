@@ -1,8 +1,8 @@
 package com.octane.domain.di
 
-import com.octane.domain.usecases.EstimateTransactionFeeUseCase
-import com.octane.domain.usecases.SetActiveWalletUseCase
-import com.octane.domain.usecases.SwapTokensUseCase
+import com.octane.domain.usecases.transaction.EstimateTransactionFeeUseCase
+import com.octane.domain.usecases.wallet.SetActiveWalletUseCase
+import com.octane.domain.usecases.transaction.SwapTokensUseCase
 import com.octane.domain.usecases.wallet.*
 import com.octane.domain.usecases.asset.*
 import com.octane.domain.usecases.transaction.*
@@ -11,6 +11,10 @@ import com.octane.domain.usecases.network.*
 import com.octane.domain.usecases.preference.ObserveCurrencyPreferenceUseCase
 import com.octane.domain.usecases.preference.TogglePrivacyModeUseCase
 import com.octane.domain.usecases.preference.UpdateCurrencyPreferenceUseCase
+import com.octane.domain.usecases.staking.ClaimRewardsUseCase
+import com.octane.domain.usecases.staking.ObserveStakingPositionsUseCase
+import com.octane.domain.usecases.staking.StakeTokensUseCase
+import com.octane.domain.usecases.staking.UnstakeTokensUseCase
 import org.koin.dsl.module
 
 val domainModule = module {
@@ -22,13 +26,14 @@ val domainModule = module {
     factory { SwitchActiveWalletUseCase(get(), get()) }
     factory { ObserveWalletsUseCase(get()) }
     factory { DeleteWalletUseCase(get(), get()) }
+    factory { ClaimRewardsUseCase(get(), get()) }
+    factory { UpdateWalletMetadataUseCase(get()) }
 
     // Asset Use Cases
     factory { ObservePortfolioUseCase(get(), get()) }
     factory { RefreshAssetsUseCase(get(), get(), get()) }
     factory { ToggleAssetVisibilityUseCase(get()) }
 
-    factory { SwapTokensUseCase(get(), get(), get(), get(), get()) }
 
     // Transaction Use Cases
     factory { SendSolUseCase(get(), get(), get(), get(), get(), get(), get(), get(), get()) }
@@ -36,6 +41,20 @@ val domainModule = module {
     factory { ObserveTransactionHistoryUseCase(get(), get()) }
     factory { MonitorPendingTransactionsUseCase(get(), get()) }
     factory { UpdateWalletUseCase(get()) }
+    factory { ValidateSolanaAddressUseCase() }
+    factory { SwapTokensUseCase(get(), get(), get(), get(), get()) }
+
+    // PRICE USE CASES
+    factory { ObserveRpcStatusUseCase(get()) }
+
+    // Stacking Use Case
+    factory { StakeTokensUseCase(get(), get(), get()) }
+    factory { UnstakeTokensUseCase(get(), get()) }
+    factory { ObserveStakingPositionsUseCase(get(), get()) }
+
+    // Send Use Case
+    factory { EstimateTransactionFeeUseCase(get(),get()) }
+
 
     // Security Use Cases
     factory { CheckBiometricAvailabilityUseCase(get()) }
@@ -49,4 +68,8 @@ val domainModule = module {
     factory { ObserveCurrencyPreferenceUseCase(get()) }
     factory { UpdateCurrencyPreferenceUseCase(get()) }
     factory { TogglePrivacyModeUseCase(get()) }
+
+    // Approval use case
+    factory { RevokeApprovalUseCase(get(), get()) }
+    factory { ObserveApprovalsUseCase(get(), get()) }
 }

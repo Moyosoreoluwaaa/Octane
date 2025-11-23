@@ -1,3 +1,5 @@
+// :app/src/main/java/com/octane/data/di/preferencesModule.kt
+
 package com.octane.data.di
 
 import android.content.Context
@@ -10,33 +12,24 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.dsl.module
 
 /**
- * Koin Module for UserPreferencesStore setup
- */
-
-val preferencesModule = module {
-    // 1. Provide the DataStore instance
-    /**
-     * Provides Android DataStore<Preferences> instance.
-     * Used for storing user preferences (currency, privacy mode, etc.)
-     */
-    single {
-        androidContext().dataStore
-    }
-
-    // 2. Bind the implementation to the interface for DI
-    /**
-     * Provides UserPreferencesStore implementation.
-     * Wraps DataStore with domain-friendly API.
-     *
-     */
-    single<UserPreferencesStore> {
-        UserPreferencesStoreImpl(dataStore = get())
-    }
-}
-
-/**
  * DataStore extension for Context
  */
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = "octane_preferences"
 )
+
+/**
+ * ✅ Preferences Module: Fixed Context injection
+ */
+val preferencesModule = module {
+
+    // Provide DataStore instance
+    single<DataStore<Preferences>> {
+        androidContext().dataStore
+    }
+
+    // Provide UserPreferencesStore implementation
+    single<UserPreferencesStore> {
+        UserPreferencesStoreImpl(context = androidContext()) // ✅ Use androidContext()
+    }
+}

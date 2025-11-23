@@ -1,4 +1,4 @@
-package com.octane.domain.usecases
+package com.octane.domain.usecases.transaction
 
 import com.octane.data.remote.api.SolanaRpcApi
 import com.octane.data.remote.dto.solana.RpcRequest

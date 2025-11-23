@@ -1,3 +1,5 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
@@ -23,6 +25,17 @@ android {
         vectorDrawables {
             useSupportLibrary = true
         }
+
+        // ✅ FIX: Import Properties at the top of the file
+        // Read from local.properties
+        val properties = Properties()
+        val localPropertiesFile = project.rootProject.file("local.properties")
+        if (localPropertiesFile.exists()) {
+            properties.load(localPropertiesFile.inputStream())
+        }
+
+        buildConfigField("String", "ALCHEMY_KEY", "\"${properties.getProperty("ALCHEMY_API_KEY") ?: ""}\"")
+        buildConfigField("String", "HELIUS_KEY", "\"${properties.getProperty("HELIUS_API_KEY") ?: ""}\"")
     }
 
     buildTypes {
@@ -43,7 +56,6 @@ android {
 
     kotlinOptions {
         jvmTarget = "17"
-        freeCompilerArgs = freeCompilerArgs
     }
 
     buildFeatures {
@@ -73,13 +85,13 @@ sqldelight {
 }
 
 dependencies {
-    // Core Android
+// Core Android
     coreLibraryDesugaring(libs.android.desugarJdkLibs)
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.appcompat)
     implementation(libs.material)
 
-    // Compose
+// Compose
     implementation(platform(libs.androidx.compose.bom))
     implementation(libs.androidx.material.icons.extended)
     implementation(libs.compose.animation)
@@ -91,26 +103,26 @@ dependencies {
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.lifecycle.viewmodel.compose)
 
-    // Room Core and Kotlin Extensions
+// Room Core and Kotlin Extensions
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx) // For Flow and Coroutines support
-    // Room Paging (Required for LimitOffsetPagingSource error)
+// Room Paging (Required for LimitOffsetPagingSource error)
     implementation(libs.androidx.room.paging)
 
-    // Room Compiler using KSP
+// Room Compiler using KSP
     ksp(libs.androidx.room.compiler)
 
-    // Dependency Injection
+// Dependency Injection
     implementation(libs.koin.android)
     implementation(libs.koin.androidx.compose)
     implementation(libs.koin.compose)
 
-    // Navigation
+// Navigation
     implementation(libs.voyager.navigator)
     implementation(libs.voyager.screenmodel)
     implementation(libs.voyager.transitions)
 
-    // Networking & Serialization
+// Networking & Serialization
     implementation(libs.ktor.client.core)
     implementation(libs.ktor.client.cio)
     implementation(libs.ktor.client.okhttp)
@@ -119,26 +131,26 @@ dependencies {
     implementation(libs.kotlinx.serialization.json)
     implementation(libs.kotlinx.coroutines.android)
 
-    // Ktorfit
+// Ktorfit
     implementation(libs.ktorfit.lib)
     implementation(libs.ktor.client.logging)
     ksp(libs.ktorfit.ksp)
 
-    // Utilities & Logging
+// Utilities & Logging
     implementation(libs.napier)
     implementation(libs.androidx.biometric)
 
-    // Image Loading
+// Image Loading
     implementation(libs.coil.compose)
 
-    // Database
+// Database
     implementation(libs.sqldelight.android.driver)
     implementation(libs.sqldelight.coroutines.extensions)
 
-    // Immutable Collections
+// Immutable Collections
     implementation(libs.kotlinx.collections.immutable)
 
-    // Testing
+// Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)
     testImplementation(libs.turbine)
@@ -148,32 +160,32 @@ dependencies {
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.ui.test.junit4)
 
-    // Debug
+// Debug
     debugImplementation(libs.androidx.ui.tooling)
     debugImplementation(libs.androidx.ui.test.manifest)
     implementation(libs.androidx.ui.tooling.preview)
 
-    // AndroidX Additions
+// AndroidX Additions
     implementation(libs.androidx.paging.compose)
     implementation(libs.androidx.startup.runtime)
     implementation(libs.androidx.work.runtime.ktx)
 
-    // Firebase (Optional - comment out if not using Firebase)
+// Firebase (Optional - comment out if not using Firebase)
     implementation(platform(libs.firebase.bom))
     implementation(libs.firebase.messaging.ktx)
     implementation(libs.firebase.crashlytics.ktx)
     implementation(libs.firebase.remote.config.ktx)
 
-    // Security & Compliance
+// Security & Compliance
     implementation(libs.scottyab.rootbeer.lib)  // Now using correct JitPack coordinate
     implementation(libs.play.integrity)
     debugImplementation(libs.leakcanary.android)
     implementation(libs.androidx.security.crypto)
 
-    // Preferences Storage
+// Preferences Storage
     implementation(libs.androidx.datastore.preferences)
 
-    // Benchmarking
+// Benchmarking
     androidTestImplementation(libs.androidx.benchmark.macro)
 
     /* TEMPORARILY COMMENTED OUT - Dependencies with Repository Issues

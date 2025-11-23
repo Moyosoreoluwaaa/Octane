@@ -1,4 +1,4 @@
-package com.octane.domain.usecases
+package com.octane.domain.usecases.transaction
 
 import com.octane.core.blockchain.JupiterApiService
 import com.octane.core.blockchain.JupiterSwapRequest
@@ -14,7 +14,6 @@ import com.octane.domain.repository.WalletRepository
 import kotlinx.coroutines.flow.first
 import java.util.UUID
 
-// 5. Swap Tokens
 /**
  * Fixed SwapTokensUseCase with correct Transaction model fields
  */

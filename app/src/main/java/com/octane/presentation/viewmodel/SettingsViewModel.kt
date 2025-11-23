@@ -111,7 +111,7 @@ class SettingsViewModel(
      */
     fun setAutoLockTimeout(seconds: Int) {
         viewModelScope.launch {
-            userPreferencesStore.setAutoLockTimeout(seconds)
+            userPreferencesStore.setAutoLockTimeout(seconds.toString())
             _settingsState.update { it.copy(autoLockTimeout = seconds) }
         }
     }

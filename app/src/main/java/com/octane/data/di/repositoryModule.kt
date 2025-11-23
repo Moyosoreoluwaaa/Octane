@@ -1,4 +1,4 @@
-package com.octane.di
+package com.octane.data.di
 
 import com.octane.data.repository.AssetRepositoryImpl
 import com.octane.data.repository.TransactionRepositoryImpl

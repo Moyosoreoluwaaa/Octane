@@ -4,7 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.octane.core.util.LoadingState
 import com.octane.domain.models.Wallet
-import com.octane.domain.usecases.SetActiveWalletUseCase
+import com.octane.domain.usecases.wallet.SetActiveWalletUseCase
 import com.octane.domain.usecases.wallet.CreateWalletUseCase
 import com.octane.domain.usecases.wallet.DeleteWalletUseCase
 import com.octane.domain.usecases.wallet.ImportWalletUseCase

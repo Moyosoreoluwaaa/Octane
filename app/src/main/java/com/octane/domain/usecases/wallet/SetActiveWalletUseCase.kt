@@ -1,4 +1,4 @@
-package com.octane.domain.usecases
+package com.octane.domain.usecases.wallet
 
 import com.octane.domain.repository.WalletRepository
 
