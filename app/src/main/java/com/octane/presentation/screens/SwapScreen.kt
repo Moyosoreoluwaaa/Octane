@@ -16,6 +16,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
 import androidx.navigation.NavController
 import com.octane.presentation.components.*
+import com.octane.presentation.navigation.AppRoute
 import com.octane.presentation.theme.AppColors
 import com.octane.presentation.theme.AppTypography
 import com.octane.presentation.theme.Dimensions
@@ -66,7 +67,7 @@ fun SwapScreen(
             // Header
             SwapHeader(
                 onBack = onBack,
-                onSettingsClick = { /* Show slippage settings */ }
+                onSettingsClick = { navController.navigate(AppRoute.Settings) }
             )
 
             Column(

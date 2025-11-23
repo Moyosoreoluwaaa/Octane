@@ -11,6 +11,10 @@ import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.octane.presentation.screens.DiscoverScreen
 import com.octane.presentation.screens.HomeScreen
+import com.octane.presentation.screens.ManageTokensScreen
+import com.octane.presentation.screens.ReceiveScreen
+import com.octane.presentation.screens.SendScreen
+import com.octane.presentation.screens.SettingsScreen
 import com.octane.presentation.screens.SwapScreen
 import com.octane.presentation.screens.TokenDetailsScreen
 import com.octane.presentation.screens.WalletScreen
@@ -112,61 +116,53 @@ fun AppNavHost(
                 onNavigateToSwap = { symbol ->
                     navController.navigate(AppRoute.Swap)
                 }
-                // ❌ NO bottomBar here - detail screens don't have bottom nav
             )
         }
 
         // ============ Other Screens ============
 
-//        composable<AppRoute.Send> { backStackEntry ->
-//            val route = backStackEntry.toRoute<AppRoute.Send>()
-//            SendScreen(
-//                viewModel = koinViewModel(),
-//                prefilledSymbol = route.tokenSymbol,
-//                prefilledAddress = route.prefilledAddress,
-//                onBack = { navController.popBackStack() },
-//                onSuccess = { txHash ->
-//                    navController.navigate(AppRoute.TransactionDetails(txHash))
-//                }
-//            )
-//        }
-//
-//        composable<AppRoute.Receive> { backStackEntry ->
-//            val route = backStackEntry.toRoute<AppRoute.Receive>()
-//            ReceiveScreen(
-//                viewModel = koinViewModel(),
-//                selectedSymbol = route.tokenSymbol,
-//                onBack = { navController.popBackStack() }
-//            )
-//        }
-//
-//        composable<AppRoute.ManageTokens> {
-//            ManageTokensScreen(
-//                viewModel = koinViewModel(),
-//                onBack = { navController.popBackStack() }
-//            )
-//        }
-//
-//        composable<AppRoute.Wallets> {
-//            WalletsScreen(
-//                viewModel = koinViewModel(),
-//                onBack = { navController.popBackStack() }
-//            )
-//        }
-//
+        composable<AppRoute.Send> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.Send>()
+            SendScreen(
+                viewModel = koinViewModel(),
+                prefilledSymbol = route.tokenSymbol,
+                prefilledAddress = route.prefilledAddress,
+                onBack = { navController.popBackStack() },
+                onSuccess = { txHash ->
+                    navController.navigate(AppRoute.TransactionDetails(txHash))
+                }
+            )
+        }
+
+        composable<AppRoute.Receive> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.Receive>()
+            ReceiveScreen(
+                viewModel = koinViewModel(),
+                selectedSymbol = route.tokenSymbol,
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<AppRoute.ManageTokens> {
+            ManageTokensScreen(
+                viewModel = koinViewModel(),
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable<AppRoute.Settings> {
+            SettingsScreen(
+                viewModel = koinViewModel(),
+                onBack = { navController.popBackStack() }
+            )
+        }
+
 //        composable<AppRoute.Activity> {
 //            ActivityScreen(
 //                viewModel = koinViewModel(),
 //                onNavigateToDetails = { txHash ->
 //                    navController.navigate(AppRoute.TransactionDetails(txHash))
 //                },
-//                onBack = { navController.popBackStack() }
-//            )
-//        }
-//
-//        composable<AppRoute.Settings> {
-//            SettingsScreen(
-//                viewModel = koinViewModel(),
 //                onBack = { navController.popBackStack() }
 //            )
 //        }
