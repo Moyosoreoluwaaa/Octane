@@ -58,17 +58,18 @@ fun AppNavHost(
                     navController.navigate(AppRoute.ManageTokens)
                 },
                 onNavigateToWallets = {
-                    navController.navigate(AppRoute.Wallets)
+                    navController.navigate(AppRoute.Wallet)
                 },
                 onNavigateToActivity = {
-                    navController.navigate(AppRoute.Activity)
+                    navController.navigate(AppRoute.Wallet)
                 }
             )
         }
 
         composable<AppRoute.Wallet> {
             WalletScreen(
-                viewModel = koinViewModel(),
+                activityViewModel = koinViewModel(),
+                walletsViewModel = koinViewModel(),
                 navController = navController, // ✅ Pass navController
                 onNavigateToDetails = { txHash ->
                     navController.navigate(AppRoute.TransactionDetails(txHash))

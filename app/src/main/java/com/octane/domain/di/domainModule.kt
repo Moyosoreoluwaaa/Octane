@@ -35,6 +35,7 @@ val domainModule = module {
     factory { EstimateTransactionFeeUseCase(get(), get()) }
     factory { ObserveTransactionHistoryUseCase(get(), get()) }
     factory { MonitorPendingTransactionsUseCase(get(), get()) }
+    factory { UpdateWalletUseCase(get()) }
 
     // Security Use Cases
     factory { CheckBiometricAvailabilityUseCase(get()) }

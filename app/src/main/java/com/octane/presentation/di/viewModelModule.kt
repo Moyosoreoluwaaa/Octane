@@ -7,7 +7,7 @@ import org.koin.dsl.module
 val viewModelModule = module {
 
     // ==================== Base ViewModels (Shared State) ====================
-    single { BaseWalletViewModel(get(), get(), get(), get(), get()) }
+    single { BaseWalletViewModel(get(), get(), get(), get(), get(), get()) }
     single { BasePortfolioViewModel(get(), get(), get(), get(), get()) }
     single { BaseTransactionViewModel(get(), get(), get()) }
 

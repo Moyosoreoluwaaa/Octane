@@ -9,6 +9,7 @@ import com.octane.domain.usecases.wallet.CreateWalletUseCase
 import com.octane.domain.usecases.wallet.DeleteWalletUseCase
 import com.octane.domain.usecases.wallet.ImportWalletUseCase
 import com.octane.domain.usecases.wallet.ObserveWalletsUseCase
+import com.octane.domain.usecases.wallet.UpdateWalletUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -35,7 +36,8 @@ open class BaseWalletViewModel (
     private val createWalletUseCase: CreateWalletUseCase,
     private val importWalletUseCase: ImportWalletUseCase,
     private val deleteWalletUseCase: DeleteWalletUseCase,
-    private val setActiveWalletUseCase: SetActiveWalletUseCase // You'll need to create this
+    private val setActiveWalletUseCase: SetActiveWalletUseCase, // You'll need to create this
+    private val updateWalletUseCase: UpdateWalletUseCase  // ⭐ ADD THIS
 ) : ViewModel() {
     
     // UI State: All wallets
@@ -147,8 +149,13 @@ open class BaseWalletViewModel (
         colorHex: String? = null
     ) {
         viewModelScope.launch {
-            // You'll need UpdateWalletUseCase
-            // updateWalletUseCase(walletId, name, iconEmoji, colorHex)
+            updateWalletUseCase(walletId, name, iconEmoji, colorHex)
+                .onSuccess {
+                    _events.emit(WalletEvent.WalletUpdated)
+                }
+                .onFailure { e ->
+                    _events.emit(WalletEvent.Error("Failed to update wallet"))
+                }
         }
     }
 }
@@ -161,5 +168,6 @@ sealed interface WalletEvent {
     data class WalletImported(val wallet: Wallet) : WalletEvent
     data object WalletDeleted : WalletEvent
     data object WalletSwitched : WalletEvent
+    data object WalletUpdated : WalletEvent  // ⭐ ADD THIS LINE
     data class Error(val message: String) : WalletEvent
 }
