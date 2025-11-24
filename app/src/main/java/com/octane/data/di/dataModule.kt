@@ -82,10 +82,19 @@ val dataModule = module {
     // ✅ DeFiLlama API
     single<DeFiLlamaApi> {
         Ktorfit.Builder()
-            .baseUrl("https://api.llama.fi/")
+            .baseUrl(ApiConfig.DRIFT_BASE_URL)
             .httpClient(get<HttpClient>(named("CoinGeckoHttpClient")))
             .build()
             .createDeFiLlamaApi()
+    }
+
+    // ✅ ADD THIS - Drift Protocol API
+    single<DriftApi> {
+        Ktorfit.Builder()
+            .baseUrl("https://data.api.drift.trade/")
+            .httpClient(get<HttpClient>(named("JupiterHttpClient")))
+            .build()
+            .createDriftApi()
     }
 
     // ===== SERVICES =====

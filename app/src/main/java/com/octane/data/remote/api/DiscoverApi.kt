@@ -50,22 +50,6 @@ interface DiscoverApi {
         @Query("query") query: String
     ): TokenSearchResponse
 
-    // ==================== PERPS ====================
-
-    /**
-     * Get perpetual futures data.
-     * NOTE: This is a PLACEHOLDER - Jupiter doesn't have a public Perps API yet.
-     * 
-     * Options for implementation:
-     * 1. Use Drift Protocol API (https://docs.drift.trade/)
-     * 2. Use Mango Markets API (https://docs.mango.markets/)
-     * 3. Aggregate from multiple DEXs via Jupiter
-     * 
-     * For now, returning mock data structure.
-     */
-    @GET("perps/markets")
-    suspend fun getPerps(): List<PerpDto>
-
     // ==================== DAPPS ====================
 
     /**

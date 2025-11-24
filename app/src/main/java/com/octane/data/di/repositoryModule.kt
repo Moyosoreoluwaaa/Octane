@@ -47,7 +47,8 @@ val repositoryModule = module {
             discoverApi = get(),
             defiLlamaApi = get(),
             discoverDao = get(),
-            networkMonitor = get()
+            networkMonitor = get(),
+            driftApi = get()
         )
     }
 }

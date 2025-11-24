@@ -7,6 +7,9 @@ object ApiConfig {
     // Jupiter Swap API
     const val JUPITER_BASE_URL = "https://quote-api.jup.ag/v6/"
 
+    // Perpetuals API
+    const val DRIFT_BASE_URL = "https://api.llama.fi/"
+
     // Solana RPC endpoints - ✅ FIXED: All URLs now end with /
     object Solana {
         const val MAINNET_PUBLIC = "https://api.mainnet-beta.solana.com/"
