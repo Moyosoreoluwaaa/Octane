@@ -34,6 +34,9 @@ kotlinxDateTime = "0.7.0"
 # Database (KMP Compatible)
 sqldelight = "2.0.2"
 
+# Timber
+timber = "5.0.1"
+
 # Dependency Injection (KMP Compatible)
 koin = "4.0.1"
 koinCompose = "4.0.1"
@@ -170,6 +173,9 @@ sqldelight-android-driver = { group = "app.cash.sqldelight", name = "android-dri
 sqldelight-gradle-plugin = { group = "app.cash.sqldelight", name = "gradle-plugin", version.ref = "sqldelight" }
 sqldelight-native-driver = { group = "app.cash.sqldelight", name = "native-driver", version.ref = "sqldelight" }
 sqldelight-sqlite-driver = { group = "app.cash.sqldelight", name = "sqlite-driver", version.ref = "sqldelight" }
+
+# Timber
+timber = { group = "com.jakewharton.timber", name = "timber", version.ref = "timber" }
 
 # Koin (KMP)
 koin-core = { group = "io.insert-koin", name = "koin-core", version.ref = "koin" }

@@ -9,13 +9,17 @@ import com.octane.data.local.database.converters.OctaneTypeConverters
 import com.octane.data.local.database.dao.ApprovalDao
 import com.octane.data.local.database.dao.AssetDao
 import com.octane.data.local.database.dao.ContactDao
+import com.octane.data.local.database.dao.DiscoverDao
 import com.octane.data.local.database.dao.StakingDao
 import com.octane.data.local.database.dao.TransactionDao
 import com.octane.data.local.database.dao.WalletDao
 import com.octane.data.local.database.entities.ApprovalEntity
 import com.octane.data.local.database.entities.AssetEntity
 import com.octane.data.local.database.entities.ContactEntity
+import com.octane.data.local.database.entities.DAppEntity
+import com.octane.data.local.database.entities.PerpEntity
 import com.octane.data.local.database.entities.StakingPositionEntity
+import com.octane.data.local.database.entities.TokenEntity
 import com.octane.data.local.database.entities.TransactionEntity
 import com.octane.data.local.database.entities.WalletEntity
 
@@ -35,9 +39,13 @@ import com.octane.data.local.database.entities.WalletEntity
         AssetEntity::class,
         ContactEntity::class,
         ApprovalEntity::class,
-        StakingPositionEntity::class
+        StakingPositionEntity::class,
+        // ✅ ADD THESE:
+        TokenEntity::class,
+        PerpEntity::class,
+        DAppEntity::class
     ],
-    version = 1,
+    version = 2, // ✅ INCREMENT
     exportSchema = true
 )
 @TypeConverters(OctaneTypeConverters::class)
@@ -48,7 +56,8 @@ abstract class OctaneDatabase : RoomDatabase() {
     abstract fun contactDao(): ContactDao
     abstract fun approvalDao(): ApprovalDao
     abstract fun stakingDao(): StakingDao
-    
+    abstract fun discoverDao(): DiscoverDao // ✅ ADD THIS
+
     companion object {
         const val DATABASE_NAME = "octane_database"
     }

@@ -93,7 +93,7 @@ fun AppNavHost(
             DiscoverScreen(
                 viewModel = koinViewModel(),
                 navController = navController, // ✅ Pass navController
-                onNavigateToDetails = { assetId, symbol ->
+                onNavigateToTokenDetails = { assetId, symbol ->
                     navController.navigate(AppRoute.TokenDetails(assetId, symbol))
                 }
             )

@@ -1,9 +1,11 @@
 package com.octane.data.di
 
 import com.octane.data.repository.AssetRepositoryImpl
+import com.octane.data.repository.DiscoverRepositoryImpl
 import com.octane.data.repository.TransactionRepositoryImpl
 import com.octane.data.repository.WalletRepositoryImpl
 import com.octane.domain.repository.AssetRepository
+import com.octane.domain.repository.DiscoverRepository
 import com.octane.domain.repository.TransactionRepository
 import com.octane.domain.repository.WalletRepository
 import org.koin.dsl.module
@@ -40,4 +42,12 @@ val repositoryModule = module {
     single<AssetRepository> { AssetRepositoryImpl(get(), get(), get(), get()) }
     single<TransactionRepository> { TransactionRepositoryImpl(get(), get(), get()) }
 
+    single<DiscoverRepository> {
+        DiscoverRepositoryImpl(
+            discoverApi = get(),
+            defiLlamaApi = get(),
+            discoverDao = get(),
+            networkMonitor = get()
+        )
+    }
 }

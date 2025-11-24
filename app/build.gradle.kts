@@ -150,6 +150,10 @@ dependencies {
 // Immutable Collections
     implementation(libs.kotlinx.collections.immutable)
 
+//  Timber for logging
+    implementation(libs.timber)
+    debugImplementation(libs.timber)
+
 // Testing
     testImplementation(libs.junit)
     testImplementation(libs.kotlinx.coroutines.test)

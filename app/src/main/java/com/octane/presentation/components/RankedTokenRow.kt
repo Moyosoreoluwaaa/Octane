@@ -1,16 +1,19 @@
 package com.octane.presentation.components
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.Stars
+import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.octane.presentation.theme.AppColors
@@ -19,8 +22,8 @@ import com.octane.presentation.theme.Dimensions
 import com.octane.presentation.utils.metallicBorder
 
 /**
- * Token row with rank badge.
- * Used in trending/discovery lists.
+ * Ranked token row for trending tokens list.
+ * Shows rank badge (medal for top 3), market cap, price, and change.
  */
 @Composable
 fun RankedTokenRow(
@@ -46,48 +49,68 @@ fun RankedTokenRow(
             )
             .clickable(onClick = onClick)
             .padding(Dimensions.Padding.small),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween
+        verticalAlignment = Alignment.CenterVertically
     ) {
-        // LEFT: Rank Badge + Icon + Info
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.medium)
+        // LEFT: Rank Badge
+        Box(
+            modifier = Modifier.width(40.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Box(contentAlignment = Alignment.BottomStart) {
-                // Token Icon
-                Box(
-                    contentAlignment = Alignment.Center,
-                    modifier = Modifier
-                        .size(Dimensions.Avatar.medium)
-                        .clip(CircleShape)
-                        .background(iconColor)
-                ) {
-                    Text(
-                        symbol.take(1),
-                        style = AppTypography.labelLarge,
-                        color = Color.White
-                    )
+            if (rank <= 3) {
+                // Medal for top 3
+                val medalColor = when (rank) {
+                    1 -> Color(0xFFFFD700) // Gold
+                    2 -> Color(0xFFC0C0C0) // Silver
+                    else -> Color(0xFFCD7F32) // Bronze
                 }
-                
-                // Rank Badge
-                Box(
-                    modifier = Modifier
-                        .offset(x = (-4).dp, y = 4.dp)
-                        .size(20.dp)
-                        .clip(CircleShape)
-                        .background(AppColors.TextPrimary)
-                        .border(2.dp, AppColors.Background, CircleShape),
-                    contentAlignment = Alignment.Center
-                ) {
+
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Rounded.Stars,
+                        contentDescription = null,
+                        tint = medalColor,
+                        modifier = Modifier
+                            .size(32.dp)
+                            .shadow(2.dp, CircleShape)
+                    )
                     Text(
-                        text = rank.toString(),
+                        rank.toString(),
                         style = AppTypography.labelSmall,
                         color = Color.Black
                     )
                 }
+            } else {
+                // Plain number for others
+                Text(
+                    rank.toString(),
+                    style = AppTypography.labelLarge,
+                    color = AppColors.TextSecondary
+                )
             }
-            
+        }
+
+        Spacer(modifier = Modifier.width(Dimensions.Spacing.small))
+
+        // MIDDLE: Token Icon + Name
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.medium),
+            modifier = Modifier.weight(1f)
+        ) {
+            Box(
+                contentAlignment = Alignment.Center,
+                modifier = Modifier
+                    .size(Dimensions.Avatar.medium)
+                    .clip(CircleShape)
+                    .background(iconColor)
+            ) {
+                Text(
+                    symbol.take(1),
+                    style = AppTypography.labelLarge,
+                    color = Color.White
+                )
+            }
+
             Column {
                 Text(
                     symbol,
@@ -95,15 +118,31 @@ fun RankedTokenRow(
                     color = AppColors.TextPrimary
                 )
                 Text(
-                    marketCap,
+                    name,
                     style = AppTypography.bodySmall,
-                    color = AppColors.TextSecondary
+                    color = AppColors.TextSecondary,
+                    maxLines = 1
                 )
             }
         }
-        
-        // RIGHT: Price Data
-        Column(horizontalAlignment = Alignment.End) {
+
+        Spacer(modifier = Modifier.width(Dimensions.Spacing.small))
+
+        // RIGHT: Market Cap (if space)
+        Text(
+            marketCap,
+            style = AppTypography.bodySmall,
+            color = AppColors.TextSecondary,
+            modifier = Modifier.widthIn(min = 60.dp)
+        )
+
+        Spacer(modifier = Modifier.width(Dimensions.Spacing.standard))
+
+        // FAR RIGHT: Price + Change
+        Column(
+            horizontalAlignment = Alignment.End,
+            modifier = Modifier.widthIn(min = 80.dp)
+        ) {
             Text(
                 price,
                 style = AppTypography.titleSmall,

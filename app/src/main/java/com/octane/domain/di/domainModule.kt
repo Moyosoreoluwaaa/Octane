@@ -5,6 +5,17 @@ import com.octane.domain.usecases.wallet.SetActiveWalletUseCase
 import com.octane.domain.usecases.transaction.SwapTokensUseCase
 import com.octane.domain.usecases.wallet.*
 import com.octane.domain.usecases.asset.*
+import com.octane.domain.usecases.discover.ObserveDAppsByCategoryUseCase
+import com.octane.domain.usecases.discover.ObserveDAppsUseCase
+import com.octane.domain.usecases.discover.ObservePerpsUseCase
+import com.octane.domain.usecases.discover.ObserveTokensUseCase
+import com.octane.domain.usecases.discover.ObserveTrendingTokensUseCase
+import com.octane.domain.usecases.discover.RefreshDAppsUseCase
+import com.octane.domain.usecases.discover.RefreshPerpsUseCase
+import com.octane.domain.usecases.discover.RefreshTokensUseCase
+import com.octane.domain.usecases.discover.SearchDAppsUseCase
+import com.octane.domain.usecases.discover.SearchPerpsUseCase
+import com.octane.domain.usecases.discover.SearchTokensUseCase
 import com.octane.domain.usecases.transaction.*
 import com.octane.domain.usecases.security.*
 import com.octane.domain.usecases.network.*
@@ -72,4 +83,21 @@ val domainModule = module {
     // Approval use case
     factory { RevokeApprovalUseCase(get(), get()) }
     factory { ObserveApprovalsUseCase(get(), get()) }
+
+    // Discover Use Cases - Tokens
+    factory { ObserveTokensUseCase(get()) }
+    factory { ObserveTrendingTokensUseCase(get()) }
+    factory { SearchTokensUseCase(get()) }
+    factory { RefreshTokensUseCase(get()) }
+
+// Discover Use Cases - Perps
+    factory { ObservePerpsUseCase(get()) }
+    factory { SearchPerpsUseCase(get()) }
+    factory { RefreshPerpsUseCase(get()) }
+
+// Discover Use Cases - dApps
+    factory { ObserveDAppsUseCase(get()) }
+    factory { ObserveDAppsByCategoryUseCase(get()) }
+    factory { SearchDAppsUseCase(get()) }
+    factory { RefreshDAppsUseCase(get()) }
 }

@@ -41,7 +41,19 @@ val viewModelModule = module {
     viewModel { ManageTokensViewModel(get(), get()) }
 
     // Discover/Search
-    viewModel { DiscoverViewModel(get()) }
+    viewModel {
+        DiscoverViewModel(
+            observeTrendingTokensUseCase = get(),
+            searchTokensUseCase = get(),
+            refreshTokensUseCase = get(),
+            observePerpsUseCase = get(),
+            searchPerpsUseCase = get(),
+            refreshPerpsUseCase = get(),
+            observeDAppsUseCase = get(),
+            searchDAppsUseCase = get(),
+            refreshDAppsUseCase = get()
+        )
+    }
 
     // Staking (V1.1)
     viewModel { StakingViewModel(get(), get(), get(), get()) }
