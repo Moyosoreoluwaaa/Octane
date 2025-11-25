@@ -5,25 +5,24 @@ import com.octane.data.remote.dto.DAppDto
 import com.octane.domain.models.DApp
 import com.octane.domain.models.DAppCategory
 
-
 /**
- * DTO → Entity
+ * ✅ FIXED: DTO → Entity with proper null handling
  */
 fun DAppDto.toEntity(): DAppEntity {
     return DAppEntity(
         id = id,
         name = name,
-        description = description,
+        description = description ?: "No description available",
         logoUrl = logo,
         category = category,
-        url = url,
+        url = url ?: "https://defillama.com/protocol/$slug",
         tvl = tvl,
-        volume24h = volume24h,
-        users24h = users24h,
-        isVerified = verified ?: true,
-        chains = chains?.joinToString(",") ?: "Solana",
-        rating = rating ?: 0.0,
-        tags = tags?.joinToString(",") ?: "",
+        volume24h = null, // Not in /protocols endpoint
+        users24h = null, // Not in /protocols endpoint
+        isVerified = audits != null && audits != "0",
+        chains = chains.joinToString(",").ifEmpty { chain ?: "Solana" },
+        rating = 0.0, // Not in API
+        tags = (oracles ?: emptyList()).joinToString(","),
         lastUpdated = System.currentTimeMillis()
     )
 }
@@ -53,14 +52,17 @@ fun DAppEntity.toDomain(): DApp {
  * Parse category string to enum.
  */
 private fun parseDAppCategory(category: String): DAppCategory {
-    return when (category.lowercase()) {
-        "defi", "dex", "lending" -> DAppCategory.DEFI
-        "nft", "marketplace" -> DAppCategory.NFT
-        "gaming", "game" -> DAppCategory.GAMING
-        "social" -> DAppCategory.SOCIAL
-        "bridge" -> DAppCategory.BRIDGE
+    return when (category.lowercase().replace(" ", "")) {
+        "dex", "decentralizedexchange" -> DAppCategory.DEFI
+        "lending", "borrowing" -> DAppCategory.DEFI
+        "yield", "yieldaggregator" -> DAppCategory.DEFI
+        "liquidstaking" -> DAppCategory.DEFI
+        "nft", "nftmarketplace", "nftlending" -> DAppCategory.NFT
+        "gaming", "gamblefi" -> DAppCategory.GAMING
+        "socialfi", "social" -> DAppCategory.SOCIAL
+        "bridge", "crosschain" -> DAppCategory.BRIDGE
         "wallet" -> DAppCategory.WALLET
-        "tools", "developer" -> DAppCategory.TOOLS
+        "derivatives", "options", "perpetuals" -> DAppCategory.DEFI
         else -> DAppCategory.OTHER
     }
 }

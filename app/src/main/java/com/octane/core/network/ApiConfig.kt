@@ -7,16 +7,15 @@ object ApiConfig {
     // Jupiter Swap API
     const val JUPITER_BASE_URL = "https://quote-api.jup.ag/v6/"
 
-    // Perpetuals API
-    const val DRIFT_BASE_URL = "https://api.llama.fi/"
+    // ✅ FIXED: DeFiLlama FREE public API (no authentication needed)
+    const val DEFILLAMA_BASE_URL = "https://api.llama.fi/"
 
-    // Solana RPC endpoints - ✅ FIXED: All URLs now end with /
+    // Solana RPC endpoints
     object Solana {
         const val MAINNET_PUBLIC = "https://api.mainnet-beta.solana.com/"
         const val DEVNET = "https://api.devnet.solana.com/"
         const val TESTNET = "https://api.testnet.solana.com/"
 
-        // Add your API keys here
         fun alchemyUrl(apiKey: String) = "https://solana-mainnet.g.alchemy.com/v2/$apiKey/"
         fun heliusUrl(apiKey: String) = "https://rpc.helius.xyz/?api-key=$apiKey/"
     }

@@ -4,21 +4,31 @@ import com.octane.data.remote.dto.DAppDto
 import de.jensklingenberg.ktorfit.http.GET
 
 /**
- * DeFiLlama API for dApp TVL and metrics.
- * Base URL: https://api.llama.fi
+ * DeFiLlama API for protocol TVL and metrics.
+ * ✅ FIXED: Using correct free public endpoint
+ *
+ * Base URL: https://api.llama.fi/
+ * Documentation: https://defillama.com/docs/api
+ * Authentication: NONE (free public API)
  */
 interface DeFiLlamaApi {
 
     /**
-     * Get all protocols (dApps).
-     * Returns TVL, volume, and chain data.
+     * Get all protocols with current TVL.
+     * ✅ Returns ALL protocols across all chains (including Solana).
+     *
+     * Response: List of 2000+ protocols
+     * Rate limit: None for free tier
      */
     @GET("protocols")
     suspend fun getProtocols(): List<DAppDto>
 
     /**
-     * Get protocol by slug.
+     * Get specific protocol details.
+     * Note: slug must be lowercase (e.g., "aave", "uniswap")
      */
     @GET("protocol/{slug}")
-    suspend fun getProtocol(@de.jensklingenberg.ktorfit.http.Path("slug") slug: String): DAppDto
+    suspend fun getProtocol(
+        @de.jensklingenberg.ktorfit.http.Path("slug") slug: String
+    ): DAppDto
 }

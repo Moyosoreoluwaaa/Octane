@@ -337,10 +337,10 @@ class DiscoverRepositoryImpl(
     }
 
     override suspend fun refreshDApps(): LoadingState<Unit> {
-        Log.i(TAG, "ðŸ”„ refreshDApps() called")
+        Log.i(TAG, "🔄 refreshDApps() called")
 
         if (!networkMonitor.isConnected.value) {
-            Log.w(TAG, "âš ï¸ No internet connection for dApps refresh")
+            Log.w(TAG, "⚠️ No internet connection for dApps refresh")
             return LoadingState.Error(
                 Exception("Offline"),
                 "No internet connection"
@@ -348,23 +348,39 @@ class DiscoverRepositoryImpl(
         }
 
         return try {
-            Log.d(TAG, "ðŸ“¡ Fetching protocols from DeFiLlama...")
-            val dappsDto = defiLlamaApi.getProtocols()
-            Log.i(TAG, "âœ… DeFiLlama returned ${dappsDto.size} protocols")
+            Log.d(TAG, "📡 Fetching protocols from DeFiLlama...")
+            val allProtocols = defiLlamaApi.getProtocols()
+            Log.i(TAG, "✅ DeFiLlama returned ${allProtocols.size} total protocols")
 
-            // Filter for Solana dApps only
-            val solanaApps = dappsDto.filter { dto ->
-                dto.chains?.contains("Solana") == true
+            // ✅ FIXED: Filter for Solana dApps correctly
+            val solanaApps = allProtocols.filter { dto ->
+                dto.chains.any { it.equals("Solana", ignoreCase = true) } ||
+                        dto.chain?.equals("Solana", ignoreCase = true) == true
             }
-            Log.d(TAG, "âœ… Filtered to ${solanaApps.size} Solana dApps")
+
+            Log.i(TAG, "✅ Filtered to ${solanaApps.size} Solana dApps")
+
+            if (solanaApps.isEmpty()) {
+                Log.w(TAG, "⚠️ No Solana dApps found in API response!")
+                return LoadingState.Error(
+                    Exception("No Data"),
+                    "No Solana dApps available"
+                )
+            }
+
+            // ✅ Log first 5 for debugging
+            Log.d(TAG, "📋 First 5 Solana dApps:")
+            solanaApps.take(5).forEach { dto ->
+                Log.d(TAG, "  • ${dto.name} (${dto.category}) - TVL: ${dto.tvl}")
+            }
 
             val entities = solanaApps.toEntities()
             discoverDao.insertDApps(entities)
 
-            Log.i(TAG, "âœ… dApps refresh completed")
+            Log.i(TAG, "✅ dApps refresh completed - ${entities.size} inserted")
             LoadingState.Success(Unit)
         } catch (e: Exception) {
-            Log.e(TAG, "âŒ Failed to refresh dApps", e)
+            Log.e(TAG, "❌ Failed to refresh dApps", e)
             LoadingState.Error(e, "Failed to refresh dApps: ${e.message}")
         }
     }

@@ -14,10 +14,6 @@ import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
 import org.koin.dsl.module
 
-/**
- * ✅ FIXED: Data module following repository patterns
- * Provides local database, remote APIs, and repository implementations
- */
 val dataModule = module {
 
     // ===== LOCAL DATABASE (ROOM) =====
@@ -70,7 +66,7 @@ val dataModule = module {
             .createSwapAggregatorApi()
     }
 
-    // ✅ CoinGecko Discover API
+    // CoinGecko Discover API
     single<DiscoverApi> {
         Ktorfit.Builder()
             .baseUrl(ApiConfig.COINGECKO_BASE_URL)
@@ -79,16 +75,16 @@ val dataModule = module {
             .createDiscoverApi()
     }
 
-    // ✅ DeFiLlama API
+    // ✅ FIXED: DeFiLlama API with correct base URL
     single<DeFiLlamaApi> {
         Ktorfit.Builder()
-            .baseUrl(ApiConfig.DRIFT_BASE_URL)
-            .httpClient(get<HttpClient>(named("CoinGeckoHttpClient")))
+            .baseUrl(ApiConfig.DEFILLAMA_BASE_URL)
+            .httpClient(get<HttpClient>(named("CoinGeckoHttpClient"))) // Reuse HTTP client
             .build()
             .createDeFiLlamaApi()
     }
 
-    // ✅ ADD THIS - Drift Protocol API
+    // Drift Protocol API
     single<DriftApi> {
         Ktorfit.Builder()
             .baseUrl("https://data.api.drift.trade/")
@@ -138,6 +134,17 @@ val dataModule = module {
         ApprovalRepositoryImpl(
             approvalDao = get(),
             solanaRpcApi = get()
+        )
+    }
+
+    // ✅ ADD: DiscoverRepository
+    single<DiscoverRepository> {
+        DiscoverRepositoryImpl(
+            discoverApi = get(),
+            defiLlamaApi = get(),
+            driftApi = get(),
+            discoverDao = get(),
+            networkMonitor = get()
         )
     }
 }

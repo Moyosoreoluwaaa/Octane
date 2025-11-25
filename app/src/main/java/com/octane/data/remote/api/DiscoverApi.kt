@@ -1,36 +1,17 @@
-// data/remote/api/DiscoverApi.kt
 package com.octane.data.remote.api
 
-
 import TokenDto
-import com.octane.data.remote.dto.DAppDto
-import com.octane.data.remote.dto.PerpDto
 import de.jensklingenberg.ktorfit.http.GET
 import de.jensklingenberg.ktorfit.http.Query
-import java.util.List
 
 /**
- * Discover API - aggregates tokens, perps, and dApps.
- * Uses multiple data sources:
- * - CoinGecko: Token prices and market data
- * - Jupiter/Drift: Perps data
- * - DeFiLlama: dApp TVL and metrics
+ * Discover API - CoinGecko endpoints for tokens only.
+ * ✅ REMOVED: dApp endpoints (moved to DeFiLlamaApi)
  */
 interface DiscoverApi {
 
     // ==================== TOKENS ====================
 
-    /**
-     * Get token market data (CoinGecko).
-     * Endpoint: /coins/markets
-     * 
-     * @param vsCurrency Currency for pricing (default: USD)
-     * @param order Sort order (market_cap_desc, volume_desc)
-     * @param perPage Results per page (max: 250)
-     * @param page Page number
-     * @param sparkline Include 7-day sparkline
-     * @param priceChangePercentage Time periods for price change
-     */
     @GET("coins/markets")
     suspend fun getTokens(
         @Query("vs_currency") vsCurrency: String = "usd",
@@ -41,39 +22,12 @@ interface DiscoverApi {
         @Query("price_change_percentage") priceChangePercentage: String = "24h"
     ): List<TokenDto>
 
-    /**
-     * Search tokens by query.
-     * Endpoint: /search
-     */
     @GET("search")
     suspend fun searchTokens(
         @Query("query") query: String
     ): TokenSearchResponse
-
-    // ==================== DAPPS ====================
-
-    /**
-     * Get dApp data (DeFiLlama).
-     * Endpoint: /protocols
-     * 
-     * NOTE: DeFiLlama uses different base URL.
-     * Create separate Ktorfit instance for this.
-     */
-    @GET("protocols")
-    suspend fun getDApps(): List<DAppDto>
-
-    /**
-     * Get dApps by category.
-     */
-    @GET("protocols")
-    suspend fun getDAppsByCategory(
-        @Query("category") category: String
-    ): List<DAppDto>
 }
 
-/**
- * Token search response wrapper.
- */
 @kotlinx.serialization.Serializable
 data class TokenSearchResponse(
     val coins: List<TokenSearchResult>
