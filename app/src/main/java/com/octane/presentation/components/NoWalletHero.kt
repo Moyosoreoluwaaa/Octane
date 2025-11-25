@@ -19,12 +19,12 @@ import com.octane.presentation.theme.Dimensions
 import com.octane.presentation.utils.metallicBorder
 
 /**
- * Empty wallet state hero section.
+ * Shown when no wallet exists yet.
  */
 @Composable
-fun EmptyWalletHero(
-    onBuyCash: () -> Unit,
-    onDepositCrypto: () -> Unit,
+fun NoWalletHero(
+    onCreateWallet: () -> Unit,
+    onImportWallet: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
@@ -56,34 +56,32 @@ fun EmptyWalletHero(
         
         Spacer(modifier = Modifier.height(Dimensions.Spacing.large))
         
-        // Text
         Text(
-            "Your wallet is ready",
+            "No wallet yet",
             style = AppTypography.headlineSmall,
             color = AppColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(Dimensions.Spacing.small))
         Text(
-            "Fund your wallet with cash or crypto and\nyou'll be set to start trading!",
+            "Create or import a wallet to get started",
             style = AppTypography.bodyMedium,
             color = AppColors.TextSecondary,
-            textAlign = TextAlign.Center,
-            lineHeight = AppTypography.bodyMedium.lineHeight
+            textAlign = TextAlign.Center
         )
         
         Spacer(modifier = Modifier.height(Dimensions.Spacing.extraLarge))
         
         // Buttons
         WideActionButton(
-            text = "Buy SOL with Cash",
+            text = "Create Wallet",
             isPrimary = true,
-            onClick = onBuyCash
+            onClick = onCreateWallet
         )
         Spacer(modifier = Modifier.height(Dimensions.Spacing.medium))
         WideActionButton(
-            text = "Deposit Crypto",
+            text = "Import Wallet",
             isPrimary = false,
-            onClick = onDepositCrypto
+            onClick = onImportWallet
         )
     }
 }

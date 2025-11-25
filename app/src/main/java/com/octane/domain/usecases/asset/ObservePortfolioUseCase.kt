@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.combine
  * - Sorted by USD value (highest first)
  * - Filters hidden assets
  * - Calculates total portfolio value
+ * - Returns empty state when no wallet exists (instead of error)
  */
 class ObservePortfolioUseCase(
     private val assetRepository: AssetRepository,
@@ -23,9 +24,14 @@ class ObservePortfolioUseCase(
     operator fun invoke(): Flow<LoadingState<PortfolioState>> {
         return walletRepository.observeActiveWallet()
             .combine(assetRepository.observeAssets()) { wallet, assets ->
+                // ✅ FIX: Return empty portfolio instead of error when no wallet
                 if (wallet == null) {
-                    return@combine LoadingState.Error(
-                        IllegalStateException("No active wallet")
+                    return@combine LoadingState.Success(
+                        PortfolioState(
+                            assets = emptyList(),
+                            totalValueUsd = 0.0,
+                            change24hPercent = 0.0
+                        )
                     )
                 }
 
@@ -62,4 +68,3 @@ data class PortfolioState(
     val totalValueUsd: Double,
     val change24hPercent: Double
 )
-

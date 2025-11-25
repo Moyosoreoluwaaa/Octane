@@ -7,6 +7,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material.icons.rounded.Search
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -15,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.unit.dp
 import com.octane.presentation.theme.AppColors
 import com.octane.presentation.theme.AppTypography
 import com.octane.presentation.theme.Dimensions
@@ -29,7 +31,7 @@ fun HomeHeader(
     totalBalance: String,
     changeAmount: String,
     changePercent: Double,
-    walletName: String,
+    walletName: String?,  // ⭐ Now nullable
     onWalletClick: () -> Unit = {},
     onHistoryClick: () -> Unit = {},
     onSearchClick: () -> Unit = {},
@@ -46,44 +48,55 @@ fun HomeHeader(
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Wallet Avatar + Name
-            Row(
-                modifier = Modifier
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
-                    .background(AppColors.Surface)
-                    .metallicBorder(
-                        Dimensions.Border.standard,
-                        RoundedCornerShape(Dimensions.CornerRadius.medium),
-                        90f
-                    )
-                    .clickable(onClick = onWalletClick)
-                    .padding(
-                        horizontal = Dimensions.Padding.medium,
-                        vertical = Dimensions.Padding.small
-                    ),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)
-            ) {
-                Box(
+            // ⭐ Only show wallet selector if wallet exists
+            if (walletName != null) {
+                Row(
                     modifier = Modifier
-                        .size(Dimensions.Avatar.small)
-                        .clip(CircleShape)
-                        .background(AppColors.Background),
-                    contentAlignment = Alignment.Center
+                        .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
+                        .background(AppColors.Surface)
+                        .metallicBorder(
+                            Dimensions.Border.standard,
+                            RoundedCornerShape(Dimensions.CornerRadius.medium),
+                            90f
+                        )
+                        .clickable(onClick = onWalletClick)
+                        .padding(
+                            horizontal = Dimensions.Padding.medium,
+                            vertical = Dimensions.Padding.small
+                        ),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)
                 ) {
+                    Box(
+                        modifier = Modifier
+                            .size(Dimensions.Avatar.small)
+                            .clip(CircleShape)
+                            .background(AppColors.Background),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            walletName.take(1),
+                            style = AppTypography.labelSmall,
+                            color = Color.White
+                        )
+                    }
                     Text(
-                        walletName.take(1),
-                        style = AppTypography.labelSmall,
-                        color = Color.White
+                        walletName,
+                        style = AppTypography.labelLarge,
+                        color = AppColors.TextPrimary
+                    )
+                    // ⭐ Dropdown arrow
+                    Icon(
+                        Icons.Rounded.KeyboardArrowDown,
+                        contentDescription = "Switch wallet",
+                        tint = AppColors.TextSecondary,
+                        modifier = Modifier.size(Dimensions.IconSize.small)
                     )
                 }
-                Text(
-                    walletName,
-                    style = AppTypography.labelLarge,
-                    color = AppColors.TextPrimary
-                )
+            } else {
+                Spacer(modifier = Modifier.width(1.dp)) // Placeholder when no wallet
             }
-            
+
             // Action Icons
             Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)) {
                 Icon(
@@ -104,16 +117,16 @@ fun HomeHeader(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(Dimensions.Spacing.extraLarge))
-        
+
         // Balance Display
         Text(
             text = totalBalance,
             style = AppTypography.balanceDisplay,
             color = AppColors.TextPrimary
         )
-        
+
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)

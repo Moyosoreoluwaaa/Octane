@@ -2,12 +2,15 @@ package com.octane.presentation.components
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
@@ -29,6 +32,7 @@ import com.octane.presentation.theme.Dimensions
 @Composable
 fun BottomNavBar(
     navController: NavController,
+    onBackToHome: (() -> Unit)? = null, // ✅ Optional callback for non-standard back
     modifier: Modifier = Modifier
 ) {
     val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -61,31 +65,17 @@ fun BottomNavBar(
                 it.hasRoute(AppRoute.Home::class)
             } == true,
             onClick = {
-                navController.navigate(AppRoute.Home) {
-                    // Pop up to start destination, avoid stacking tabs
-                    popUpTo(navController.graph.startDestinationId) {
-                        saveState = true
+                // ✅ Special handling for WalletScreen back navigation
+                if (onBackToHome != null && currentDestination?.hasRoute(AppRoute.Wallet::class) == true) {
+                    onBackToHome()
+                } else {
+                    navController.navigate(AppRoute.Home) {
+                        popUpTo(navController.graph.startDestinationId) {
+                            saveState = true
+                        }
+                        launchSingleTop = true
+                        restoreState = true
                     }
-                    launchSingleTop = true
-                    restoreState = true
-                }
-            }
-        )
-
-        // Wallet Tab
-        NavIcon(
-            label = "Wallet",
-            icon = Icons.Rounded.AccountBalanceWallet,
-            isSelected = currentDestination?.hierarchy?.any {
-                it.hasRoute(AppRoute.Wallet::class)
-            } == true,
-            onClick = {
-                navController.navigate(AppRoute.Wallet) {
-                    popUpTo(navController.graph.startDestinationId) {
-                        saveState = true
-                    }
-                    launchSingleTop = true
-                    restoreState = true
                 }
             }
         )
@@ -141,25 +131,26 @@ private fun NavIcon(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier
-            .width(64.dp)
             .padding(vertical = Dimensions.Spacing.small)
     ) {
-        IconButton(
-            onClick = onClick,
-            modifier = Modifier.size(40.dp)
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = label,
-                tint = if (isSelected) AppColors.Primary else AppColors.TextSecondary,
-                modifier = Modifier.size(24.dp)
-            )
+        Box(
+            modifier = Modifier
+                .size(70.dp)
+                .clip(CircleShape)
+
+        ){
+            IconButton(
+                onClick = onClick,
+                modifier = Modifier.size(60.dp)
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = label,
+                    tint = if (isSelected) AppColors.Primary else AppColors.TextSecondary,
+                    modifier = Modifier.size(24.dp)
+                )
+            }
         }
 
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = if (isSelected) AppColors.Primary else AppColors.TextSecondary
-        )
     }
 }
