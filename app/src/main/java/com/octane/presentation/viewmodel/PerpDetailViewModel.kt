@@ -1,44 +1,44 @@
-// presentation/viewmodel/TokenDetailViewModel.kt
-
 package com.octane.presentation.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.octane.core.util.LoadingState
-import com.octane.domain.models.Token
+import com.octane.domain.models.Perp
 import com.octane.domain.repository.DiscoverRepository
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 
-class TokenDetailViewModel(
+class PerpDetailViewModel(
     private val discoverRepository: DiscoverRepository
 ) : ViewModel() {
-
-    private val _tokenDetail = MutableStateFlow<LoadingState<Token>>(LoadingState.Loading)
-    val tokenDetail: StateFlow<LoadingState<Token>> = _tokenDetail.asStateFlow()
-
+    
+    private val _perpDetail = MutableStateFlow<LoadingState<Perp>>(LoadingState.Loading)
+    val perpDetail: StateFlow<LoadingState<Perp>> = _perpDetail.asStateFlow()
+    
     private val _chartData = MutableStateFlow<LoadingState<List<Double>>>(LoadingState.Idle)
     val chartData: StateFlow<LoadingState<List<Double>>> = _chartData.asStateFlow()
-
+    
     private val _selectedTimeframe = MutableStateFlow("1D")
     val selectedTimeframe: StateFlow<String> = _selectedTimeframe.asStateFlow()
-
-    // ✅ Reactive observation of token from cache
-    fun loadToken(tokenId: String, symbol: String) {
+    
+    private val _selectedLeverage = MutableStateFlow(10)
+    val selectedLeverage: StateFlow<Int> = _selectedLeverage.asStateFlow()
+    
+    fun loadPerp(perpSymbol: String) {
         viewModelScope.launch {
-            discoverRepository.observeTokens()
+            discoverRepository.observePerps()
                 .map { state ->
                     when (state) {
                         is LoadingState.Success -> {
-                            val token = state.data.find {
-                                it.id == tokenId || it.symbol.equals(symbol, ignoreCase = true)
+                            val perp = state.data.find { 
+                                it.symbol.equals(perpSymbol, ignoreCase = true) 
                             }
-                            if (token != null) {
-                                LoadingState.Success(token)
+                            if (perp != null) {
+                                LoadingState.Success(perp)
                             } else {
                                 LoadingState.Error(
-                                    IllegalArgumentException("Token not found"),
-                                    "Token not found in cache"
+                                    IllegalArgumentException("Perp not found"),
+                                    "Perp not found in cache"
                                 )
                             }
                         }
@@ -47,43 +47,36 @@ class TokenDetailViewModel(
                         else -> LoadingState.Loading
                     }
                 }
-                .collect { _tokenDetail.value = it }
+                .collect { _perpDetail.value = it }
         }
     }
-
-    // ✅ One-shot chart fetch (only when timeframe changes)
+    
     fun onTimeframeSelected(timeframe: String) {
-        if (_selectedTimeframe.value == timeframe) return // Skip if same
-
+        if (_selectedTimeframe.value == timeframe) return
+        
         _selectedTimeframe.value = timeframe
         fetchChartData(timeframe)
     }
-
+    
+    fun onLeverageSelected(leverage: Int) {
+        _selectedLeverage.value = leverage
+    }
+    
     private fun fetchChartData(timeframe: String) {
         viewModelScope.launch {
             _chartData.value = LoadingState.Loading
-
+            
             try {
-                // TODO: Replace with actual chart API call
-                kotlinx.coroutines.delay(1000) // Simulate network
-
-                val mockData = List(50) {
-                    100.0 + (Math.random() * 20 - 10)
+                kotlinx.coroutines.delay(1000)
+                
+                val mockData = List(50) { 
+                    1000.0 + (Math.random() * 100 - 50)
                 }
-
+                
                 _chartData.value = LoadingState.Success(mockData)
             } catch (e: Exception) {
                 _chartData.value = LoadingState.Error(e, "Failed to load chart")
             }
-        }
-    }
-
-    fun formatPrice(priceUsd: Double): String {
-        return when {
-            priceUsd >= 1000 -> "$%.2fK".format(priceUsd / 1000)
-            priceUsd >= 1 -> "$%.2f".format(priceUsd)
-            priceUsd >= 0.01 -> "$%.4f".format(priceUsd)
-            else -> "$%.6f".format(priceUsd)
         }
     }
 }

@@ -106,7 +106,7 @@ fun ReceiveScreen(
                     contentAlignment = Alignment.Center
                 ) {
                     if (receiveState.isGeneratingQR) {
-                        CircularProgressIndicator(color = AppColors.Primary)
+                        CircularProgressIndicator(color = AppColors.SurfaceHighlight)
                     } else {
                         receiveState.qrCodeBitmap?.let { bitmap ->
                             Image(

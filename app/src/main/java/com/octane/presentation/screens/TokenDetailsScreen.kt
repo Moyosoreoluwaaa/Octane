@@ -4,28 +4,20 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Text
+import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import com.octane.core.util.LoadingState
 import com.octane.presentation.components.*
-import com.octane.presentation.theme.AppColors
-import com.octane.presentation.theme.AppTypography
-import com.octane.presentation.theme.Dimensions
+import com.octane.presentation.theme.*
 import com.octane.presentation.utils.UiFormatters
 import com.octane.presentation.viewmodel.TokenDetailViewModel
 import org.koin.androidx.compose.koinViewModel
 
-/**
- * Token detail screen with price chart and stats.
- * Connected to TokenDetailViewModel.
- */
 @Composable
 fun TokenDetailsScreen(
-    assetId: String,
+    tokenId: String,
     symbol: String,
     viewModel: TokenDetailViewModel = koinViewModel(),
     onBack: () -> Unit,
@@ -34,13 +26,19 @@ fun TokenDetailsScreen(
     onNavigateToSwap: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val assetDetail by viewModel.assetDetail.collectAsState()
+    val tokenDetail by viewModel.tokenDetail.collectAsState()
+    val chartData by viewModel.chartData.collectAsState()
     val selectedTimeframe by viewModel.selectedTimeframe.collectAsState()
-    
-    LaunchedEffect(assetId) {
-        viewModel.loadAsset(assetId, symbol)
+
+    LaunchedEffect(tokenId) {
+        viewModel.loadToken(tokenId, symbol)
     }
-    
+
+    // ✅ Trigger chart load on first composition
+    LaunchedEffect(Unit) {
+        viewModel.onTimeframeSelected("1D")
+    }
+
     LazyColumn(
         modifier = modifier.fillMaxSize(),
         contentPadding = PaddingValues(
@@ -70,52 +68,37 @@ fun TokenDetailsScreen(
                 )
             }
         }
-        
+
         // Content
-        when (val state = assetDetail) {
+        when (val state = tokenDetail) {
             is LoadingState.Success -> {
-                val asset = state.data
-                
-                // Price Header
+                val token = state.data
+
+                // Price Header with Chart
                 item {
                     DetailHeader(
-                        price = viewModel.formatPrice(asset.priceUsd ?: 0.0),
+                        price = viewModel.formatPrice(token.currentPrice),
                         changeAmount = UiFormatters.formatUsd(
-                            (asset.priceUsd ?: 0.0) * ((asset.priceChange24h ?: 0.0) / 100.0)
+                            token.currentPrice * (token.priceChange24h / 100.0)
                         ),
-                        changePercent = asset.priceChange24h ?: 0.0,
-                        isPositive = (asset.priceChange24h ?: 0.0) >= 0,
+                        changePercent = token.priceChange24h,
+                        isPositive = token.priceChange24h >= 0,
                         selectedTimeframe = selectedTimeframe,
-                        onTimeframeSelected = viewModel::onTimeframeSelected
+                        onTimeframeSelected = viewModel::onTimeframeSelected,
+                        chartState = chartData // ✅ Pass chart state
                     )
                 }
-                
+
                 // Action Grid
                 item {
                     ChartActionGrid(
-                        onReceive = { onNavigateToReceive(symbol) },
+                        onReceive = { /* Navigate to receive */ },
                         onCashBuy = { /* Navigate to on-ramp */ },
-                        onShare = { /* Share functionality */ },
+                        onShare = { /* Share */ },
                         onMore = { /* More options */ }
                     )
                 }
-                
-                // Position Card
-                item {
-                    Text(
-                        "Your Position",
-                        style = AppTypography.titleLarge,
-                        color = AppColors.TextPrimary
-                    )
-                    
-                    MetallicCard(modifier = Modifier.fillMaxWidth()) {
-                        Column(verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)) {
-                            InfoRow("Balance", "${asset.balance} ${asset.symbol}")
-                            InfoRow("Value", UiFormatters.formatUsd(asset.valueUsd ?: 0.0))
-                        }
-                    }
-                }
-                
+
                 // Info Section
                 item {
                     Text(
@@ -123,38 +106,38 @@ fun TokenDetailsScreen(
                         style = AppTypography.titleLarge,
                         color = AppColors.TextPrimary
                     )
-                    
+
                     MetallicCard(modifier = Modifier.fillMaxWidth()) {
                         Column {
-                            InfoRow("Name", asset.name)
-                            InfoRow("Symbol", asset.symbol)
-                            if (asset.mintAddress != null) {
+                            InfoRow("Name", token.name)
+                            InfoRow("Symbol", token.symbol)
+                            InfoRow("Market Cap", token.formattedMarketCap)
+                            InfoRow("24h Volume", UiFormatters.formatCompactNumber(token.volume24h))
+                            if (token.mintAddress != null) {
                                 InfoRow(
                                     "Mint Address",
-                                    UiFormatters.formatAddress(asset.mintAddress!!)
+                                    UiFormatters.formatAddress(token.mintAddress)
                                 )
                             }
                         }
                     }
                 }
             }
-            
+
             is LoadingState.Loading -> {
-                item { LoadingScreen() }
+                item { ShimmerLoadingScreen() }
             }
-            
+
             is LoadingState.Error -> {
                 item {
                     ErrorScreen(
-                        message = state.message ?: "Failed to load token details",
-                        onRetry = { viewModel.loadAsset(assetId, symbol) }
+                        message = state.message,
+                        onRetry = { viewModel.loadToken(tokenId, symbol) }
                     )
                 }
             }
 
-            LoadingState.Idle -> TODO()
-            LoadingState.Simulating -> TODO()
-            is LoadingState.Stale<*> -> TODO()
+            else -> {}
         }
     }
 }

@@ -38,7 +38,8 @@ fun DiscoverScreen(
     viewModel: DiscoverViewModel = koinViewModel(),
     navController: NavController,
     modifier: Modifier = Modifier,
-    onNavigateToTokenDetails: (String, String) -> Unit
+    onNavigateToTokenDetails: (String, String) -> Unit,
+    onNavigateToPerpDetails: (String) -> Unit // 1. ADD THIS PARAMETER
 ) {
     Timber.d("🎨 DiscoverScreen composing...")
 
@@ -222,7 +223,8 @@ fun DiscoverScreen(
                                         trendingTokens = trendingTokens,
                                         searchResults = tokenSearchResults,
                                         onTokenClick = { token ->
-                                            Timber.d("🎨 Token row clicked: ${token.symbol}")
+                                            // 2. UNCOMMENT AND FIX THIS
+                                            viewModel.onTokenClicked(token) // Keep for logging if needed
                                             onNavigateToTokenDetails(token.id, token.symbol)
                                         }
                                     )
@@ -242,8 +244,9 @@ fun DiscoverScreen(
                                         perps = perps,
                                         searchResults = perpSearchResults,
                                         onPerpClick = { perp ->
-                                            Timber.d("🎨 Perp row clicked: ${perp.symbol}")
-                                            viewModel.onPerpClicked(perp)
+                                            // 3. ADD NAVIGATION CALL HERE
+                                            viewModel.onPerpClicked(perp) // Keep for logging if needed
+                                            onNavigateToPerpDetails(perp.symbol)
                                         }
                                     )
                                 }

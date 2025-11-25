@@ -1,3 +1,5 @@
+// presentation/components/DetailHeader.kt
+
 package com.octane.presentation.components
 
 import androidx.compose.foundation.Canvas
@@ -14,13 +16,9 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.unit.dp
-import com.octane.presentation.theme.AppColors
-import com.octane.presentation.theme.AppTypography
-import com.octane.presentation.theme.Dimensions
+import com.octane.core.util.LoadingState
+import com.octane.presentation.theme.*
 
-/**
- * Token detail screen header with price, change, and chart.
- */
 @Composable
 fun DetailHeader(
     price: String,
@@ -29,6 +27,7 @@ fun DetailHeader(
     isPositive: Boolean,
     selectedTimeframe: String,
     onTimeframeSelected: (String) -> Unit,
+    chartState: LoadingState<List<Double>>, // ✅ Chart data state
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier.fillMaxWidth()) {
@@ -38,7 +37,7 @@ fun DetailHeader(
             style = AppTypography.priceDisplay,
             color = AppColors.TextPrimary
         )
-        
+
         // Change
         Row(
             verticalAlignment = Alignment.CenterVertically,
@@ -51,47 +50,54 @@ fun DetailHeader(
             )
             PriceChangeBadge(changePercent = changePercent)
         }
-        
+
         Spacer(modifier = Modifier.height(Dimensions.Spacing.large))
-        
-        // Chart Placeholder
+
+        // ✅ Chart with Loading State
         Box(
             modifier = Modifier
                 .fillMaxWidth()
                 .height(200.dp)
                 .padding(vertical = Dimensions.Spacing.standard)
         ) {
-            val lineColor = if (isPositive) AppColors.Success else AppColors.Error
-            Canvas(modifier = Modifier.fillMaxSize()) {
-                val width = size.width
-                val height = size.height
-                val path = Path().apply {
-                    moveTo(0f, height * 0.7f)
-                    cubicTo(
-                        width * 0.2f,
-                        height * 0.8f,
-                        width * 0.3f,
-                        height * 0.4f,
-                        width * 0.5f,
-                        height * 0.5f
-                    )
-                    cubicTo(
-                        width * 0.7f,
-                        height * 0.6f,
-                        width * 0.8f,
-                        height * 0.2f,
-                        width,
-                        height * 0.1f
+            when (chartState) {
+                is LoadingState.Loading -> {
+                    // Shimmer effect
+                    Box(
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
+                            .shimmerEffect()
                     )
                 }
-                drawPath(
-                    path = path,
-                    color = lineColor,
-                    style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
-                )
+
+                is LoadingState.Success -> {
+                    val data = chartState.data
+                    if (data.isNotEmpty()) {
+                        ChartCanvas(
+                            data = data,
+                            lineColor = if (isPositive) AppColors.Success else AppColors.Error
+                        )
+                    }
+                }
+
+                is LoadingState.Error -> {
+                    Box(
+                        modifier = Modifier.fillMaxSize(),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            "Chart unavailable",
+                            style = AppTypography.bodySmall,
+                            color = AppColors.TextTertiary
+                        )
+                    }
+                }
+
+                else -> {}
             }
         }
-        
+
         // Timeframe Selector
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -105,6 +111,42 @@ fun DetailHeader(
                 )
             }
         }
+    }
+}
+
+@Composable
+private fun ChartCanvas(
+    data: List<Double>,
+    lineColor: androidx.compose.ui.graphics.Color
+) {
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val width = size.width
+        val height = size.height
+
+        val minValue = data.minOrNull() ?: 0.0
+        val maxValue = data.maxOrNull() ?: 1.0
+        val range = maxValue - minValue
+
+        if (range == 0.0) return@Canvas
+
+        val path = Path().apply {
+            data.forEachIndexed { index, value ->
+                val x = (index.toFloat() / (data.size - 1)) * width
+                val y = height - (((value - minValue) / range).toFloat() * height)
+
+                if (index == 0) {
+                    moveTo(x, y)
+                } else {
+                    lineTo(x, y)
+                }
+            }
+        }
+
+        drawPath(
+            path = path,
+            color = lineColor,
+            style = Stroke(width = 3.dp.toPx(), cap = StrokeCap.Round)
+        )
     }
 }
 

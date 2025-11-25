@@ -12,6 +12,7 @@ import androidx.navigation.toRoute
 import com.octane.presentation.screens.DiscoverScreen
 import com.octane.presentation.screens.HomeScreen
 import com.octane.presentation.screens.ManageTokensScreen
+import com.octane.presentation.screens.PerpDetailScreen
 import com.octane.presentation.screens.ReceiveScreen
 import com.octane.presentation.screens.SendScreen
 import com.octane.presentation.screens.SettingsScreen
@@ -95,27 +96,43 @@ fun AppNavHost(
                 navController = navController, // ✅ Pass navController
                 onNavigateToTokenDetails = { assetId, symbol ->
                     navController.navigate(AppRoute.TokenDetails(assetId, symbol))
+                },
+                // 2. Add New Perp Navigation
+                onNavigateToPerpDetails = { perpSymbol ->
+                    navController.navigate(AppRoute.PerpDetailRoute(perpSymbol))
                 }
             )
         }
 
         // ============ Detail Screens (No Bottom Nav) ============
 
+        // Token Detail Screen
         composable<AppRoute.TokenDetails> { backStackEntry ->
             val route = backStackEntry.toRoute<AppRoute.TokenDetails>()
             TokenDetailsScreen(
-                viewModel = koinViewModel(),
-                assetId = route.assetId,
+                tokenId = route.tokenId,
                 symbol = route.symbol,
-                onBack = { navController.popBackStack() },
+                onBack = { navController.navigateUp() },
                 onNavigateToSend = { symbol ->
-                    navController.navigate(AppRoute.Send(tokenSymbol = symbol))
+                    // Navigate to send screen
                 },
                 onNavigateToReceive = { symbol ->
-                    navController.navigate(AppRoute.Receive(tokenSymbol = symbol))
+                    // Navigate to receive screen
                 },
                 onNavigateToSwap = { symbol ->
-                    navController.navigate(AppRoute.Swap)
+                    // Navigate to swap screen
+                }
+            )
+        }
+
+        // Perp Detail Screen
+        composable<AppRoute.PerpDetailRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.PerpDetailRoute>()
+            PerpDetailScreen(
+                perpSymbol = route.perpSymbol,
+                onBack = { navController.navigateUp() },
+                onNavigateToTrade = { perpSymbol ->
+                    // Navigate to perp trading screen
                 }
             )
         }

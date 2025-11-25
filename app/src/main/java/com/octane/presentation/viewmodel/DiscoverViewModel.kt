@@ -288,13 +288,13 @@ class DiscoverViewModel(
     }
 
     fun onTokenClicked(token: Token) {
-        Log.d(TAG, "🎯 Token clicked: ${token.symbol} (${token.name})")
-        // TODO: Navigate to token detail screen
+        Log.d(TAG, "🎯 Token clicked: ${token.symbol}")
+        // Navigation handled in DiscoverScreen via onNavigateToTokenDetails
     }
 
     fun onPerpClicked(perp: Perp) {
         Log.d(TAG, "🎯 Perp clicked: ${perp.symbol}")
-        // TODO: Navigate to perp trading screen
+        // Navigation handled in DiscoverScreen via callback
     }
 
     fun onDAppClicked(dapp: DApp) {

@@ -55,6 +55,10 @@ val viewModelModule = module {
         )
     }
 
+    viewModel {
+        PerpDetailViewModel(get())
+    }
+
     // Staking (V1.1)
     viewModel { StakingViewModel(get(), get(), get(), get()) }
 
