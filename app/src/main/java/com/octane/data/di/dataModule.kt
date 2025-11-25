@@ -7,6 +7,7 @@ import com.octane.data.local.database.OctaneDatabase
 import com.octane.data.remote.api.*
 import com.octane.data.repository.*
 import com.octane.data.service.JupiterSwapService
+import com.octane.data.service.TokenLogoResolver
 import com.octane.domain.repository.*
 import de.jensklingenberg.ktorfit.Ktorfit
 import io.ktor.client.HttpClient
@@ -87,7 +88,7 @@ val dataModule = module {
     // Drift Protocol API
     single<DriftApi> {
         Ktorfit.Builder()
-            .baseUrl("https://data.api.drift.trade/")
+            .baseUrl(ApiConfig.DRIFT_URL)
             .httpClient(get<HttpClient>(named("JupiterHttpClient")))
             .build()
             .createDriftApi()
@@ -100,51 +101,9 @@ val dataModule = module {
         )
     }
 
-    single<PriceRepository> {
-        PriceRepositoryImpl(
-            priceApi = get()
-        )
-    }
-
-    // ===== REPOSITORIES =====
-    single<WalletRepository> {
-        WalletRepositoryImpl(
-            walletDao = get()
-        )
-    }
-
-    single<AssetRepository> {
-        AssetRepositoryImpl(
-            assetDao = get(),
-            solanaRpcApi = get(),
-            priceApi = get(),
-            networkMonitor = get()
-        )
-    }
-
-    single<TransactionRepository> {
-        TransactionRepositoryImpl(
-            transactionDao = get(),
-            solanaRpcApi = get(),
-            networkMonitor = get()
-        )
-    }
-
-    single<ApprovalRepository> {
-        ApprovalRepositoryImpl(
-            approvalDao = get(),
-            solanaRpcApi = get()
-        )
-    }
-
-    // ✅ ADD: DiscoverRepository
-    single<DiscoverRepository> {
-        DiscoverRepositoryImpl(
-            discoverApi = get(),
-            defiLlamaApi = get(),
-            driftApi = get(),
-            discoverDao = get(),
-            networkMonitor = get()
+    single {
+        TokenLogoResolver(
+            coinGeckoApi = get()
         )
     }
 }

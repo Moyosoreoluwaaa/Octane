@@ -9,12 +9,17 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AllInclusive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.* // Import all runtime components
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.octane.presentation.theme.AppColors
 import com.octane.presentation.theme.AppTypography
 import com.octane.presentation.theme.Dimensions
@@ -32,7 +37,8 @@ fun PerpRow(
     changePercent: Double,
     volume24h: String,
     leverageMax: Int,
-    iconColor: Color,
+    logoUrl: String?,
+    fallbackIconColor: Color,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -58,21 +64,41 @@ fun PerpRow(
         ) {
             // Icon with Infinity Badge
             Box(contentAlignment = Alignment.BottomEnd) {
+                // ⭐ ASYNC IMAGE INTEGRATION WITH FALLBACK CORRECTION ⭐
+                var showFallback by remember { mutableStateOf(false) }
+
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
                         .size(Dimensions.Avatar.medium)
                         .clip(CircleShape)
-                        .background(iconColor)
+                        .background(fallbackIconColor) // Fallback background color
                 ) {
-                    Text(
-                        symbol.take(1),
-                        style = AppTypography.labelLarge,
-                        color = Color.White
+                    AsyncImage(
+                        model = ImageRequest.Builder(LocalContext.current)
+                            .data(logoUrl) // Use the logo URL
+                            .crossfade(true)
+                            .build(),
+                        contentDescription = "$symbol Logo",
+                        contentScale = ContentScale.Crop,
+                        modifier = Modifier.fillMaxSize().clip(CircleShape),
+                        onLoading = { showFallback = false },
+                        onSuccess = { showFallback = false },
+                        onError = { showFallback = true }
                     )
+
+                    // Conditional Fallback Content
+                    if (showFallback || logoUrl.isNullOrBlank()) {
+                        Text(
+                            symbol.take(1),
+                            style = AppTypography.labelLarge,
+                            color = Color.White
+                        )
+                    }
                 }
-                
-                // Perp Badge
+                // ⭐ END ASYNC IMAGE INTEGRATION ⭐
+
+                // Perp Badge (remains the same)
                 Box(
                     modifier = Modifier
                         .offset(x = 4.dp, y = 4.dp)
@@ -89,7 +115,7 @@ fun PerpRow(
                     )
                 }
             }
-            
+
             Column {
                 Text(
                     name,
@@ -118,7 +144,7 @@ fun PerpRow(
                 }
             }
         }
-        
+
         // RIGHT: Price + Change
         Column(horizontalAlignment = Alignment.End) {
             Text(

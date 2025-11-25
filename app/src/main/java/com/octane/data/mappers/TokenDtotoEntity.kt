@@ -3,38 +3,62 @@ package com.octane.data.mappers
 import TokenDto
 import com.octane.data.local.database.entities.TokenEntity
 import com.octane.domain.models.Token
-
+import timber.log.Timber
+import kotlin.collections.map
 
 /**
- * DTO → Entity (API → Database)
+ * ✅ FIXED: Token mappers with proper logo URL extraction
+ *
+ * Data Flow:
+ * CoinGecko API → TokenDto → TokenEntity (Database) → Token (Domain)
+ */
+
+// ==================== DTO → ENTITY ====================
+
+/**
+ * Convert CoinGecko API DTO to Room Entity.
+ *
+ * CRITICAL: The `image` field from CoinGecko contains the logo URL!
  */
 fun TokenDto.toEntity(): TokenEntity {
+    Timber.d("🔄 Mapping TokenDto: $symbol - Image URL: $image")
+
     return TokenEntity(
         id = id,
-        symbol = symbol.uppercase(),
+        symbol = symbol,
         name = name,
+
+        // ✅ CRITICAL FIX: Map the `image` field from CoinGecko API
         logoUrl = image,
+
         currentPrice = currentPrice,
         priceChange24h = priceChange24h ?: 0.0,
         marketCap = marketCap,
         volume24h = totalVolume,
-        rank = marketCapRank ?: Int.MAX_VALUE,
-        isVerified = true, // Assume CoinGecko tokens are verified
-        tags = "", // TODO: Add tags if available in future API versions
-        mintAddress = platforms?.get("solana"), // Extract Solana mint address
+        rank = marketCapRank ?: 999,
+        isVerified = true,
+        tags = "", // CoinGecko /markets doesn't provide tags
+
+        // Extract Solana mint address from platforms map
+        mintAddress = platforms?.get("solana"),
+
         lastUpdated = System.currentTimeMillis()
-    )
+    ).also {
+        Timber.d("✅ TokenEntity created: ${it.symbol} - Logo: ${it.logoUrl}")
+    }
 }
 
+// ==================== ENTITY → DOMAIN ====================
+
 /**
- * Entity → Domain (Database → Business Logic)
+ * Convert Room Entity to Domain Model.
  */
 fun TokenEntity.toDomain(): Token {
     return Token(
         id = id,
         symbol = symbol,
         name = name,
-        logoUrl = logoUrl,
+        logoUrl = logoUrl, // ✅ Pass through to domain
         currentPrice = currentPrice,
         priceChange24h = priceChange24h,
         marketCap = marketCap,
@@ -46,8 +70,18 @@ fun TokenEntity.toDomain(): Token {
     )
 }
 
-/**
- * List extensions for batch mapping.
- */
-fun List<TokenDto>.toEntities(): List<TokenEntity> = map { it.toEntity() }
+// ==================== LIST EXTENSIONS ====================
+
+fun List<TokenDto>.toEntities(): List<TokenEntity> {
+    Timber.d("📦 Converting ${this.size} TokenDTOs to Entities")
+    val entities = map { it.toEntity() }
+
+    // Log first 3 for verification
+    entities.take(3).forEach {
+        Timber.d("  • ${it.symbol}: ${it.logoUrl?.take(50)}...")
+    }
+
+    return entities
+}
+
 fun List<TokenEntity>.toDomainTokens(): List<Token> = map { it.toDomain() }

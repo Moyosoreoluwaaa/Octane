@@ -1,6 +1,13 @@
 package com.octane
 
 import android.app.Application
+import coil3.ImageLoader
+import coil3.PlatformContext
+import coil3.SingletonImageLoader
+import coil3.disk.DiskCache
+import coil3.memory.MemoryCache
+import coil3.network.okhttp.OkHttpNetworkFetcherFactory
+import coil3.request.crossfade
 import com.octane.core.di.coreModule
 import com.octane.core.di.networkModule
 import com.octane.data.di.preferencesModule
@@ -8,12 +15,15 @@ import com.octane.data.di.dataModule
 import com.octane.data.di.repositoryModule
 import com.octane.domain.di.domainModule
 import com.octane.presentation.di.viewModelModule
+import okhttp3.OkHttpClient
+import okio.Path.Companion.toOkioPath
 import org.koin.android.ext.koin.androidContext
 import org.koin.android.ext.koin.androidLogger
 import org.koin.core.context.startKoin
 import org.koin.core.logger.Level
+import java.util.concurrent.TimeUnit
 
-class OctaneApplication : Application() {
+class OctaneApplication : Application(), SingletonImageLoader.Factory {
 
     override fun onCreate() {
         super.onCreate()
@@ -44,5 +54,43 @@ class OctaneApplication : Application() {
                 viewModelModule    // ViewModels
             )
         }
+    }
+
+    // ⭐ FIXED: Coil 3.x proper configuration ⭐
+    override fun newImageLoader(context: PlatformContext): ImageLoader {
+        return ImageLoader.Builder(context)
+            .crossfade(true)
+
+            // ✅ FIX 1: Memory cache configuration
+            .memoryCache {
+                MemoryCache.Builder()
+                    .maxSizePercent(context, 0.25) // Use 25% of available RAM
+                    .build()
+            }
+
+            // ✅ FIX 2: Disk cache with okio.Path (not java.io.File)
+            .diskCache {
+                DiskCache.Builder()
+                    .directory(context.cacheDir.resolve("image_cache").toOkioPath()) // ⭐ Convert to okio.Path
+                    .maxSizeBytes(50 * 1024 * 1024) // 50 MB disk cache
+                    .build()
+            }
+
+            // ✅ FIX 3: Use OkHttpNetworkFetcherFactory (not okHttpClient builder)
+            .components {
+                add(
+                    OkHttpNetworkFetcherFactory(
+                        callFactory = {
+                            OkHttpClient.Builder()
+                                .connectTimeout(30, TimeUnit.SECONDS)
+                                .readTimeout(30, TimeUnit.SECONDS)
+                                .writeTimeout(30, TimeUnit.SECONDS)
+                                .build()
+                        }
+                    )
+                )
+            }
+
+            .build()
     }
 }

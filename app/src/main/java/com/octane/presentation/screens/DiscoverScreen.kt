@@ -1,6 +1,6 @@
 package com.octane.presentation.screens
 
-import android.util.Log
+import timber.log.Timber // ✅ Replaced android.util.Log with Timber
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -24,6 +24,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavController
 import com.octane.core.util.LoadingState
+import com.octane.domain.models.DApp
+import com.octane.domain.models.Perp
+import com.octane.domain.models.Token
 import com.octane.presentation.components.BottomNavBar
 import com.octane.presentation.components.LearnCard
 import com.octane.presentation.components.ModeSelectorTabs
@@ -38,7 +41,7 @@ import com.octane.presentation.viewmodel.DiscoverMode
 import com.octane.presentation.viewmodel.DiscoverViewModel
 import org.koin.androidx.compose.koinViewModel
 
-private const val TAG = "DiscoverScreen"
+// Removed: private const val TAG = "DiscoverScreen" - Timber auto-generates tags
 
 @Composable
 fun DiscoverScreen(
@@ -47,7 +50,7 @@ fun DiscoverScreen(
     modifier: Modifier = Modifier,
     onNavigateToTokenDetails: (String, String) -> Unit
 ) {
-    Log.d(TAG, "🎨 DiscoverScreen composing...")
+    Timber.d("🎨 DiscoverScreen composing...")
 
     // ==================== State ====================
 
@@ -67,29 +70,29 @@ fun DiscoverScreen(
     // Log state changes
     LaunchedEffect(trendingTokens) {
         when (trendingTokens) {
-            is LoadingState.Loading -> Log.d(TAG, "🎨 UI State: Trending tokens - Loading")
+            is LoadingState.Loading -> Timber.d("🎨 UI State: Trending tokens - Loading")
             is LoadingState.Success -> {
                 val tokens = (trendingTokens as LoadingState.Success).data
-                Log.i(TAG, "🎨 UI State: Trending tokens - ${tokens.size} tokens ready to display")
+                Timber.i("🎨 UI State: Trending tokens - ${tokens.size} tokens ready to display")
             }
             is LoadingState.Error -> {
                 val error = (trendingTokens as LoadingState.Error).message
-                Log.e(TAG, "🎨 UI State: Trending tokens - Error: $error")
+                Timber.e("🎨 UI State: Trending tokens - Error: $error")
             }
-            else -> Log.d(TAG, "🎨 UI State: Trending tokens - Unknown state")
+            else -> Timber.d("🎨 UI State: Trending tokens - Unknown state")
         }
     }
 
     LaunchedEffect(selectedMode) {
-        Log.d(TAG, "🎨 UI: Selected mode changed to $selectedMode")
+        Timber.d("🎨 UI: Selected mode changed to $selectedMode")
     }
 
     LaunchedEffect(searchQuery) {
-        Log.d(TAG, "🎨 UI: Search query changed to '$searchQuery'")
+        Timber.d("🎨 UI: Search query changed to '$searchQuery'")
     }
 
     LaunchedEffect(isRefreshing) {
-        Log.d(TAG, "🎨 UI: Refreshing state = $isRefreshing")
+        Timber.d("🎨 UI: Refreshing state = $isRefreshing")
     }
 
     // ==================== UI ====================
@@ -109,11 +112,11 @@ fun DiscoverScreen(
         ) {
             // ==================== SEARCH INPUT ====================
             item {
-                Log.d(TAG, "🎨 Rendering search input with query: '$searchQuery'")
+                Timber.d("🎨 Rendering search input with query: '$searchQuery'")
                 SearchInput(
                     query = searchQuery,
                     onQueryChange = { newQuery ->
-                        Log.d(TAG, "🎨 Search input changed: '$newQuery'")
+                        Timber.d("🎨 Search input changed: '$newQuery'")
                         viewModel.onSearchQueryChanged(newQuery)
                     },
                     placeholder = "Sites, tokens, URL"
@@ -122,7 +125,7 @@ fun DiscoverScreen(
 
             // ==================== MODE TABS ====================
             item {
-                Log.d(TAG, "🎨 Rendering mode tabs, selected: $selectedMode")
+                Timber.d("🎨 Rendering mode tabs, selected: $selectedMode")
                 ModeSelectorTabs(
                     modes = listOf("Tokens", "Perps", "Lists"),
                     selectedMode = when (selectedMode) {
@@ -131,7 +134,7 @@ fun DiscoverScreen(
                         DiscoverMode.LISTS -> "Lists"
                     },
                     onModeSelected = { mode ->
-                        Log.d(TAG, "🎨 Tab clicked: $mode")
+                        Timber.d("🎨 Tab clicked: $mode")
                         viewModel.onModeSelected(
                             when (mode) {
                                 "Tokens" -> DiscoverMode.TOKENS
@@ -147,39 +150,39 @@ fun DiscoverScreen(
             // ==================== CONTENT BY MODE ====================
             when (selectedMode) {
                 DiscoverMode.TOKENS -> {
-                    Log.d(TAG, "🎨 Rendering TOKENS tab content")
+                    Timber.d("🎨 Rendering TOKENS tab content")
                     renderTokensTab(
                         searchQuery = searchQuery,
                         trendingTokens = trendingTokens,
                         searchResults = tokenSearchResults,
                         onTokenClick = { token ->
-                            Log.d(TAG, "🎨 Token row clicked: ${token.symbol}")
+                            Timber.d("🎨 Token row clicked: ${token.symbol}")
                             onNavigateToTokenDetails(token.id, token.symbol)
                         }
                     )
                 }
 
                 DiscoverMode.PERPS -> {
-                    Log.d(TAG, "🎨 Rendering PERPS tab content")
+                    Timber.d("🎨 Rendering PERPS tab content")
                     renderPerpsTab(
                         searchQuery = searchQuery,
                         perps = perps,
                         searchResults = perpSearchResults,
                         onPerpClick = { perp ->
-                            Log.d(TAG, "🎨 Perp row clicked: ${perp.symbol}")
+                            Timber.d("🎨 Perp row clicked: ${perp.symbol}")
                             viewModel.onPerpClicked(perp)
                         }
                     )
                 }
 
                 DiscoverMode.LISTS -> {
-                    Log.d(TAG, "🎨 Rendering LISTS tab content")
+                    Timber.d("🎨 Rendering LISTS tab content")
                     renderListsTab(
                         searchQuery = searchQuery,
                         dapps = dapps,
                         searchResults = dappSearchResults,
                         onDAppClick = { dapp ->
-                            Log.d(TAG, "🎨 DApp row clicked: ${dapp.name}")
+                            Timber.d("🎨 DApp row clicked: ${dapp.name}")
                             viewModel.onDAppClicked(dapp)
                         }
                     )
@@ -189,9 +192,9 @@ fun DiscoverScreen(
     }
 
     DisposableEffect(Unit) {
-        Log.d(TAG, "🎨 DiscoverScreen entered")
+        Timber.d("🎨 DiscoverScreen entered")
         onDispose {
-            Log.d(TAG, "🎨 DiscoverScreen disposed")
+            Timber.d("🎨 DiscoverScreen disposed")
         }
     }
 }
@@ -200,13 +203,13 @@ fun DiscoverScreen(
 
 private fun LazyListScope.renderTokensTab(
     searchQuery: String,
-    trendingTokens: LoadingState<List<com.octane.domain.models.Token>>,
-    searchResults: LoadingState<List<com.octane.domain.models.Token>>,
-    onTokenClick: (com.octane.domain.models.Token) -> Unit
+    trendingTokens: LoadingState<List<Token>>,
+    searchResults: LoadingState<List<Token>>,
+    onTokenClick: (Token) -> Unit
 ) {
     val displayState = if (searchQuery.isNotBlank()) searchResults else trendingTokens
 
-    Log.d(TAG, "🎨 renderTokensTab: searchQuery='$searchQuery', displayState=${displayState.javaClass.simpleName}")
+    Timber.d("🎨 renderTokensTab: searchQuery='$searchQuery', displayState=${displayState.javaClass.simpleName}")
 
     item {
         Text(
@@ -218,16 +221,16 @@ private fun LazyListScope.renderTokensTab(
 
     when (displayState) {
         is LoadingState.Loading -> {
-            Log.d(TAG, "🎨 Displaying Loading state for tokens")
+            Timber.d("🎨 Displaying Loading state for tokens")
             item { LoadingScreen() }
         }
 
         is LoadingState.Success -> {
             val tokens = displayState.data
-            Log.i(TAG, "🎨 Displaying ${tokens.size} tokens")
+            Timber.i("🎨 Displaying ${tokens.size} tokens")
 
             if (tokens.isEmpty()) {
-                Log.w(TAG, "🎨 Token list is empty, showing EmptyState")
+                Timber.w("🎨 Token list is empty, showing EmptyState")
                 item {
                     EmptyState(
                         message = if (searchQuery.isNotBlank())
@@ -237,7 +240,7 @@ private fun LazyListScope.renderTokensTab(
                     )
                 }
             } else {
-                Log.d(TAG, "🎨 Rendering ${tokens.take(20).size} token rows")
+                Timber.d("🎨 Rendering ${tokens.take(20).size} token rows")
                 items(tokens.take(20)) { token ->
                     RankedTokenRow(
                         rank = tokens.indexOf(token) + 1,
@@ -246,9 +249,10 @@ private fun LazyListScope.renderTokensTab(
                         marketCap = token.formattedMarketCap,
                         price = token.formattedPrice,
                         changePercent = token.priceChange24h,
-                        iconColor = getTokenColor(token.symbol),
+                        logoUrl = token.logoUrl, // ✅ Passing the logo URL
+                        fallbackIconColor = getTokenColor(token.symbol), // ✅ Passing fallback color
                         onClick = {
-                            Log.d(TAG, "🎨 Token clicked in row: ${token.symbol}")
+                            Timber.d("🎨 Token clicked in row: ${token.symbol}")
                             onTokenClick(token)
                         }
                     )
@@ -257,12 +261,12 @@ private fun LazyListScope.renderTokensTab(
         }
 
         is LoadingState.Error -> {
-            Log.e(TAG, "🎨 Displaying Error state: ${displayState.message}")
+            Timber.e("🎨 Displaying Error state: ${displayState.message}")
             item {
                 ErrorState(
                     message = displayState.message,
                     onRetry = {
-                        Log.d(TAG, "🎨 Retry button clicked")
+                        Timber.d("🎨 Retry button clicked")
                         // Trigger refresh via ViewModel
                     }
                 )
@@ -270,7 +274,7 @@ private fun LazyListScope.renderTokensTab(
         }
 
         else -> {
-            Log.w(TAG, "🎨 Unknown LoadingState type: ${displayState.javaClass.simpleName}")
+            Timber.w("🎨 Unknown LoadingState type: ${displayState.javaClass.simpleName}")
         }
     }
 }
@@ -279,13 +283,13 @@ private fun LazyListScope.renderTokensTab(
 
 private fun LazyListScope.renderPerpsTab(
     searchQuery: String,
-    perps: LoadingState<List<com.octane.domain.models.Perp>>,
-    searchResults: LoadingState<List<com.octane.domain.models.Perp>>,
-    onPerpClick: (com.octane.domain.models.Perp) -> Unit
+    perps: LoadingState<List<Perp>>,
+    searchResults: LoadingState<List<Perp>>,
+    onPerpClick: (Perp) -> Unit
 ) {
     val displayState = if (searchQuery.isNotBlank()) searchResults else perps
 
-    Log.d(TAG, "🎨 renderPerpsTab: displayState=${displayState.javaClass.simpleName}")
+    Timber.d("🎨 renderPerpsTab: displayState=${displayState.javaClass.simpleName}")
 
     item {
         Text(
@@ -297,16 +301,16 @@ private fun LazyListScope.renderPerpsTab(
 
     when (displayState) {
         is LoadingState.Loading -> {
-            Log.d(TAG, "🎨 Displaying Loading state for perps")
+            Timber.d("🎨 Displaying Loading state for perps")
             item { LoadingScreen() }
         }
 
         is LoadingState.Success -> {
             val perpList = displayState.data
-            Log.i(TAG, "🎨 Displaying ${perpList.size} perps")
+            Timber.i("🎨 Displaying ${perpList.size} perps")
 
             if (perpList.isEmpty()) {
-                Log.d(TAG, "🎨 Perp list is empty")
+                Timber.d("🎨 Perp list is empty")
                 item {
                     EmptyState(
                         message = "Perpetual futures coming soon"
@@ -321,7 +325,8 @@ private fun LazyListScope.renderPerpsTab(
                         changePercent = perp.priceChange24h,
                         volume24h = perp.formattedOpenInterest,
                         leverageMax = perp.leverage.replace("x", "").toIntOrNull() ?: 20,
-                        iconColor = getTokenColor(perp.symbol.split("-").first()),
+                        logoUrl = perp.logoUrl, // ✅ Passing the logo URL
+                        fallbackIconColor = getTokenColor(perp.symbol.split("-").first()), // ✅ Passing fallback color
                         onClick = { onPerpClick(perp) }
                     )
                 }
@@ -329,7 +334,7 @@ private fun LazyListScope.renderPerpsTab(
         }
 
         is LoadingState.Error -> {
-            Log.e(TAG, "🎨 Displaying Error state for perps: ${displayState.message}")
+            Timber.e("🎨 Displaying Error state for perps: ${displayState.message}")
             item {
                 ErrorState(
                     message = displayState.message,
@@ -346,13 +351,13 @@ private fun LazyListScope.renderPerpsTab(
 
 private fun LazyListScope.renderListsTab(
     searchQuery: String,
-    dapps: LoadingState<List<com.octane.domain.models.DApp>>,
-    searchResults: LoadingState<List<com.octane.domain.models.DApp>>,
-    onDAppClick: (com.octane.domain.models.DApp) -> Unit
+    dapps: LoadingState<List<DApp>>,
+    searchResults: LoadingState<List<DApp>>,
+    onDAppClick: (DApp) -> Unit
 ) {
     val displayState = if (searchQuery.isNotBlank()) searchResults else dapps
 
-    Log.d(TAG, "🎨 renderListsTab: displayState=${displayState.javaClass.simpleName}")
+    Timber.d("🎨 renderListsTab: displayState=${displayState.javaClass.simpleName}")
 
     item {
         Text(
@@ -364,16 +369,16 @@ private fun LazyListScope.renderListsTab(
 
     when (displayState) {
         is LoadingState.Loading -> {
-            Log.d(TAG, "🎨 Displaying Loading state for dApps")
+            Timber.d("🎨 Displaying Loading state for dApps")
             item { LoadingScreen() }
         }
 
         is LoadingState.Success -> {
             val dappList = displayState.data
-            Log.i(TAG, "🎨 Displaying ${dappList.size} dApps")
+            Timber.i("🎨 Displaying ${dappList.size} dApps")
 
             if (dappList.isEmpty()) {
-                Log.d(TAG, "🎨 DApp list is empty")
+                Timber.d("🎨 DApp list is empty")
                 item {
                     EmptyState(
                         message = "No dApps found"
@@ -386,6 +391,7 @@ private fun LazyListScope.renderListsTab(
                         name = dapp.name,
                         category = dapp.category.name.lowercase()
                             .replaceFirstChar { it.uppercase() },
+                        logoUrl = dapp.logoUrl, // ✅ Passing the logo URL
                         onClick = { onDAppClick(dapp) }
                     )
                 }
@@ -411,7 +417,7 @@ private fun LazyListScope.renderListsTab(
         }
 
         is LoadingState.Error -> {
-            Log.e(TAG, "🎨 Displaying Error state for dApps: ${displayState.message}")
+            Timber.e("🎨 Displaying Error state for dApps: ${displayState.message}")
             item {
                 ErrorState(
                     message = displayState.message,
@@ -444,7 +450,7 @@ private fun EmptyState(
     message: String,
     modifier: Modifier = Modifier
 ) {
-    Log.d(TAG, "🎨 Rendering EmptyState: $message")
+    Timber.d("🎨 Rendering EmptyState: $message")
     Box(
         modifier = modifier
             .fillMaxWidth()
@@ -465,7 +471,7 @@ private fun ErrorState(
     onRetry: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    Log.d(TAG, "🎨 Rendering ErrorState: $message")
+    Timber.d("🎨 Rendering ErrorState: $message")
     Column(
         modifier = modifier
             .fillMaxWidth()

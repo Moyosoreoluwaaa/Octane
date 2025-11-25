@@ -11,13 +11,18 @@ import androidx.compose.material.icons.rounded.School
 import androidx.compose.material.icons.rounded.Stars
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.runtime.* // Import all runtime components
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import coil3.request.ImageRequest
+import coil3.request.crossfade
 import com.octane.presentation.theme.AppColors
 import com.octane.presentation.theme.AppTypography
 import com.octane.presentation.theme.Dimensions
@@ -31,6 +36,7 @@ fun SiteRow(
     rank: Int,
     name: String,
     category: String,
+    logoUrl: String?,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -57,7 +63,7 @@ fun SiteRow(
                     2 -> Color(0xFFC0C0C0) // Silver
                     else -> Color(0xFFCD7F32) // Bronze
                 }
-                
+
                 Icon(
                     Icons.Rounded.Stars,
                     contentDescription = null,
@@ -79,26 +85,46 @@ fun SiteRow(
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.width(Dimensions.Spacing.medium))
-        
+
+        // ⭐ ASYNC IMAGE INTEGRATION WITH FALLBACK CORRECTION ⭐
+        var showFallback by remember { mutableStateOf(false) }
+
         // Site Icon
         Box(
             modifier = Modifier
                 .size(48.dp)
                 .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
-                .background(AppColors.SurfaceHighlight),
+                .background(AppColors.SurfaceHighlight), // Fallback background color
             contentAlignment = Alignment.Center
         ) {
-            Text(
-                name.take(1),
-                style = AppTypography.titleMedium,
-                color = AppColors.TextPrimary
+            AsyncImage(
+                model = ImageRequest.Builder(LocalContext.current)
+                    .data(logoUrl) // Use the logo URL
+                    .crossfade(true)
+                    .build(),
+                contentDescription = "$name Logo",
+                contentScale = ContentScale.Crop,
+                modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(Dimensions.CornerRadius.medium)),
+                onLoading = { showFallback = false },
+                onSuccess = { showFallback = false },
+                onError = { showFallback = true }
             )
+
+            // Conditional Fallback Content
+            if (showFallback || logoUrl.isNullOrBlank()) {
+                Text(
+                    name.take(1),
+                    style = AppTypography.titleMedium,
+                    color = AppColors.TextPrimary
+                )
+            }
         }
-        
+        // ⭐ END ASYNC IMAGE INTEGRATION ⭐
+
         Spacer(modifier = Modifier.width(Dimensions.Spacing.standard))
-        
+
         // Name & Category
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -112,7 +138,7 @@ fun SiteRow(
                 color = AppColors.TextSecondary
             )
         }
-        
+
         // Arrow
         Box(
             modifier = Modifier
@@ -132,7 +158,7 @@ fun SiteRow(
 }
 
 /**
- * Learn card for educational content.
+ * Learn card for educational content. (Unchanged, as it's not a dynamic list item)
  */
 @Composable
 fun LearnCard(
@@ -172,7 +198,7 @@ fun LearnCard(
                 modifier = Modifier.size(Dimensions.IconSize.extraLarge)
             )
         }
-        
+
         Column {
             Text(
                 title,

@@ -10,6 +10,8 @@ object ApiConfig {
     // ✅ FIXED: DeFiLlama FREE public API (no authentication needed)
     const val DEFILLAMA_BASE_URL = "https://api.llama.fi/"
 
+    const val DRIFT_URL = "https://data.api.drift.trade/"
+
     // Solana RPC endpoints
     object Solana {
         const val MAINNET_PUBLIC = "https://api.mainnet-beta.solana.com/"

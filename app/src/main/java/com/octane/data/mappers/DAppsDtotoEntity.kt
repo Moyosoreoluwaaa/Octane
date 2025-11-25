@@ -4,16 +4,31 @@ import com.octane.data.local.database.entities.DAppEntity
 import com.octane.data.remote.dto.DAppDto
 import com.octane.domain.models.DApp
 import com.octane.domain.models.DAppCategory
+import timber.log.Timber
 
 /**
- * ✅ FIXED: DTO → Entity with proper null handling
+ * ✅ FIXED: DApp mappers with proper logo URL handling
+ *
+ * Data Flow:
+ * DeFiLlama API → DAppDto → DAppEntity (Database) → DApp (Domain)
  */
+
+// ==================== DTO → ENTITY ====================
+
 fun DAppDto.toEntity(): DAppEntity {
+    // ✅ DeFiLlama provides logo URLs via their CDN
+    val logoUrl = logo ?: "https://icons.llama.fi/icons/protocols/${slug}?w=48"
+
+    Timber.d("🔄 Mapping DAppDto: $name - Logo: $logoUrl")
+
     return DAppEntity(
         id = id,
         name = name,
         description = description ?: "No description available",
-        logoUrl = logo,
+
+        // ✅ CRITICAL FIX: Use DeFiLlama's logo or CDN fallback
+        logoUrl = logoUrl,
+
         category = category,
         url = url ?: "https://defillama.com/protocol/$slug",
         tvl = tvl,
@@ -21,21 +36,22 @@ fun DAppDto.toEntity(): DAppEntity {
         users24h = null, // Not in /protocols endpoint
         isVerified = audits != null && audits != "0",
         chains = chains.joinToString(",").ifEmpty { chain ?: "Solana" },
-        rating = 0.0, // Not in API
+        rating = 0.0,
         tags = (oracles ?: emptyList()).joinToString(","),
         lastUpdated = System.currentTimeMillis()
-    )
+    ).also {
+        Timber.d("✅ DAppEntity created: ${it.name} - Logo: ${it.logoUrl}")
+    }
 }
 
-/**
- * Entity → Domain
- */
+// ==================== ENTITY → DOMAIN ====================
+
 fun DAppEntity.toDomain(): DApp {
     return DApp(
         id = id,
         name = name,
         description = description,
-        logoUrl = logoUrl,
+        logoUrl = logoUrl, // ✅ Pass through to domain
         category = parseDAppCategory(category),
         url = url,
         tvl = tvl,
@@ -48,24 +64,36 @@ fun DAppEntity.toDomain(): DApp {
     )
 }
 
-/**
- * Parse category string to enum.
- */
+// ==================== CATEGORY PARSING ====================
+
 private fun parseDAppCategory(category: String): DAppCategory {
     return when (category.lowercase().replace(" ", "")) {
         "dex", "decentralizedexchange" -> DAppCategory.DEFI
         "lending", "borrowing" -> DAppCategory.DEFI
-        "yield", "yieldaggregator" -> DAppCategory.DEFI
-        "liquidstaking" -> DAppCategory.DEFI
+        "yield", "yieldaggregator", "yield aggregator" -> DAppCategory.DEFI
+        "liquidstaking", "liquid staking" -> DAppCategory.DEFI
         "nft", "nftmarketplace", "nftlending" -> DAppCategory.NFT
         "gaming", "gamblefi" -> DAppCategory.GAMING
         "socialfi", "social" -> DAppCategory.SOCIAL
-        "bridge", "crosschain" -> DAppCategory.BRIDGE
+        "bridge", "crosschain", "cross-chain" -> DAppCategory.BRIDGE
         "wallet" -> DAppCategory.WALLET
         "derivatives", "options", "perpetuals" -> DAppCategory.DEFI
         else -> DAppCategory.OTHER
     }
 }
 
-fun List<DAppDto>.toEntities(): List<DAppEntity> = map { it.toEntity() }
+// ==================== LIST EXTENSIONS ====================
+
+fun List<DAppDto>.toEntities(): List<DAppEntity> {
+    Timber.d("📦 Converting ${this.size} DAppDTOs to Entities")
+    val entities = map { it.toEntity() }
+
+    // Log first 3 for verification
+    entities.take(3).forEach {
+        Timber.d("  • ${it.name}: ${it.logoUrl?.take(50)}...")
+    }
+
+    return entities
+}
+
 fun List<DAppEntity>.toDomainDApps(): List<DApp> = map { it.toDomain() }

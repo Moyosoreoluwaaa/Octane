@@ -1,6 +1,7 @@
 [versions]
 # Build & Kotlin
 agp = "8.9.3"
+coilNetworkOkhttp = "3.0.4"
 kotlin = "2.2.21"
 ksp = "2.3.1"  # UPDATED - correct KSP version for Kotlin 2.0.21
 kotlinxCollectionsImmutable = "0.3.7"
@@ -104,6 +105,7 @@ walletConnectCore = "1.35.2"  # For WalletConnect integration (dApp connects, e.
 android-desugarJdkLibs = { group = "com.android.tools", name = "desugar_jdk_libs", version.ref = "androidDesugarJdkLibs" }
 android-gradlePlugin = { group = "com.android.tools.build", name = "gradle", version.ref = "agp" }
 android-tools-common = { group = "com.android.tools", name = "common", version.ref = "androidTools" }
+coil-network-okhttp = { module = "io.coil-kt.coil3:coil-network-okhttp", version.ref = "coilNetworkOkhttp" }
 kotlin-gradlePlugin = { group = "org.jetbrains.kotlin", name = "kotlin-gradle-plugin", version.ref = "kotlin" }
 ksp-gradlePlugin = { group = "com.google.devtools.ksp", name = "com.google.devtools.ksp.gradle.plugin", version.ref = "ksp" }
 compose-gradlePlugin = { group = "org.jetbrains.kotlin", name = "compose-compiler-gradle-plugin", version.ref = "kotlin" }

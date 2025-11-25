@@ -142,6 +142,9 @@ dependencies {
 
 // Image Loading
     implementation(libs.coil.compose)
+    implementation(libs.coil.network.okhttp) // ⭐ CRITICAL for OkHttp support
+    implementation(libs.kamel.image)
+
 
 // Database
     implementation(libs.sqldelight.android.driver)
