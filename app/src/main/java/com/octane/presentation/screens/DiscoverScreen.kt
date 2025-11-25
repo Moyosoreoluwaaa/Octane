@@ -4,32 +4,16 @@ import timber.log.Timber
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
-import androidx.compose.material3.Button
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.derivedStateOf
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.graphicsLayer
@@ -39,14 +23,7 @@ import com.octane.core.util.LoadingState
 import com.octane.domain.models.DApp
 import com.octane.domain.models.Perp
 import com.octane.domain.models.Token
-import com.octane.presentation.components.BottomNavBar
-import com.octane.presentation.components.ErrorScreen
-import com.octane.presentation.components.LearnCard
-import com.octane.presentation.components.ModeSelectorTabs
-import com.octane.presentation.components.PerpRow
-import com.octane.presentation.components.RankedTokenRow
-import com.octane.presentation.components.SearchInput
-import com.octane.presentation.components.SiteRow
+import com.octane.presentation.components.*
 import com.octane.presentation.theme.AppColors
 import com.octane.presentation.theme.AppTypography
 import com.octane.presentation.theme.Dimensions
@@ -97,15 +74,17 @@ fun DiscoverScreen(
 
     val scope = rememberCoroutineScope()
 
-    // ✅ Get current scroll state based on active tab
-    val currentScrollState = when (pagerState.currentPage) {
-        0 -> tokensScrollState
-        1 -> perpsScrollState
-        2 -> listsScrollState
-        else -> tokensScrollState
+    // ✅ FIXED: Get current scroll state based on PAGER page, not selectedMode
+    val currentScrollState = remember(pagerState.currentPage) {
+        when (pagerState.currentPage) {
+            0 -> tokensScrollState
+            1 -> perpsScrollState
+            2 -> listsScrollState
+            else -> tokensScrollState
+        }
     }
 
-    // ✅ Calculate search bar visibility based on scroll
+    // ✅ Calculate search bar visibility based on CURRENT tab's scroll
     val searchBarAlpha by remember {
         derivedStateOf {
             val firstVisibleIndex = currentScrollState.firstVisibleItemIndex
@@ -119,19 +98,12 @@ fun DiscoverScreen(
         }
     }
 
-    // ✅ Animate alpha changes
+    // ✅ Animate alpha changes smoothly
     val animatedAlpha by animateFloatAsState(
         targetValue = searchBarAlpha,
-        animationSpec = tween(durationMillis = 200),
+        animationSpec = tween(durationMillis = 300), // Increased from 200ms for smoother feel
         label = "searchBarAlpha"
     )
-
-    // ✅ Calculate search bar height for layout
-    val searchBarHeight by remember {
-        derivedStateOf {
-            (60.dp * animatedAlpha).coerceAtLeast(0.dp)
-        }
-    }
 
     // Sync pager state with selected mode
     LaunchedEffect(pagerState.currentPage) {
@@ -147,20 +119,11 @@ fun DiscoverScreen(
         }
     }
 
-    // Log state changes
-    LaunchedEffect(trendingTokens) {
-        when (trendingTokens) {
-            is LoadingState.Loading -> Timber.d("🎨 UI State: Trending tokens - Loading")
-            is LoadingState.Success -> {
-                val tokens = (trendingTokens as LoadingState.Success).data
-                Timber.i("🎨 UI State: Trending tokens - ${tokens.size} tokens ready to display")
-            }
-            is LoadingState.Error -> {
-                val error = (trendingTokens as LoadingState.Error).message
-                Timber.e("🎨 UI State: Trending tokens - Error: $error")
-            }
-            else -> Timber.d("🎨 UI State: Trending tokens - Unknown state")
-        }
+    // ✅ Check if ALL tabs are loading for full-screen shimmer
+    val isFullScreenLoading = remember(trendingTokens, perps, dapps) {
+        trendingTokens is LoadingState.Loading &&
+                perps is LoadingState.Loading &&
+                dapps is LoadingState.Loading
     }
 
     // ==================== UI ====================
@@ -168,139 +131,143 @@ fun DiscoverScreen(
     Scaffold(
         bottomBar = { BottomNavBar(navController = navController) }
     ) { innerPadding ->
-        Column(
+        Box(
             modifier = modifier
                 .fillMaxSize()
                 .padding(innerPadding)
         ) {
-            // ==================== COLLAPSING HEADER ====================
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Dimensions.Padding.standard)
-                    .padding(top = Dimensions.Spacing.large)
-            ) {
-                // ✅ Search Input - Fades out on scroll
-                if (animatedAlpha > 0f) {
-                    SearchInput(
-                        query = searchQuery,
-                        onQueryChange = { newQuery ->
-                            Timber.d("🎨 Search input changed: '$newQuery'")
-                            viewModel.onSearchQueryChanged(newQuery)
-                        },
-                        placeholder = "Sites, tokens, URL",
+            // ✅ Show full-screen shimmer if ALL data is loading
+            if (isFullScreenLoading) {
+                ShimmerLoadingScreen()
+            } else {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    // ==================== COLLAPSING HEADER ====================
+                    Column(
                         modifier = Modifier
-                            .alpha(animatedAlpha)
-                            .graphicsLayer {
-                                translationY = (1f - animatedAlpha) * -20f // Slide up slightly
+                            .fillMaxWidth()
+                            .padding(horizontal = Dimensions.Padding.standard)
+                            .padding(top = Dimensions.Spacing.large)
+                    ) {
+                        // ✅ Search Input - Fades out on scroll
+                        if (animatedAlpha > 0f) {
+                            SearchInput(
+                                query = searchQuery,
+                                onQueryChange = { newQuery ->
+                                    Timber.d("🎨 Search input changed: '$newQuery'")
+                                    viewModel.onSearchQueryChanged(newQuery)
+                                },
+                                placeholder = "Sites, tokens, URL",
+                                modifier = Modifier
+                                    .alpha(animatedAlpha)
+                                    .graphicsLayer {
+                                        translationY = (1f - animatedAlpha) * -20f
+                                    }
+                            )
+
+                            if (animatedAlpha > 0.5f) {
+                                Spacer(modifier = Modifier.height(Dimensions.Spacing.standard))
                             }
-                    )
-
-                    if (animatedAlpha > 0.5f) {
-                        Spacer(modifier = Modifier.height(Dimensions.Spacing.standard))
-                    }
-                }
-
-                // ✅ Mode Tabs - Always visible, adjusts position
-                ModeSelectorTabs(
-                    modes = listOf("Tokens", "Perps", "Lists"),
-                    selectedMode = when (selectedMode) {
-                        DiscoverMode.TOKENS -> "Tokens"
-                        DiscoverMode.PERPS -> "Perps"
-                        DiscoverMode.LISTS -> "Lists"
-                    },
-                    onModeSelected = { mode ->
-                        Timber.d("🎨 Tab clicked: $mode")
-                        val newMode = when (mode) {
-                            "Tokens" -> DiscoverMode.TOKENS
-                            "Perps" -> DiscoverMode.PERPS
-                            "Lists" -> DiscoverMode.LISTS
-                            else -> DiscoverMode.TOKENS
                         }
-                        viewModel.onModeSelected(newMode)
 
-                        scope.launch {
-                            val targetPage = when (newMode) {
-                                DiscoverMode.TOKENS -> 0
-                                DiscoverMode.PERPS -> 1
-                                DiscoverMode.LISTS -> 2
+                        // ✅ Mode Tabs - Always visible
+                        ModeSelectorTabs(
+                            modes = listOf("Tokens", "Perps", "Lists"),
+                            selectedMode = when (selectedMode) {
+                                DiscoverMode.TOKENS -> "Tokens"
+                                DiscoverMode.PERPS -> "Perps"
+                                DiscoverMode.LISTS -> "Lists"
+                            },
+                            onModeSelected = { mode ->
+                                Timber.d("🎨 Tab clicked: $mode")
+                                val newMode = when (mode) {
+                                    "Tokens" -> DiscoverMode.TOKENS
+                                    "Perps" -> DiscoverMode.PERPS
+                                    "Lists" -> DiscoverMode.LISTS
+                                    else -> DiscoverMode.TOKENS
+                                }
+                                viewModel.onModeSelected(newMode)
+
+                                scope.launch {
+                                    val targetPage = when (newMode) {
+                                        DiscoverMode.TOKENS -> 0
+                                        DiscoverMode.PERPS -> 1
+                                        DiscoverMode.LISTS -> 2
+                                    }
+                                    pagerState.animateScrollToPage(targetPage)
+                                }
+                            },
+                            modifier = Modifier.padding(bottom = Dimensions.Spacing.standard)
+                        )
+                    }
+
+                    // ==================== SWIPEABLE CONTENT ====================
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .weight(1f)
+                    ) { page ->
+                        when (page) {
+                            0 -> {
+                                LazyColumn(
+                                    state = tokensScrollState,
+                                    contentPadding = PaddingValues(
+                                        horizontal = Dimensions.Padding.standard,
+                                        vertical = Dimensions.Spacing.standard
+                                    ),
+                                    verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
+                                ) {
+                                    renderTokensTab(
+                                        searchQuery = searchQuery,
+                                        trendingTokens = trendingTokens,
+                                        searchResults = tokenSearchResults,
+                                        onTokenClick = { token ->
+                                            Timber.d("🎨 Token row clicked: ${token.symbol}")
+                                            onNavigateToTokenDetails(token.id, token.symbol)
+                                        }
+                                    )
+                                }
                             }
-                            pagerState.animateScrollToPage(targetPage)
-                        }
-                    },
-                    modifier = Modifier.padding(bottom = Dimensions.Spacing.standard)
-                )
-            }
-
-            // ==================== SWIPEABLE CONTENT ====================
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .weight(1f)
-            ) { page ->
-                when (page) {
-                    0 -> {
-                        // Tokens Tab
-                        LazyColumn(
-                            state = tokensScrollState,
-                            contentPadding = PaddingValues(
-                                horizontal = Dimensions.Padding.standard,
-                                vertical = Dimensions.Spacing.standard
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
-                        ) {
-                            renderTokensTab(
-                                searchQuery = searchQuery,
-                                trendingTokens = trendingTokens,
-                                searchResults = tokenSearchResults,
-                                onTokenClick = { token ->
-                                    Timber.d("🎨 Token row clicked: ${token.symbol}")
-                                    onNavigateToTokenDetails(token.id, token.symbol)
+                            1 -> {
+                                LazyColumn(
+                                    state = perpsScrollState,
+                                    contentPadding = PaddingValues(
+                                        horizontal = Dimensions.Padding.standard,
+                                        vertical = Dimensions.Spacing.standard
+                                    ),
+                                    verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
+                                ) {
+                                    renderPerpsTab(
+                                        searchQuery = searchQuery,
+                                        perps = perps,
+                                        searchResults = perpSearchResults,
+                                        onPerpClick = { perp ->
+                                            Timber.d("🎨 Perp row clicked: ${perp.symbol}")
+                                            viewModel.onPerpClicked(perp)
+                                        }
+                                    )
                                 }
-                            )
-                        }
-                    }
-                    1 -> {
-                        // Perps Tab
-                        LazyColumn(
-                            state = perpsScrollState,
-                            contentPadding = PaddingValues(
-                                horizontal = Dimensions.Padding.standard,
-                                vertical = Dimensions.Spacing.standard
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
-                        ) {
-                            renderPerpsTab(
-                                searchQuery = searchQuery,
-                                perps = perps,
-                                searchResults = perpSearchResults,
-                                onPerpClick = { perp ->
-                                    Timber.d("🎨 Perp row clicked: ${perp.symbol}")
-                                    viewModel.onPerpClicked(perp)
+                            }
+                            2 -> {
+                                LazyColumn(
+                                    state = listsScrollState,
+                                    contentPadding = PaddingValues(
+                                        horizontal = Dimensions.Padding.standard,
+                                        vertical = Dimensions.Spacing.standard
+                                    ),
+                                    verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
+                                ) {
+                                    renderListsTab(
+                                        searchQuery = searchQuery,
+                                        dapps = dapps,
+                                        searchResults = dappSearchResults,
+                                        onDAppClick = { dapp ->
+                                            Timber.d("🎨 DApp row clicked: ${dapp.name}")
+                                            viewModel.onDAppClicked(dapp)
+                                        }
+                                    )
                                 }
-                            )
-                        }
-                    }
-                    2 -> {
-                        // Lists Tab (DApps)
-                        LazyColumn(
-                            state = listsScrollState,
-                            contentPadding = PaddingValues(
-                                horizontal = Dimensions.Padding.standard,
-                                vertical = Dimensions.Spacing.standard
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
-                        ) {
-                            renderListsTab(
-                                searchQuery = searchQuery,
-                                dapps = dapps,
-                                searchResults = dappSearchResults,
-                                onDAppClick = { dapp ->
-                                    Timber.d("🎨 DApp row clicked: ${dapp.name}")
-                                    viewModel.onDAppClicked(dapp)
-                                }
-                            )
+                            }
                         }
                     }
                 }
@@ -326,8 +293,6 @@ private fun LazyListScope.renderTokensTab(
 ) {
     val displayState = if (searchQuery.isNotBlank()) searchResults else trendingTokens
 
-    Timber.d("🎨 renderTokensTab: searchQuery='$searchQuery', displayState=${displayState.javaClass.simpleName}")
-
     item {
         Text(
             if (searchQuery.isNotBlank()) "Search Results" else "Trending Tokens >",
@@ -338,16 +303,21 @@ private fun LazyListScope.renderTokensTab(
 
     when (displayState) {
         is LoadingState.Loading -> {
-            Timber.d("🎨 Displaying Loading state for tokens")
-            item { LoadingScreen() }
+            // Individual tab loading (not full screen)
+            items(5) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(70.dp)
+                        .shimmerEffect()
+                )
+            }
         }
 
         is LoadingState.Success -> {
             val tokens = displayState.data
-            Timber.i("🎨 Displaying ${tokens.size} tokens")
 
             if (tokens.isEmpty()) {
-                Timber.w("🎨 Token list is empty, showing EmptyState")
                 item {
                     EmptyState(
                         message = if (searchQuery.isNotBlank())
@@ -357,7 +327,6 @@ private fun LazyListScope.renderTokensTab(
                     )
                 }
             } else {
-                Timber.d("🎨 Rendering ${tokens.take(20).size} token rows")
                 items(tokens.take(20)) { token ->
                     RankedTokenRow(
                         rank = tokens.indexOf(token) + 1,
@@ -368,30 +337,22 @@ private fun LazyListScope.renderTokensTab(
                         changePercent = token.priceChange24h,
                         logoUrl = token.logoUrl,
                         fallbackIconColor = getTokenColor(token.symbol),
-                        onClick = {
-                            Timber.d("🎨 Token clicked in row: ${token.symbol}")
-                            onTokenClick(token)
-                        }
+                        onClick = { onTokenClick(token) }
                     )
                 }
             }
         }
 
         is LoadingState.Error -> {
-            Timber.e("🎨 Displaying Error state: ${displayState.message}")
             item {
                 ErrorScreen(
                     message = displayState.message,
-                    onRetry = {
-                        Timber.d("🎨 Retry button clicked")
-                    }
+                    onRetry = { }
                 )
             }
         }
 
-        else -> {
-            Timber.w("🎨 Unknown LoadingState type: ${displayState.javaClass.simpleName}")
-        }
+        else -> {}
     }
 }
 
@@ -405,8 +366,6 @@ private fun LazyListScope.renderPerpsTab(
 ) {
     val displayState = if (searchQuery.isNotBlank()) searchResults else perps
 
-    Timber.d("🎨 renderPerpsTab: displayState=${displayState.javaClass.simpleName}")
-
     item {
         Text(
             if (searchQuery.isNotBlank()) "Search Results" else "Perpetual Futures >",
@@ -417,23 +376,24 @@ private fun LazyListScope.renderPerpsTab(
 
     when (displayState) {
         is LoadingState.Loading -> {
-            Timber.d("🎨 Displaying Loading state for perps")
-            item { LoadingScreen() }
+            items(5) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(70.dp)
+                        .shimmerEffect()
+                )
+            }
         }
 
         is LoadingState.Success -> {
             val perpList = displayState.data
-            Timber.i("🎨 Displaying ${perpList.size} perps")
 
             if (perpList.isEmpty()) {
-                Timber.d("🎨 Perp list is empty")
                 item {
-                    EmptyState(
-                        message = "Perpetual futures coming soon"
-                    )
+                    EmptyState(message = "Perpetual futures coming soon")
                 }
             } else {
-                // ✅ Display only first 20 perps for performance
                 items(perpList.take(20)) { perp ->
                     PerpRow(
                         symbol = perp.symbol,
@@ -448,7 +408,6 @@ private fun LazyListScope.renderPerpsTab(
                     )
                 }
 
-                // ✅ Show "Load More" if there are more items
                 if (perpList.size > 20) {
                     item {
                         Text(
@@ -463,12 +422,8 @@ private fun LazyListScope.renderPerpsTab(
         }
 
         is LoadingState.Error -> {
-            Timber.e("🎨 Displaying Error state for perps: ${displayState.message}")
             item {
-                ErrorScreen(
-                    message = displayState.message,
-                    onRetry = { }
-                )
+                ErrorScreen(message = displayState.message, onRetry = { })
             }
         }
 
@@ -476,7 +431,7 @@ private fun LazyListScope.renderPerpsTab(
     }
 }
 
-// ==================== LISTS TAB (dApps) ====================
+// ==================== LISTS TAB ====================
 
 private fun LazyListScope.renderListsTab(
     searchQuery: String,
@@ -485,8 +440,6 @@ private fun LazyListScope.renderListsTab(
     onDAppClick: (DApp) -> Unit
 ) {
     val displayState = if (searchQuery.isNotBlank()) searchResults else dapps
-
-    Timber.d("🎨 renderListsTab: displayState=${displayState.javaClass.simpleName}")
 
     item {
         Text(
@@ -498,20 +451,22 @@ private fun LazyListScope.renderListsTab(
 
     when (displayState) {
         is LoadingState.Loading -> {
-            Timber.d("🎨 Displaying Loading state for dApps")
-            item { LoadingScreen() }
+            items(5) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(70.dp)
+                        .shimmerEffect()
+                )
+            }
         }
 
         is LoadingState.Success -> {
             val dappList = displayState.data
-            Timber.i("🎨 Displaying ${dappList.size} dApps")
 
             if (dappList.isEmpty()) {
-                Timber.d("🎨 DApp list is empty")
                 item {
-                    EmptyState(
-                        message = "No dApps found"
-                    )
+                    EmptyState(message = "No dApps found")
                 }
             } else {
                 items(dappList.take(20)) { dapp ->
@@ -546,12 +501,8 @@ private fun LazyListScope.renderListsTab(
         }
 
         is LoadingState.Error -> {
-            Timber.e("🎨 Displaying Error state for dApps: ${displayState.message}")
             item {
-                ErrorScreen(
-                    message = displayState.message,
-                    onRetry = { }
-                )
+                ErrorScreen(message = displayState.message, onRetry = { })
             }
         }
 
@@ -572,14 +523,11 @@ private fun getTokenColor(symbol: String): androidx.compose.ui.graphics.Color {
     }
 }
 
-// ==================== EMPTY & ERROR STATES ====================
-
 @Composable
 private fun EmptyState(
     message: String,
     modifier: Modifier = Modifier
 ) {
-    Timber.d("🎨 Rendering EmptyState: $message")
     Box(
         modifier = modifier
             .fillMaxWidth()

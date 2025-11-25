@@ -18,7 +18,7 @@ import com.octane.core.util.LoadingState
 import com.octane.presentation.components.BottomNavBar
 import com.octane.presentation.components.ErrorScreen
 import com.octane.presentation.components.HomeContentRouter
-import com.octane.presentation.screens.LoadingScreen
+import com.octane.presentation.components.ShimmerLoadingScreen
 import com.octane.presentation.components.OfflineBanner
 import com.octane.presentation.components.WalletActionBottomSheet
 import com.octane.presentation.viewmodel.HomeEvent
@@ -71,7 +71,7 @@ fun HomeScreen(
     ) { innerPadding ->
         Box(modifier = Modifier.fillMaxSize().padding(innerPadding)) {
             when (val state = portfolioState) {
-                is LoadingState.Loading -> LoadingScreen()
+                is LoadingState.Loading -> ShimmerLoadingScreen() // ✅ Use shimmer instead of basic loading
 
                 is LoadingState.Success -> {
                     HomeContentRouter(
@@ -84,7 +84,7 @@ fun HomeScreen(
                         isRefreshing = isRefreshing,
                         networkStatus = networkStatus,
                         onRefresh = viewModel::onRefresh,
-                        onWalletClick = onNavigateToWallets, // ✅ Navigate to wallet screen
+                        onWalletClick = onNavigateToWallets,
                         onAssetClick = viewModel::onAssetClick,
                         onQuickSend = {
                             if (activeWallet == null) showWalletActionSheet = true
