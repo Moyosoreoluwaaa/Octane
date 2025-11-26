@@ -23,6 +23,8 @@ import com.octane.presentation.screens.TokenDetailsScreen
 import com.octane.presentation.screens.TransactionDetailsScreen
 import com.octane.presentation.screens.WalletsScreen
 import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
+import java.util.UUID
 
 /**
  * ✅ Fully wired navigation with separated Wallet and Activity screens.
@@ -72,19 +74,51 @@ fun AppNavHost(
             )
         }
 
-        // ✅ Separated: Wallet Management Screen
         composable<AppRoute.Wallets> {
+            Timber.d("📱 [AppNavHost] Composing WalletsScreen")
+
             WalletsScreen(
                 viewModel = koinViewModel(),
                 navController = navController,
-                onBack = { navController.popBackStack() },
-                onNavigateToSeedPhrase = { walletId, walletName, seedPhrase ->
+                onBack = {
+                    Timber.d("🔙 [AppNavHost] Wallets back pressed")
+                    navController.popBackStack()
+                },
+                onNavigateToSeedPhrase = { seedPhrase, walletName, walletEmoji, walletId ->
+                    Timber.d("🚀 [AppNavHost] Navigate to SeedPhrase: name=$walletName, words=${seedPhrase.split(" ").size}")
                     navController.navigate(
-                        AppRoute.SeedPhraseDisplay(walletId, walletName, seedPhrase)
+                        AppRoute.SeedPhraseDisplay(
+                            walletId = walletId,
+                            walletName = walletName,
+                            seedPhrase = seedPhrase
+                        )
                     )
+                    Timber.d("✅ [AppNavHost] Navigation executed")
                 },
                 onNavigateToImport = {
+                    Timber.d("🚀 [AppNavHost] Navigate to ImportWallet")
                     navController.navigate(AppRoute.ImportWallet)
+                }
+            )
+        }
+
+        composable<AppRoute.SeedPhraseDisplay> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.SeedPhraseDisplay>()
+            Timber.d("📱 [AppNavHost] Composing SeedPhraseDisplayScreen")
+            Timber.d("🔍 [AppNavHost] Route params: walletId=${route.walletId}, name=${route.walletName}")
+
+            SeedPhraseDisplayScreen(
+                seedPhrase = route.seedPhrase,
+                walletName = route.walletName,
+                onConfirm = {
+                    Timber.d("✅ [AppNavHost] Seed phrase confirmed, navigating to Wallets")
+                    navController.navigate(AppRoute.Wallets) {
+                        popUpTo(AppRoute.Wallets) { inclusive = true }
+                    }
+                },
+                onBack = {
+                    Timber.d("🔙 [AppNavHost] SeedPhrase back pressed")
+                    navController.navigateUp()
                 }
             )
         }
@@ -210,21 +244,6 @@ fun AppNavHost(
         }
 
         // ========== WALLET MANAGEMENT ==========
-
-        composable<AppRoute.SeedPhraseDisplay> { backStackEntry ->
-            val route = backStackEntry.toRoute<AppRoute.SeedPhraseDisplay>()
-            SeedPhraseDisplayScreen(
-                seedPhrase = route.seedPhrase,
-                walletName = route.walletName,
-                onConfirm = {
-                    // Navigate back to wallets after confirming backup
-                    navController.navigate(AppRoute.Wallets) {
-                        popUpTo(AppRoute.Wallets) { inclusive = true }
-                    }
-                },
-                onBack = { navController.navigateUp() }
-            )
-        }
 
         composable<AppRoute.ImportWallet> {
             ImportWalletScreen(

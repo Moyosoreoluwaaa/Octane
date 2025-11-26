@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.octane.presentation.theme.*
 import com.octane.presentation.utils.metallicBorder
+import timber.log.Timber
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -27,25 +28,31 @@ fun CreateWalletBottomSheet(
     onDismiss: () -> Unit,
     onCreateWallet: (name: String, emoji: String?, color: String?) -> Unit
 ) {
+    Timber.d("========================================")
+    Timber.d("🔵 [CreateWalletSheet] Composing CreateWalletBottomSheet")
+    Timber.d("========================================")
+
     var walletName by remember { mutableStateOf("") }
     var selectedEmoji by remember { mutableStateOf("🔥") }
     var selectedColor by remember { mutableStateOf("#4ECDC4") }
     var isCreating by remember { mutableStateOf(false) }
-    
+
     val availableEmojis = remember {
-        listOf("🔥", "⚡", "💎", "🚀", "🌟", "🎯", "💰", "🏆", "👑", "🎨", "🌈", "⭐")
+        listOf("🔥", "⚡", "💎", "🌟", "🏆", "👑",)
     }
-    
+
     val availableColors = remember {
         listOf(
-            "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A",
-            "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E2",
-            "#E74C3C", "#3498DB", "#2ECC71", "#F39C12"
+            "#FF6B6B", "#4ECDC4", "#45B7D1",
+            "#FFA07A", "#98D8C8", "#F7DC6F",
         )
     }
-    
+
     ModalBottomSheet(
-        onDismissRequest = onDismiss,
+        onDismissRequest = {
+            Timber.d("🔵 [CreateWalletSheet] onDismissRequest triggered")
+            onDismiss()
+        },
         containerColor = AppColors.Background,
         contentColor = AppColors.TextPrimary,
         sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
@@ -68,7 +75,10 @@ fun CreateWalletBottomSheet(
                     style = AppTypography.headlineSmall,
                     color = AppColors.TextPrimary
                 )
-                IconButton(onClick = onDismiss) {
+                IconButton(onClick = {
+                    Timber.d("🔵 [CreateWalletSheet] Close button clicked")
+                    onDismiss()
+                }) {
                     Icon(
                         Icons.Rounded.Close,
                         contentDescription = "Close",
@@ -76,11 +86,12 @@ fun CreateWalletBottomSheet(
                     )
                 }
             }
-            
+
             // Preview Card
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(70.dp)
                     .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
                     .background(AppColors.Surface)
                     .metallicBorder(
@@ -88,7 +99,7 @@ fun CreateWalletBottomSheet(
                         RoundedCornerShape(Dimensions.CornerRadius.large),
                         angleDeg = 135f
                     )
-                    .padding(Dimensions.Padding.large),
+                    .padding(Dimensions.Padding.small),
                 contentAlignment = Alignment.Center
             ) {
                 Row(
@@ -108,24 +119,19 @@ fun CreateWalletBottomSheet(
                             style = AppTypography.titleLarge
                         )
                     }
-                    
+
                     // Name Preview
                     Column {
                         Text(
                             if (walletName.isBlank()) "My Wallet" else walletName,
                             style = AppTypography.titleLarge,
-                            color = if (walletName.isBlank()) 
+                            color = if (walletName.isBlank())
                                 AppColors.TextTertiary else AppColors.TextPrimary
-                        )
-                        Text(
-                            "Solana Wallet",
-                            style = AppTypography.bodyMedium,
-                            color = AppColors.TextSecondary
                         )
                     }
                 }
             }
-            
+
             // Wallet Name Input
             Column(verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)) {
                 Text(
@@ -135,7 +141,10 @@ fun CreateWalletBottomSheet(
                 )
                 OutlinedTextField(
                     value = walletName,
-                    onValueChange = { walletName = it },
+                    onValueChange = { newValue ->
+                        Timber.d("🔵 [CreateWalletSheet] Wallet name changed: '$newValue' (${newValue.length} chars)")
+                        walletName = newValue
+                    },
                     modifier = Modifier.fillMaxWidth(),
                     placeholder = { Text("Enter wallet name") },
                     singleLine = true,
@@ -147,7 +156,7 @@ fun CreateWalletBottomSheet(
                     )
                 )
             }
-            
+
             // Emoji Selection
             Column(verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)) {
                 Text(
@@ -164,14 +173,17 @@ fun CreateWalletBottomSheet(
                     items(availableEmojis) { emoji ->
                         Box(
                             modifier = Modifier
-                                .size(48.dp)
+                                .size(40.dp)
                                 .clip(CircleShape)
                                 .background(
-                                    if (emoji == selectedEmoji) 
-                                        AppColors.SurfaceHighlight 
+                                    if (emoji == selectedEmoji)
+                                        AppColors.SurfaceHighlight
                                     else AppColors.Surface
                                 )
-                                .clickable { selectedEmoji = emoji },
+                                .clickable {
+                                    Timber.d("🔵 [CreateWalletSheet] Emoji selected: $emoji")
+                                    selectedEmoji = emoji
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             Text(
@@ -182,7 +194,7 @@ fun CreateWalletBottomSheet(
                     }
                 }
             }
-            
+
             // Color Selection
             Column(verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)) {
                 Text(
@@ -194,7 +206,7 @@ fun CreateWalletBottomSheet(
                     columns = GridCells.Fixed(6),
                     horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small),
                     verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small),
-                    modifier = Modifier.height(80.dp)
+                    modifier = Modifier.height(50.dp)
                 ) {
                     items(availableColors) { color ->
                         Box(
@@ -202,7 +214,10 @@ fun CreateWalletBottomSheet(
                                 .size(48.dp)
                                 .clip(CircleShape)
                                 .background(Color(android.graphics.Color.parseColor(color)))
-                                .clickable { selectedColor = color },
+                                .clickable {
+                                    Timber.d("🔵 [CreateWalletSheet] Color selected: $color")
+                                    selectedColor = color
+                                },
                             contentAlignment = Alignment.Center
                         ) {
                             if (color == selectedColor) {
@@ -217,13 +232,32 @@ fun CreateWalletBottomSheet(
                     }
                 }
             }
-            
+
             // Create Button
             Button(
                 onClick = {
+                    Timber.d("========================================")
+                    Timber.d("🔵 [CreateWalletSheet] Create button clicked")
+                    Timber.d("🔵 [CreateWalletSheet] Wallet name: '$walletName' (${walletName.length} chars)")
+                    Timber.d("🔵 [CreateWalletSheet] Selected emoji: $selectedEmoji")
+                    Timber.d("🔵 [CreateWalletSheet] Selected color: $selectedColor")
+                    Timber.d("========================================")
+
                     if (walletName.isNotBlank()) {
+                        Timber.d("✅ [CreateWalletSheet] Name validation passed")
+                        Timber.d("🔵 [CreateWalletSheet] Setting isCreating = true")
                         isCreating = true
-                        onCreateWallet(walletName, selectedEmoji, selectedColor)
+
+                        Timber.d("🔵 [CreateWalletSheet] Calling onCreateWallet callback...")
+                        try {
+                            onCreateWallet(walletName, selectedEmoji, selectedColor)
+                            Timber.d("✅ [CreateWalletSheet] onCreateWallet callback completed")
+                        } catch (e: Exception) {
+                            Timber.e(e, "❌ [CreateWalletSheet] Exception in onCreateWallet callback")
+                            isCreating = false
+                        }
+                    } else {
+                        Timber.w("⚠️ [CreateWalletSheet] Create button clicked but name is blank")
                     }
                 },
                 modifier = Modifier
@@ -236,6 +270,7 @@ fun CreateWalletBottomSheet(
                 )
             ) {
                 if (isCreating) {
+                    Timber.d("🔵 [CreateWalletSheet] Showing loading indicator")
                     CircularProgressIndicator(
                         modifier = Modifier.size(Dimensions.IconSize.medium),
                         color = Color.White
@@ -247,7 +282,7 @@ fun CreateWalletBottomSheet(
                     )
                 }
             }
-            
+
             // Info Card
             Box(
                 modifier = Modifier
@@ -262,6 +297,13 @@ fun CreateWalletBottomSheet(
                     color = AppColors.Info
                 )
             }
+        }
+    }
+
+    DisposableEffect(Unit) {
+        Timber.d("🔵 [CreateWalletSheet] DisposableEffect - Sheet mounted")
+        onDispose {
+            Timber.d("🔵 [CreateWalletSheet] DisposableEffect - Sheet disposed")
         }
     }
 }

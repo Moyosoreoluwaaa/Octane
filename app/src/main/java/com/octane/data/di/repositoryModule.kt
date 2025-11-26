@@ -41,7 +41,6 @@ val repositoryModule = module {
     }
 
     single<WalletRepository> { WalletRepositoryImpl(get()) }
-    single<SolanaKeyGenerator> { SolanaKeyGeneratorImpl() }
     single<AssetRepository> { AssetRepositoryImpl(get(), get(), get(), get()) }
     single<TransactionRepository> { TransactionRepositoryImpl(get(), get(), get()) }
 

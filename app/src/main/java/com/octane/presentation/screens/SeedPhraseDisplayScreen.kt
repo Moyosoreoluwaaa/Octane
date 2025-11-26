@@ -1,19 +1,47 @@
 package com.octane.presentation.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.itemsIndexed
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ContentCopy
 import androidx.compose.material.icons.rounded.Warning
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.Button
+import androidx.compose.material3.Card
+import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.Checkbox
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Snackbar
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.platform.LocalClipboardManager
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
@@ -34,37 +62,51 @@ fun SeedPhraseDisplayScreen(
     val clipboardManager = LocalClipboardManager.current
     var showCopyConfirmation by remember { mutableStateOf(false) }
     var hasAcknowledged by remember { mutableStateOf(false) }
-    var showSecurityDialog by remember { mutableStateOf(true) } // ✅ NEW
+    var showSecurityDialog by remember { mutableStateOf(true) }
 
-    // ✅ Show security dialog first
+    // ✅ Show security dialog with option to proceed
     if (showSecurityDialog) {
         SeedPhraseSecurityDialog(
-            onProceed = { showSecurityDialog = false },
+            onProceed = {
+                showSecurityDialog = false
+                // ✅ Optionally show seed phrase immediately after proceeding
+            },
             onCancel = onBack
         )
     }
 
-    // Only show seed phrase after security acknowledgment
-    if (!showSecurityDialog) {
-        Scaffold(
-            topBar = {
-                TopAppBar(
-                    title = { Text("Backup Seed Phrase") },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Rounded.ArrowBack, "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppColors.Error
-                    )
+    // ✅ Always show scaffold (but blur seed phrase until acknowledged)
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Backup Seed Phrase") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Rounded.ArrowBack, "Back")
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = AppColors.Error
                 )
-            }
-        ) { padding ->
+            )
+        }
+    ) { padding ->
+        // ✅ Show content even during security dialog (but blurred)
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(padding)
+                .then(
+                    if (showSecurityDialog) {
+                        Modifier.alpha(0.3f) // ✅ Blur during security dialog
+                    } else {
+                        Modifier
+                    }
+                )
+        ) {
             Column(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(padding)
                     .padding(24.dp),
                 verticalArrangement = Arrangement.spacedBy(24.dp)
             ) {

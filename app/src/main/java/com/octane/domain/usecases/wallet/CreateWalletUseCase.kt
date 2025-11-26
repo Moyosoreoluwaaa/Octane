@@ -1,18 +1,15 @@
 package com.octane.domain.usecases.wallet
 
 import cash.z.ecc.android.bip39.Mnemonics
+import cash.z.ecc.android.bip39.toSeed
 import com.octane.core.blockchain.SolanaKeyGenerator
 import com.octane.core.security.KeystoreManager
 import com.octane.domain.models.Wallet
 import com.octane.domain.repository.WalletRepository
 import kotlinx.coroutines.flow.first
-import java.security.SecureRandom
+import timber.log.Timber
 import java.util.UUID
 
-/**
- * Creates a new wallet with generated keys.
- * NOW RETURNS SEED PHRASE for backup screen.
- */
 class CreateWalletUseCase(
     private val walletRepository: WalletRepository,
     private val keystoreManager: KeystoreManager,
@@ -23,31 +20,56 @@ class CreateWalletUseCase(
         iconEmoji: String? = null,
         colorHex: String? = null
     ): Result<WalletCreationResult> {
+        Timber.d("🔵 [CreateWallet] ========================================")
+        Timber.d("🔵 [CreateWallet] START - name='$name', emoji=$iconEmoji")
+
         return try {
+            // ✅ STEP 1: Validate input
             if (name.isBlank()) {
                 return Result.failure(IllegalArgumentException("Wallet name cannot be empty"))
             }
 
-            // Generate 12-word BIP39 mnemonic
-            val entropy = ByteArray(16) // 128 bits = 12 words
-            SecureRandom().nextBytes(entropy)
-            val mnemonicCode = Mnemonics.MnemonicCode(entropy)
-            val seedPhrase = mnemonicCode.words.joinToString(" ")
+            // ✅ STEP 2: Generate BIP39 mnemonic
+            // we use the library's native char generation to ensure compatibility
+            val mnemonicCode = Mnemonics.MnemonicCode(Mnemonics.WordCount.COUNT_12)
 
-            // Generate keypair from seed phrase
-            val keypair = solanaKeyGenerator.fromSeedPhrase(seedPhrase)
+            // 🔴 FIX: Use String(chars) instead of joinToString(" ") to prevent encoding mismatches
+            val seedPhrase = String(mnemonicCode.chars)
 
-            // Check if first wallet
+            Timber.d("✅ [CreateWallet] Mnemonic generated via chars")
+
+            // ✅ STEP 3: Validate seed phrase (Self-check)
+            // We do this to ensure the seed we just generated is valid before proceeding
+            try {
+                mnemonicCode.toSeed()
+            } catch (e: Exception) {
+                return Result.failure(IllegalStateException("Generated invalid seed phrase: ${e.message}"))
+            }
+
+            // ✅ STEP 4: Generate keypair
+            Timber.d("🔵 [CreateWallet] STEP 4 - Generating Solana keypair from phrase...")
+
+            val keypair = try {
+                // Pass the trimmed seed phrase to ensure no accidental whitespace issues
+                solanaKeyGenerator.fromSeedPhrase(seedPhrase.trim())
+            } catch (e: Exception) {
+                Timber.e(e, "❌ [CreateWallet] Keypair generation failed")
+                return Result.failure(IllegalStateException("Failed to generate keypair: ${e.message}"))
+            }
+
+            // ✅ STEP 5: Check if first wallet
             val existingCount = walletRepository.observeWalletCount().first()
             val isFirstWallet = existingCount == 0
 
-            // Create wallet model
+            // ✅ STEP 6: Create wallet model
+            val walletId = UUID.randomUUID().toString()
+
             val wallet = Wallet(
-                id = UUID.randomUUID().toString(),
+                id = walletId,
                 name = name,
                 publicKey = keypair.publicKey,
-                iconEmoji = iconEmoji ?: generateRandomEmoji(),
-                colorHex = colorHex ?: generateRandomColor(),
+                iconEmoji = iconEmoji ?: "🔥",
+                colorHex = colorHex ?: "#4ECDC4",
                 chainId = "solana",
                 isActive = isFirstWallet,
                 isHardwareWallet = false,
@@ -56,35 +78,24 @@ class CreateWalletUseCase(
                 lastUpdated = System.currentTimeMillis()
             )
 
-            // Store encrypted private key
+            // ✅ STEP 7: Store private key
             keystoreManager.storePrivateKey(wallet.id, keypair.privateKey).getOrThrow()
 
-            // Save wallet to database
+            // ✅ STEP 8: Save to database
             walletRepository.createWallet(wallet)
 
-            // Return wallet + seed phrase
-            Result.success(
-                WalletCreationResult(
-                    wallet = wallet,
-                    seedPhrase = seedPhrase
-                )
+            val result = WalletCreationResult(
+                wallet = wallet,
+                seedPhrase = seedPhrase
             )
+
+            Timber.d("🎉 [CreateWallet] SUCCESS - Wallet created: ${wallet.id}")
+            Result.success(result)
+
         } catch (e: Exception) {
+            Timber.e(e, "❌ [CreateWallet] FAILED: ${e.message}")
             Result.failure(e)
         }
-    }
-
-    private fun generateRandomEmoji(): String {
-        val emojis = listOf("🔥", "⚡", "💎", "🚀", "🌟", "🎯", "💰", "🏆")
-        return emojis.random()
-    }
-
-    private fun generateRandomColor(): String {
-        val colors = listOf(
-            "#FF6B6B", "#4ECDC4", "#45B7D1", "#FFA07A",
-            "#98D8C8", "#F7DC6F", "#BB8FCE", "#85C1E2"
-        )
-        return colors.random()
     }
 }
 

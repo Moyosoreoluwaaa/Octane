@@ -26,6 +26,7 @@ import com.octane.presentation.utils.metallicBorder
 import com.octane.presentation.viewmodel.WalletEvent
 import com.octane.presentation.viewmodel.WalletsViewModel
 import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
 
 /**
  * ✅ Separated Wallets screen for wallet management only.
@@ -36,7 +37,7 @@ fun WalletsScreen(
     viewModel: WalletsViewModel = koinViewModel(),
     navController: NavController,
     onBack: () -> Unit,
-    onNavigateToSeedPhrase: (String, String, String) -> Unit,
+    onNavigateToSeedPhrase: (walletId: String, seedPhrase: String, walletName: String, walletEmoji: String) -> Unit, // ✅ Clear parameter names
     onNavigateToImport: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -49,38 +50,34 @@ fun WalletsScreen(
 
     // Handle wallet events
     LaunchedEffect(Unit) {
-        viewModel.walletEvents.collect { event ->
-            when (event) {
-                is WalletEvent.WalletCreated -> {
-                    snackbarHostState.showSnackbar("Wallet created successfully!")
-                }
+        Timber.d("🔵 [WalletsScreen] Event collector started")
 
+        viewModel.walletEvents.collect { event ->
+            Timber.d("📩 [WalletsScreen] Received event: ${event::class.simpleName}")
+
+            when (event) {
                 is WalletEvent.WalletCreatedWithSeed -> {
+                    Timber.d("✅ [WalletsScreen] WalletCreatedWithSeed event")
+                    Timber.d("🔍 [WalletsScreen] Wallet: ${event.wallet.name}, ID: ${event.wallet.id}")
+                    Timber.d("🔍 [WalletsScreen] Seed phrase: ${event.seedPhrase.split(" ").size} words")
+                    Timber.d("🔍 [WalletsScreen] Emoji: ${event.iconEmoji}")
+
                     onNavigateToSeedPhrase(
                         event.seedPhrase,
-                        event.wallet.toString(),
-                        event.iconEmoji.toString()
+                        event.wallet.name,
+                        event.iconEmoji ?: "🔥",
+                        event.wallet.id
                     )
-                }
-
-                is WalletEvent.WalletImported -> {
-                    snackbarHostState.showSnackbar("Wallet imported successfully!")
-                }
-
-                is WalletEvent.WalletDeleted -> {
-                    snackbarHostState.showSnackbar("Wallet deleted")
-                }
-
-                is WalletEvent.WalletSwitched -> {
-                    snackbarHostState.showSnackbar("Wallet switched")
-                }
-
-                is WalletEvent.WalletUpdated -> {
-                    snackbarHostState.showSnackbar("Wallet updated")
+                    Timber.d("✅ [WalletsScreen] Navigation triggered")
                 }
 
                 is WalletEvent.Error -> {
+                    Timber.e("❌ [WalletsScreen] Error event: ${event.message}")
                     snackbarHostState.showSnackbar(event.message)
+                }
+
+                else -> {
+                    Timber.d("ℹ️ [WalletsScreen] Unhandled event: ${event::class.simpleName}")
                 }
             }
         }
@@ -256,9 +253,11 @@ fun WalletsScreen(
                 }
             }
 
-            else -> Box(modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding))
+            else -> Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .padding(innerPadding)
+            )
         }
     }
 
