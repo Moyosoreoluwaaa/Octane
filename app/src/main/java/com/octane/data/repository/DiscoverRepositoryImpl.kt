@@ -235,6 +235,8 @@ class DiscoverRepositoryImpl(
             .distinctUntilChanged()
     }
 
+    // data/repository/DiscoverRepositoryImpl.kt
+
     override suspend fun refreshPerps(): LoadingState<Unit> {
         Timber.i("🔄 refreshPerps() called")
 
@@ -252,44 +254,35 @@ class DiscoverRepositoryImpl(
             val response = driftApi.getContracts()
             Timber.i("✅ Drift API returned ${response.contracts.size} contracts")
 
-            val perpContracts = response.contracts.filter { it.isPerpetual }
-            Timber.d("✅ Filtered to ${perpContracts.size} PERP contracts")
+            val perpContracts = response.contracts
+                .filter { it.isPerpetual }
+                .sortedByDescending { it.quoteVolume.toDoubleOrNull() ?: 0.0 } // ✅ Sort by volume
+                .take(10) // ✅ LIMIT TO TOP 10 by volume
 
-            // ⭐ STEP 1: Resolve logos dynamically for ALL perps
+            Timber.d("✅ Filtered to top ${perpContracts.size} PERP contracts")
+
+            // Resolve logos for ONLY the top 10
             Timber.d("🔍 Resolving logos for ${perpContracts.size} perps...")
 
             val logoMap = perpContracts.associate { dto ->
                 val baseSymbol = dto.baseCurrency.uppercase()
                 val logoUrl = tokenLogoResolver.resolveLogoUrl(baseSymbol)
-
                 dto.tickerId to logoUrl
             }
 
             val resolvedCount = logoMap.count { it.value != null }
             Timber.i("✅ Resolved $resolvedCount/${perpContracts.size} logos")
 
-            // ⭐ STEP 2: Filter to ONLY perps with logos (aesthetics!)
+            // Filter to ONLY perps with logos
             val perpsWithLogos = perpContracts.filter { dto ->
                 logoMap[dto.tickerId] != null
             }
 
-            Timber.i("🎨 Keeping ${perpsWithLogos.size} perps with logos (filtered out ${perpContracts.size - perpsWithLogos.size} without)")
-
-            // ⭐ STEP 3: Log which perps were filtered out (for debugging)
-            val filteredOut = perpContracts.filter { dto -> logoMap[dto.tickerId] == null }
-            if (filteredOut.isNotEmpty()) {
-                Timber.d("🚫 Filtered out perps without logos:")
-                filteredOut.take(10).forEach { dto ->
-                    Timber.d("  • ${dto.tickerId} (${dto.baseCurrency})")
-                }
-                if (filteredOut.size > 10) {
-                    Timber.d("  ... and ${filteredOut.size - 10} more")
-                }
-            }
+            Timber.i("🎨 Keeping ${perpsWithLogos.size} perps with logos")
 
             // Convert DTO → Entity WITH resolved logos
             val entities = perpsWithLogos.map { dto ->
-                dto.toEntity(logoUrl = logoMap[dto.tickerId]!!) // Safe to use !! here since we filtered
+                dto.toEntity(logoUrl = logoMap[dto.tickerId]!!)
             }
 
             // Save to database
