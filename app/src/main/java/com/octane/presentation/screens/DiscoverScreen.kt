@@ -39,7 +39,8 @@ fun DiscoverScreen(
     navController: NavController,
     modifier: Modifier = Modifier,
     onNavigateToTokenDetails: (String, String) -> Unit,
-    onNavigateToPerpDetails: (String) -> Unit // 1. ADD THIS PARAMETER
+    onNavigateToPerpDetails: (String) -> Unit,// 1. ADD THIS PARAMETER
+    onNavigateToDAppDetails: (String) -> Unit,
 ) {
     Timber.d("🎨 DiscoverScreen composing...")
 
@@ -267,6 +268,7 @@ fun DiscoverScreen(
                                         onDAppClick = { dapp ->
                                             Timber.d("🎨 DApp row clicked: ${dapp.name}")
                                             viewModel.onDAppClicked(dapp)
+                                            onNavigateToDAppDetails(dapp.url)
                                         }
                                     )
                                 }

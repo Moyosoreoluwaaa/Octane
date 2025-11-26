@@ -36,6 +36,12 @@ sealed interface AppRoute {
     ) : AppRoute
 
     @Serializable
+    data class DAppWebViewRoute(
+        val url: String,
+//        val title: String
+    ) : AppRoute
+
+    @Serializable
     data class Send(
         val tokenSymbol: String? = null,
         val prefilledAddress: String? = null

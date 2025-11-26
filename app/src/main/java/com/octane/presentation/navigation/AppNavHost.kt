@@ -9,6 +9,8 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
+import com.octane.presentation.navigation.AppRoute.DAppWebViewRoute
+import com.octane.presentation.screens.DAppWebViewScreen
 import com.octane.presentation.screens.DiscoverScreen
 import com.octane.presentation.screens.HomeScreen
 import com.octane.presentation.screens.ManageTokensScreen
@@ -100,6 +102,10 @@ fun AppNavHost(
                 // 2. Add New Perp Navigation
                 onNavigateToPerpDetails = { perpSymbol ->
                     navController.navigate(AppRoute.PerpDetailRoute(perpSymbol))
+                },
+                // 3. Add New DApp Navigation
+                onNavigateToDAppDetails = { url ->
+                    navController.navigate(AppRoute.DAppWebViewRoute(url))
                 }
             )
         }
@@ -138,6 +144,14 @@ fun AppNavHost(
         }
 
         // ============ Other Screens ============
+
+        composable< AppRoute.DAppWebViewRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.DAppWebViewRoute>()
+            DAppWebViewScreen(
+                url = route.url,
+                onBack = { navController.navigateUp() }
+            )
+        }
 
         composable<AppRoute.Send> { backStackEntry ->
             val route = backStackEntry.toRoute<AppRoute.Send>()

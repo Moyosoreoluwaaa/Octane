@@ -47,7 +47,12 @@ class PerpDetailViewModel(
                         else -> LoadingState.Loading
                     }
                 }
-                .collect { _perpDetail.value = it }
+                .collect { _perpDetail.value = it
+                    // ✅ Auto-fetch chart on successful load
+                    if (it is LoadingState.Success && _chartData.value is LoadingState.Idle) {
+                        fetchChartData(_selectedTimeframe.value)
+                    }
+                }
         }
     }
     

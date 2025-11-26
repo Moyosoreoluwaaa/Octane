@@ -42,12 +42,19 @@ class TokenDetailViewModel(
                                 )
                             }
                         }
+
                         is LoadingState.Loading -> LoadingState.Loading
                         is LoadingState.Error -> state
                         else -> LoadingState.Loading
                     }
                 }
-                .collect { _tokenDetail.value = it }
+                .collect {
+                    _tokenDetail.value = it
+                    // ✅ Auto-fetch chart on successful load
+                    if (it is LoadingState.Success && _chartData.value is LoadingState.Idle) {
+                        fetchChartData(_selectedTimeframe.value)
+                    }
+                }
         }
     }
 
