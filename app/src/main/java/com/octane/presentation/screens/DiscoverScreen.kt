@@ -4,19 +4,30 @@ import timber.log.Timber
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyListScope
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowRight
+import androidx.compose.material.icons.filled.Info
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.octane.core.util.LoadingState
@@ -41,6 +52,9 @@ fun DiscoverScreen(
     onNavigateToTokenDetails: (String, String) -> Unit,
     onNavigateToPerpDetails: (String) -> Unit,// 1. ADD THIS PARAMETER
     onNavigateToDAppDetails: (String) -> Unit,
+    onTokenArrow: () -> Unit,
+    onPerpArrow: () -> Unit,
+    onDAppArrow: () -> Unit
 ) {
     Timber.d("🎨 DiscoverScreen composing...")
 
@@ -94,7 +108,10 @@ fun DiscoverScreen(
 
             when {
                 firstVisibleIndex == 0 && firstVisibleOffset < 100 -> 1f // Fully visible
-                firstVisibleIndex == 0 -> (1f - (firstVisibleOffset / 300f)).coerceIn(0f, 1f) // Fading
+                firstVisibleIndex == 0 -> (1f - (firstVisibleOffset / 300f)).coerceIn(
+                    0f,
+                    1f
+                ) // Fading
                 else -> 0f // Hidden
             }
         }
@@ -151,56 +168,44 @@ fun DiscoverScreen(
                             .padding(top = Dimensions.Spacing.large)
                     ) {
                         // ✅ Search Input - Fades out on scroll
-                        if (animatedAlpha > 0f) {
-                            SearchInput(
-                                query = searchQuery,
-                                onQueryChange = { newQuery ->
-                                    Timber.d("🎨 Search input changed: '$newQuery'")
-                                    viewModel.onSearchQueryChanged(newQuery)
-                                },
-                                placeholder = "Sites, tokens, URL",
-                                modifier = Modifier
-                                    .alpha(animatedAlpha)
-                                    .graphicsLayer {
-                                        translationY = (1f - animatedAlpha) * -20f
-                                    }
-                            )
-
-                            if (animatedAlpha > 0.5f) {
-                                Spacer(modifier = Modifier.height(Dimensions.Spacing.standard))
-                            }
-                        }
-
-                        // ✅ Mode Tabs - Always visible
-                        ModeSelectorTabs(
-                            modes = listOf("Tokens", "Perps", "Lists"),
-                            selectedMode = when (selectedMode) {
-                                DiscoverMode.TOKENS -> "Tokens"
-                                DiscoverMode.PERPS -> "Perps"
-                                DiscoverMode.LISTS -> "Lists"
+                        SearchInput(
+                            query = searchQuery,
+                            onQueryChange = { newQuery ->
+                                Timber.d("🎨 Search input changed: '$newQuery'")
+                                viewModel.onSearchQueryChanged(newQuery)
                             },
-                            onModeSelected = { mode ->
-                                Timber.d("🎨 Tab clicked: $mode")
-                                val newMode = when (mode) {
-                                    "Tokens" -> DiscoverMode.TOKENS
-                                    "Perps" -> DiscoverMode.PERPS
-                                    "Lists" -> DiscoverMode.LISTS
-                                    else -> DiscoverMode.TOKENS
-                                }
-                                viewModel.onModeSelected(newMode)
-
-                                scope.launch {
-                                    val targetPage = when (newMode) {
-                                        DiscoverMode.TOKENS -> 0
-                                        DiscoverMode.PERPS -> 1
-                                        DiscoverMode.LISTS -> 2
-                                    }
-                                    pagerState.animateScrollToPage(targetPage)
-                                }
-                            },
-                            modifier = Modifier.padding(bottom = Dimensions.Spacing.standard)
+                            placeholder = "Sites, tokens, URL",
                         )
                     }
+
+                    // ✅ Mode Tabs - Always visible
+                    ModeSelectorTabs(
+                        modes = listOf("Tokens", "Perps", "Lists"),
+                        selectedMode = when (selectedMode) {
+                            DiscoverMode.TOKENS -> "Tokens"
+                            DiscoverMode.PERPS -> "Perps"
+                            DiscoverMode.LISTS -> "Lists"
+                        },
+                        onModeSelected = { mode ->
+                            Timber.d("🎨 Tab clicked: $mode")
+                            val newMode = when (mode) {
+                                "Tokens" -> DiscoverMode.TOKENS
+                                "Perps" -> DiscoverMode.PERPS
+                                "Lists" -> DiscoverMode.LISTS
+                                else -> DiscoverMode.TOKENS
+                            }
+                            viewModel.onModeSelected(newMode)
+
+                            scope.launch {
+                                val targetPage = when (newMode) {
+                                    DiscoverMode.TOKENS -> 0
+                                    DiscoverMode.PERPS -> 1
+                                    DiscoverMode.LISTS -> 2
+                                }
+                                pagerState.animateScrollToPage(targetPage)
+                            }
+                        },
+                    )
 
                     // ==================== SWIPEABLE CONTENT ====================
                     HorizontalPager(
@@ -215,9 +220,9 @@ fun DiscoverScreen(
                                     state = tokensScrollState,
                                     contentPadding = PaddingValues(
                                         horizontal = Dimensions.Padding.standard,
-                                        vertical = Dimensions.Spacing.standard
+                                        vertical = Dimensions.Spacing.small
                                     ),
-                                    verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
+                                    verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.medium)
                                 ) {
                                     renderTokensTab(
                                         searchQuery = searchQuery,
@@ -227,18 +232,21 @@ fun DiscoverScreen(
                                             // 2. UNCOMMENT AND FIX THIS
                                             viewModel.onTokenClicked(token) // Keep for logging if needed
                                             onNavigateToTokenDetails(token.id, token.symbol)
-                                        }
+                                        },
+                                        onTokenArrow = onTokenArrow
+
                                     )
                                 }
                             }
+
                             1 -> {
                                 LazyColumn(
                                     state = perpsScrollState,
                                     contentPadding = PaddingValues(
                                         horizontal = Dimensions.Padding.standard,
-                                        vertical = Dimensions.Spacing.standard
+                                        vertical = Dimensions.Spacing.small
                                     ),
-                                    verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
+                                    verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.medium)
                                 ) {
                                     renderPerpsTab(
                                         searchQuery = searchQuery,
@@ -248,18 +256,21 @@ fun DiscoverScreen(
                                             // 3. ADD NAVIGATION CALL HERE
                                             viewModel.onPerpClicked(perp) // Keep for logging if needed
                                             onNavigateToPerpDetails(perp.symbol)
-                                        }
+                                        },
+                                        onPerpArrow = onPerpArrow
+
                                     )
                                 }
                             }
+
                             2 -> {
                                 LazyColumn(
                                     state = listsScrollState,
                                     contentPadding = PaddingValues(
                                         horizontal = Dimensions.Padding.standard,
-                                        vertical = Dimensions.Spacing.standard
+                                        vertical = Dimensions.Spacing.small
                                     ),
-                                    verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
+                                    verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.medium)
                                 ) {
                                     renderListsTab(
                                         searchQuery = searchQuery,
@@ -269,7 +280,8 @@ fun DiscoverScreen(
                                             Timber.d("🎨 DApp row clicked: ${dapp.name}")
                                             viewModel.onDAppClicked(dapp)
                                             onNavigateToDAppDetails(dapp.url)
-                                        }
+                                        },
+                                        onDAppArrow = onDAppArrow
                                     )
                                 }
                             }
@@ -294,15 +306,16 @@ private fun LazyListScope.renderTokensTab(
     searchQuery: String,
     trendingTokens: LoadingState<List<Token>>,
     searchResults: LoadingState<List<Token>>,
-    onTokenClick: (Token) -> Unit
+    onTokenClick: (Token) -> Unit,
+    onTokenArrow: () -> Unit
 ) {
     val displayState = if (searchQuery.isNotBlank()) searchResults else trendingTokens
 
     item {
-        Text(
-            if (searchQuery.isNotBlank()) "Search Results" else "Trending Tokens >",
-            style = AppTypography.titleLarge,
-            color = AppColors.TextPrimary
+        ListSectionHeader(
+            searchQuery = searchQuery,
+            sectionTitle = "Trending DApps",
+            onActionClick = onTokenArrow, // Pass the new click handler
         )
     }
 
@@ -367,15 +380,18 @@ private fun LazyListScope.renderPerpsTab(
     searchQuery: String,
     perps: LoadingState<List<Perp>>,
     searchResults: LoadingState<List<Perp>>,
-    onPerpClick: (Perp) -> Unit
+    onPerpClick: (Perp) -> Unit,
+    onPerpArrow: () -> Unit
 ) {
     val displayState = if (searchQuery.isNotBlank()) searchResults else perps
 
     item {
-        Text(
-            if (searchQuery.isNotBlank()) "Search Results" else "Perpetual Futures >",
-            style = AppTypography.titleLarge,
-            color = AppColors.TextPrimary
+        ListSectionHeader(
+            searchQuery = searchQuery,
+            sectionTitle = "Trending Perps",
+            onActionClick = onPerpArrow, // Pass the new click handler
+            // The existing code placed the IconButton below the Text,
+            // which this composable now replicates.
         )
     }
 
@@ -442,15 +458,18 @@ private fun LazyListScope.renderListsTab(
     searchQuery: String,
     dapps: LoadingState<List<DApp>>,
     searchResults: LoadingState<List<DApp>>,
-    onDAppClick: (DApp) -> Unit
+    onDAppClick: (DApp) -> Unit,
+    onDAppArrow: () -> Unit
 ) {
     val displayState = if (searchQuery.isNotBlank()) searchResults else dapps
 
     item {
-        Text(
-            if (searchQuery.isNotBlank()) "Search Results" else "Trending Sites >",
-            style = AppTypography.titleLarge,
-            color = AppColors.TextPrimary
+        ListSectionHeader(
+            searchQuery = searchQuery,
+            sectionTitle = "Trending Perps",
+            onActionClick = onDAppArrow, // Pass the new click handler
+            // The existing code placed the IconButton below the Text,
+            // which this composable now replicates.
         )
     }
 

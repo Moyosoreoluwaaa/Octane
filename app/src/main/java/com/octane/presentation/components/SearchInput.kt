@@ -41,7 +41,7 @@ fun SearchInput(
             Row(
                 modifier = modifier
                     .fillMaxWidth()
-                    .height(Dimensions.Input.heightCompact)
+                    .height(Dimensions.Input.heightMidCompact)
                     .clip(RoundedCornerShape(Dimensions.CornerRadius.pill))
                     .background(AppColors.SurfaceHighlight)
                     .metallicBorder(

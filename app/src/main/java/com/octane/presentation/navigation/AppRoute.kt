@@ -4,9 +4,8 @@ import kotlinx.serialization.Serializable
 
 /**
  * Type-safe navigation routes using Kotlin Serialization.
- * All routes are serializable for safe argument passing.
+ * ✅ Wallet and Activity are now separate, independent routes.
  */
-
 @Serializable
 sealed interface AppRoute {
 
@@ -15,13 +14,18 @@ sealed interface AppRoute {
     data object Home : AppRoute
 
     @Serializable
-    data object Wallet : AppRoute
-
-    @Serializable
     data object Swap : AppRoute
 
     @Serializable
     data object Search : AppRoute
+
+    // ✅ Separated: Wallet Management (independent screen)
+    @Serializable
+    data object Wallets : AppRoute
+
+    // ✅ Separated: Activity/Transaction History (independent screen)
+    @Serializable
+    data object Activity : AppRoute
 
     // Secondary Screens
     @Serializable
@@ -52,7 +56,7 @@ sealed interface AppRoute {
         val tokenSymbol: String = "SOL"
     ) : AppRoute
 
-    // Wallet management
+    // Wallet Management
     @Serializable
     data class SeedPhraseDisplay(
         val walletId: String,
@@ -70,19 +74,13 @@ sealed interface AppRoute {
     data object ManageTokens : AppRoute
 
     @Serializable
-    data object Wallets : AppRoute
-
-    @Serializable
     data object Settings : AppRoute
 
     @Serializable
-    data object Activity : AppRoute
+    data object Security : AppRoute
 
     @Serializable
     data object Staking : AppRoute
-
-    @Serializable
-    data object Security : AppRoute
 
     @Serializable
     data class TransactionDetails(

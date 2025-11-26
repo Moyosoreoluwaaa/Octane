@@ -42,7 +42,7 @@ fun SwapCard(
             MetallicCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text(
-                        "You Pay",
+                        "Pay",
                         style = AppTypography.labelMedium,
                         color = AppColors.TextSecondary
                     )
@@ -66,7 +66,7 @@ fun SwapCard(
             MetallicCard(modifier = Modifier.fillMaxWidth()) {
                 Column {
                     Text(
-                        "You Receive",
+                        "Receive",
                         style = AppTypography.labelMedium,
                         color = AppColors.TextSecondary
                     )

@@ -59,7 +59,8 @@ open class BaseWalletViewModel(
                     _events.emit(
                         WalletEvent.WalletCreatedWithSeed(
                             wallet = result.wallet,
-                            seedPhrase = result.seedPhrase
+                            seedPhrase = result.seedPhrase,
+                            iconEmoji = iconEmoji,
                         )
                     )
                 }
@@ -130,7 +131,12 @@ open class BaseWalletViewModel(
 
 sealed interface WalletEvent {
     data class WalletCreated(val wallet: Wallet) : WalletEvent
-    data class WalletCreatedWithSeed(val wallet: Wallet, val seedPhrase: String) : WalletEvent
+    data class WalletCreatedWithSeed(
+        val wallet: Wallet,
+        val seedPhrase: String,
+        val iconEmoji: String?
+    ) : WalletEvent
+
     data class WalletImported(val wallet: Wallet) : WalletEvent
     data object WalletDeleted : WalletEvent
     data object WalletSwitched : WalletEvent

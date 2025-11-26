@@ -79,6 +79,7 @@ object Dimensions {
      */
     object Input {
         val height: Dp = 56.dp
+        val heightMidCompact: Dp = 52.dp
         val heightCompact: Dp = 48.dp
     }
     

@@ -1,99 +1,87 @@
 package com.octane.presentation.screens
 
-import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import androidx.compose.foundation.pager.HorizontalPager
-import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.octane.core.util.LoadingState
-import com.octane.domain.models.Transaction
-import com.octane.domain.models.TransactionStatus
-import com.octane.domain.models.TransactionType
 import com.octane.domain.models.Wallet
 import com.octane.presentation.components.*
 import com.octane.presentation.theme.*
-import com.octane.presentation.utils.UiFormatters
 import com.octane.presentation.utils.metallicBorder
-import com.octane.presentation.viewmodel.ActivityViewModel
 import com.octane.presentation.viewmodel.WalletEvent
 import com.octane.presentation.viewmodel.WalletsViewModel
-import kotlinx.coroutines.launch
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * Combined Wallet/Activity screen with swipeable tabs.
+ * ✅ Separated Wallets screen for wallet management only.
  */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun WalletScreen(
-    activityViewModel: ActivityViewModel = koinViewModel(),
-    walletsViewModel: WalletsViewModel = koinViewModel(),
+fun WalletsScreen(
+    viewModel: WalletsViewModel = koinViewModel(),
     navController: NavController,
-    onNavigateToDetails: (String) -> Unit,
     onBack: () -> Unit,
+    onNavigateToSeedPhrase: (String, String, String) -> Unit,
+    onNavigateToImport: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // Activity ViewModel State
-    val filteredTransactions by activityViewModel.filteredTransactions.collectAsState()
-    val activityUiState by activityViewModel.uiState.collectAsState()
-    val pendingCount by activityViewModel.pendingCount.collectAsState()
+    val walletsState by viewModel.walletsState.collectAsState()
+    val activeWallet by viewModel.activeWallet.collectAsState()
+    val uiState by viewModel.uiState.collectAsState()
 
-    // Wallets ViewModel State
-    val walletsState by walletsViewModel.walletsState.collectAsState()
-    val activeWallet by walletsViewModel.activeWallet.collectAsState()
-    val walletsUiState by walletsViewModel.uiState.collectAsState()
-
-    val scope = rememberCoroutineScope()
+    val scrollState = rememberLazyListState()
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ✅ Pager state for swipeable tabs
-    val pagerState = rememberPagerState(pageCount = { 2 })
-
-    // ✅ Separate scroll states for each tab
-    val activityScrollState = rememberLazyListState()
-    val walletsScrollState = rememberLazyListState()
-
-    // Observe wallet events
+    // Handle wallet events
     LaunchedEffect(Unit) {
-        walletsViewModel.walletEvents.collect { event ->
+        viewModel.walletEvents.collect { event ->
             when (event) {
                 is WalletEvent.WalletCreated -> {
                     snackbarHostState.showSnackbar("Wallet created successfully!")
                 }
+
+                is WalletEvent.WalletCreatedWithSeed -> {
+                    onNavigateToSeedPhrase(
+                        event.seedPhrase,
+                        event.wallet.toString(),
+                        event.iconEmoji.toString()
+                    )
+                }
+
                 is WalletEvent.WalletImported -> {
                     snackbarHostState.showSnackbar("Wallet imported successfully!")
                 }
+
                 is WalletEvent.WalletDeleted -> {
                     snackbarHostState.showSnackbar("Wallet deleted")
                 }
+
                 is WalletEvent.WalletSwitched -> {
                     snackbarHostState.showSnackbar("Wallet switched")
                 }
+
                 is WalletEvent.WalletUpdated -> {
                     snackbarHostState.showSnackbar("Wallet updated")
                 }
+
                 is WalletEvent.Error -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
-
-                is WalletEvent.WalletCreatedWithSeed -> TODO()
             }
         }
     }
@@ -101,160 +89,205 @@ fun WalletScreen(
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         containerColor = AppColors.Background,
+        topBar = {
+            TopAppBar(
+                title = { Text("Wallets", style = AppTypography.headlineSmall) },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(
+                            Icons.AutoMirrored.Rounded.ArrowBack,
+                            "Back",
+                            tint = AppColors.TextPrimary
+                        )
+                    }
+                },
+                actions = {
+                    IconButton(onClick = { viewModel.showCreateWallet() }) {
+                        Icon(
+                            Icons.Rounded.Add,
+                            "Create Wallet",
+                            tint = AppColors.TextPrimary
+                        )
+                    }
+                },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = AppColors.Background
+                )
+            )
+        },
         bottomBar = {
             BottomNavBar(
                 navController = navController,
-                onBackToHome = onBack // ✅ Pass back callback for home navigation
+                onBackToHome = onBack
             )
         }
     ) { innerPadding ->
-        Column(
-            modifier = modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Header with tab selector
-            WalletScreenHeader(
-                currentPage = pagerState.currentPage,
-                pendingCount = pendingCount,
-                onBack = onBack,
-                onTabClick = { page ->
-                    scope.launch { pagerState.animateScrollToPage(page) }
-                },
-                onFilterClick = { /* Show filter sheet */ },
-                onExportClick = { activityViewModel.exportTransactions() }
-            )
+        when (val state = walletsState) {
+            is LoadingState.Loading -> {
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    contentAlignment = Alignment.Center
+                ) {
+                    CircularProgressIndicator(color = AppColors.Success)
+                }
+            }
 
-            // ✅ Swipeable content
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier.fillMaxSize()
-            ) { page ->
-                when (page) {
-                    0 -> {
-                        // Activity Tab
-                        when (val state = filteredTransactions) {
-                            is LoadingState.Loading -> LoadingScreen()
-                            is LoadingState.Success -> {
-                                if (state.data.isEmpty()) {
-                                    EmptyActivityScreen()
-                                } else {
-                                    TransactionList(
-                                        transactions = state.data,
-                                        scrollState = activityScrollState,
-                                        onTransactionClick = { tx ->
-                                            activityViewModel.showTransactionDetails(tx)
-                                            onNavigateToDetails(tx.txHash)
-                                        },
-                                        formatTransactionType = activityViewModel::formatTransactionType,
-                                        getTransactionIcon = activityViewModel::getTransactionIcon,
-                                        getStatusColor = activityViewModel::getStatusColor
-                                    )
-                                }
-                            }
-                            is LoadingState.Error -> ErrorScreen(
-                                message = state.message,
-                                onRetry = { /* Retry logic */ }
+            is LoadingState.Success -> {
+                if (state.data.isEmpty()) {
+                    EmptyWalletsState(
+                        onCreateWallet = { viewModel.showCreateWallet() },
+                        onImportWallet = { onNavigateToImport() },
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(innerPadding)
+                    )
+                } else {
+                    LazyColumn(
+                        state = scrollState,
+                        modifier = modifier
+                            .fillMaxSize()
+                            .padding(innerPadding),
+                        contentPadding = PaddingValues(Dimensions.Padding.standard),
+                        verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.medium)
+                    ) {
+                        items(
+                            items = state.data,
+                            key = { it.id }
+                        ) { wallet ->
+                            WalletCard(
+                                wallet = wallet,
+                                isActive = wallet.id == activeWallet?.id,
+                                onClick = { viewModel.switchWallet(wallet.id) },
+                                onEdit = { viewModel.showEditWallet(wallet.id) },
+                                onDelete = { viewModel.showDeleteConfirmation(wallet.id) },
+                                getWalletColor = { viewModel.getWalletColor(wallet) },
+                                getWalletDisplayName = { viewModel.getWalletDisplayName(wallet) }
                             )
-                            else -> Box(modifier = Modifier.fillMaxSize())
                         }
-                    }
-                    1 -> {
-                        // Wallets Tab
-                        when (val state = walletsState) {
-                            is LoadingState.Loading -> {
-                                Box(
-                                    modifier = Modifier.fillMaxSize(),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CircularProgressIndicator(color = AppColors.Success)
-                                }
-                            }
 
-                            is LoadingState.Success -> {
-                                if (state.data.isEmpty()) {
-                                    EmptyWalletsState(
-                                        onCreateWallet = { walletsViewModel.showCreateWallet() },
-                                        onImportWallet = { walletsViewModel.showImportWallet() }
-                                    )
-                                } else {
-                                    WalletsList(
-                                        wallets = state.data,
-                                        activeWallet = activeWallet,
-                                        scrollState = walletsScrollState,
-                                        onWalletClick = { walletsViewModel.switchWallet(it.id) },
-                                        onEditClick = { walletsViewModel.showEditWallet(it.id) },
-                                        onDeleteClick = { walletsViewModel.showDeleteConfirmation(it.id) },
-                                        onCreateClick = { walletsViewModel.showCreateWallet() },
-                                        onImportClick = { walletsViewModel.showImportWallet() },
-                                        getWalletColor = { walletsViewModel.getWalletColor(it) },
-                                        getWalletDisplayName = { walletsViewModel.getWalletDisplayName(it) }
-                                    )
-                                }
-                            }
+                        // Add wallet buttons
+                        item {
+                            Spacer(modifier = Modifier.height(Dimensions.Spacing.medium))
+                        }
 
-                            is LoadingState.Error -> {
-                                Column(
+                        item {
+                            OutlinedCard(
+                                onClick = { viewModel.showCreateWallet() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
                                     modifier = Modifier
-                                        .fillMaxSize()
-                                        .padding(Dimensions.Padding.extraLarge),
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.Center
+                                        .fillMaxWidth()
+                                        .padding(Dimensions.Padding.large),
+                                    horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.medium),
+                                    verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(
-                                        Icons.Rounded.ErrorOutline,
+                                        Icons.Rounded.Add,
                                         contentDescription = null,
-                                        tint = AppColors.Error,
-                                        modifier = Modifier.size(64.dp)
+                                        tint = AppColors.Success
                                     )
-                                    Spacer(modifier = Modifier.height(Dimensions.Spacing.standard))
                                     Text(
-                                        "Failed to load wallets",
+                                        "Create New Wallet",
                                         style = AppTypography.titleMedium,
                                         color = AppColors.TextPrimary
                                     )
+                                }
+                            }
+                        }
+
+                        item {
+                            OutlinedCard(
+                                onClick = { onNavigateToImport() },
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(Dimensions.Padding.large),
+                                    horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.medium),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        Icons.Rounded.Download,
+                                        contentDescription = null,
+                                        tint = AppColors.Success
+                                    )
                                     Text(
-                                        state.message,
-                                        style = AppTypography.bodyMedium,
-                                        color = AppColors.TextSecondary
+                                        "Import Existing Wallet",
+                                        style = AppTypography.titleMedium,
+                                        color = AppColors.TextPrimary
                                     )
                                 }
                             }
-
-                            else -> Box(modifier = Modifier.fillMaxSize())
                         }
                     }
                 }
             }
+
+            is LoadingState.Error -> {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding)
+                        .padding(Dimensions.Padding.extraLarge),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Icon(
+                        Icons.Rounded.ErrorOutline,
+                        contentDescription = null,
+                        tint = AppColors.Error,
+                        modifier = Modifier.size(64.dp)
+                    )
+                    Spacer(modifier = Modifier.height(Dimensions.Spacing.standard))
+                    Text(
+                        "Failed to load wallets",
+                        style = AppTypography.titleMedium,
+                        color = AppColors.TextPrimary
+                    )
+                    Text(
+                        state.message,
+                        style = AppTypography.bodyMedium,
+                        color = AppColors.TextSecondary
+                    )
+                }
+            }
+
+            else -> Box(modifier = Modifier
+                .fillMaxSize()
+                .padding(innerPadding))
         }
     }
 
-    // Bottom Sheets & Dialogs for Wallet Management
-    if (walletsUiState.showCreateSheet) {
+    // Bottom Sheets & Dialogs
+    if (uiState.showCreateSheet) {
         CreateWalletBottomSheet(
-            onDismiss = { walletsViewModel.hideCreateWallet() },
+            onDismiss = { viewModel.hideCreateWallet() },
             onCreateWallet = { name, emoji, color ->
-                walletsViewModel.createWallet(name, emoji, color)
+                viewModel.createWallet(name, emoji, color)
             }
         )
     }
 
-    if (walletsUiState.showImportSheet) {
+    if (uiState.showImportSheet) {
         ImportWalletBottomSheet(
-            onDismiss = { walletsViewModel.hideImportWallet() },
+            onDismiss = { viewModel.hideImportWallet() },
             onImportWallet = { seedPhrase, name, emoji, color ->
-                walletsViewModel.importWallet(seedPhrase, name, emoji, color)
+                viewModel.importWallet(seedPhrase, name, emoji, color)
             }
         )
     }
 
-    if (walletsUiState.showEditSheet && walletsUiState.editingWallet != null) {
+    if (uiState.showEditSheet && uiState.editingWallet != null) {
         EditWalletBottomSheet(
-            wallet = walletsUiState.editingWallet!!,
-            onDismiss = { walletsViewModel.hideEditWallet() },
+            wallet = uiState.editingWallet!!,
+            onDismiss = { viewModel.hideEditWallet() },
             onUpdateWallet = { name, emoji, color ->
-                walletsViewModel.updateWallet(
-                    walletsUiState.editingWallet!!.id,
+                viewModel.updateWallet(
+                    uiState.editingWallet!!.id,
                     name,
                     emoji,
                     color
@@ -263,12 +296,128 @@ fun WalletScreen(
         )
     }
 
-    if (walletsUiState.showDeleteConfirmation) {
+    if (uiState.showDeleteConfirmation) {
         DeleteConfirmationDialog(
-            onDismiss = { walletsViewModel.hideDeleteConfirmation() },
-            onConfirm = { walletsViewModel.deleteWallet() }
+            onDismiss = { viewModel.hideDeleteConfirmation() },
+            onConfirm = { viewModel.deleteWallet() }
         )
     }
 }
 
+/**
+ * Individual wallet card component
+ */
+@Composable
+private fun WalletCard(
+    wallet: Wallet,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    getWalletColor: (Wallet) -> androidx.compose.ui.graphics.Color,
+    getWalletDisplayName: (Wallet) -> String
+) {
+    Card(
+        onClick = onClick,
+        colors = CardDefaults.cardColors(
+            containerColor = if (isActive) {
+                AppColors.Success.copy(alpha = 0.1f)
+            } else {
+                AppColors.Surface
+            }
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .then(
+                if (isActive) {
+                    Modifier.metallicBorder(
+                        width = 2.dp,
+                        shape = MaterialTheme.shapes.medium,
+                        angleDeg = 135f
+                    )
+                } else {
+                    Modifier
+                }
+            )
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(Dimensions.Padding.large),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.medium),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.weight(1f)
+            ) {
+                // Wallet icon
+                Box(
+                    modifier = Modifier
+                        .size(Dimensions.Avatar.large)
+                        .clip(CircleShape)
+                        .background(getWalletColor(wallet).copy(alpha = 0.2f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        wallet.iconEmoji ?: wallet.name.take(1).uppercase(),
+                        style = AppTypography.headlineSmall
+                    )
+                }
 
+                Column(modifier = Modifier.weight(1f)) {
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            getWalletDisplayName(wallet),
+                            style = AppTypography.titleMedium,
+                            fontWeight = FontWeight.Bold,
+                            color = AppColors.TextPrimary
+                        )
+                        if (isActive) {
+                            Surface(
+                                shape = MaterialTheme.shapes.small,
+                                color = AppColors.Success.copy(alpha = 0.2f)
+                            ) {
+                                Text(
+                                    "Active",
+                                    style = AppTypography.labelSmall,
+                                    color = AppColors.Success,
+                                    modifier = Modifier.padding(
+                                        horizontal = Dimensions.Padding.small,
+                                        vertical = 2.dp
+                                    )
+                                )
+                            }
+                        }
+                    }
+                    Text(
+                        "${wallet.publicKey.take(4)}...${wallet.publicKey.takeLast(4)}",
+                        style = AppTypography.bodySmall,
+                        color = AppColors.TextSecondary
+                    )
+                }
+            }
+
+            Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)) {
+                IconButton(onClick = onEdit) {
+                    Icon(
+                        Icons.Rounded.Edit,
+                        "Edit",
+                        tint = AppColors.TextSecondary
+                    )
+                }
+                IconButton(onClick = onDelete) {
+                    Icon(
+                        Icons.Rounded.Delete,
+                        "Delete",
+                        tint = AppColors.Error
+                    )
+                }
+            }
+        }
+    }
+}

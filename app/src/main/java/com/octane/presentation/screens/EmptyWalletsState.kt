@@ -1,4 +1,4 @@
-package com.octane.presentation.components
+package com.octane.presentation.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
@@ -13,30 +13,32 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.octane.presentation.components.WideActionButton
 import com.octane.presentation.theme.AppColors
 import com.octane.presentation.theme.AppTypography
 import com.octane.presentation.theme.Dimensions
 import com.octane.presentation.utils.metallicBorder
 
 /**
- * Shown when no wallet exists yet.
+ * ✅ Empty state shown in Wallets screen when no wallets exist.
  */
 @Composable
-fun NoWalletHero(
+fun EmptyWalletsState(
     onCreateWallet: () -> Unit,
     onImportWallet: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Center,
         modifier = modifier
-            .fillMaxWidth()
-            .padding(vertical = Dimensions.Spacing.small)
+            .fillMaxSize()
+            .padding(Dimensions.Padding.extraLarge)
     ) {
         // Illustration
         Box(
             modifier = Modifier
-                .size(100.dp)
+                .size(120.dp)
                 .clip(CircleShape)
                 .background(AppColors.SurfaceHighlight)
                 .metallicBorder(
@@ -50,38 +52,42 @@ fun NoWalletHero(
                 Icons.Rounded.AccountBalanceWallet,
                 contentDescription = null,
                 tint = AppColors.TextSecondary,
-                modifier = Modifier.size(Dimensions.IconSize.huge)
+                modifier = Modifier.size(64.dp)
             )
         }
         
-        Spacer(modifier = Modifier.height(Dimensions.Spacing.large))
+        Spacer(modifier = Modifier.height(Dimensions.Spacing.extraLarge))
         
         Text(
-            "No wallet yet",
-            style = AppTypography.headlineSmall,
+            "No Wallets Yet",
+            style = AppTypography.headlineMedium,
             color = AppColors.TextPrimary
         )
         Spacer(modifier = Modifier.height(Dimensions.Spacing.small))
         Text(
-            "Create or import a wallet to get started",
-            style = AppTypography.bodyMedium,
+            "Create a new wallet or import an existing one to get started with Octane",
+            style = AppTypography.bodyLarge,
             color = AppColors.TextSecondary,
             textAlign = TextAlign.Center
         )
         
         Spacer(modifier = Modifier.height(Dimensions.Spacing.extraLarge))
         
-        // Buttons
+        // Action Buttons
         WideActionButton(
-            text = "Create Wallet",
+            text = "Create New Wallet",
             isPrimary = true,
-            onClick = onCreateWallet
+            onClick = onCreateWallet,
+            modifier = Modifier.fillMaxWidth()
         )
+        
         Spacer(modifier = Modifier.height(Dimensions.Spacing.medium))
+        
         WideActionButton(
-            text = "Import Wallet",
+            text = "Import Existing Wallet",
             isPrimary = false,
-            onClick = onImportWallet
+            onClick = onImportWallet,
+            modifier = Modifier.fillMaxWidth()
         )
     }
 }

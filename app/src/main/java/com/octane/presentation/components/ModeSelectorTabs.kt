@@ -3,6 +3,7 @@ package com.octane.presentation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AllInclusive
@@ -16,6 +17,7 @@ import androidx.compose.ui.graphics.Color
 import com.octane.presentation.theme.AppColors
 import com.octane.presentation.theme.AppTypography
 import com.octane.presentation.theme.Dimensions
+import com.octane.presentation.utils.metallicBorder
 
 /**
  * Mode selector tabs (Tokens, Perps, Lists).
@@ -31,12 +33,18 @@ fun ModeSelectorTabs(
         modifier = modifier
             .fillMaxWidth()
             .padding(Dimensions.Padding.standard),
-        horizontalArrangement = Arrangement.SpaceEvenly
+        horizontalArrangement = Arrangement.SpaceBetween
     ) {
         modes.forEach { mode ->
             val isSelected = mode == selectedMode
+            val cornerRadius = Dimensions.CornerRadius.standard
             Box(
                 modifier = Modifier
+                    .metallicBorder(
+                        width = Dimensions.Border.standard,
+                        shape = RoundedCornerShape(cornerRadius),
+                        angleDeg = 170f // Card angle
+                    )
                     .clip(RoundedCornerShape(Dimensions.CornerRadius.pill))
                     .background(if (isSelected) AppColors.TextPrimary else AppColors.Surface)
                     .clickable { onModeSelected(mode) }

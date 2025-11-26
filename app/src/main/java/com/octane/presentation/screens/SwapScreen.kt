@@ -155,12 +155,6 @@ private fun SwapHeader(
             )
         }
 
-        Text(
-            "Swap",
-            style = AppTypography.headlineSmall,
-            color = AppColors.TextPrimary
-        )
-
         IconButton(onClick = onSettingsClick) {
             Icon(
                 Icons.Rounded.Settings,

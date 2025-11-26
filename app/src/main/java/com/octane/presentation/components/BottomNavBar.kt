@@ -66,7 +66,7 @@ fun BottomNavBar(
             } == true,
             onClick = {
                 // ✅ Special handling for WalletScreen back navigation
-                if (onBackToHome != null && currentDestination?.hasRoute(AppRoute.Wallet::class) == true) {
+                if (onBackToHome != null && currentDestination?.hasRoute(AppRoute.Home::class) == true) {
                     onBackToHome()
                 } else {
                     navController.navigate(AppRoute.Home) {
@@ -146,8 +146,8 @@ private fun NavIcon(
                 Icon(
                     imageVector = icon,
                     contentDescription = label,
-                    tint = if (isSelected) AppColors.Primary else AppColors.TextSecondary,
-                    modifier = Modifier.size(24.dp)
+                    tint = if (isSelected) AppColors.Primary else AppColors.IconSecondary,
+                    modifier = Modifier.size(Dimensions.IconSize.large)
                 )
             }
         }

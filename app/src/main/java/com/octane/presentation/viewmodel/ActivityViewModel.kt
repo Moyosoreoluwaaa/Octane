@@ -239,6 +239,7 @@ class ActivityViewModel(
 data class ActivityUiState(
     val searchQuery: String = "",
     val typeFilters: Set<TransactionType> = emptySet(),
+    val isLoadingMore: Boolean = false,
     val statusFilters: Set<TransactionStatus> = emptySet(),
     val dateRangeStart: Long? = null,
     val dateRangeEnd: Long? = null,

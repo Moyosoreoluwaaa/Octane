@@ -40,6 +40,7 @@ fun HomeScreen(
     onNavigateToManage: () -> Unit,
     onNavigateToWallets: () -> Unit,
     onNavigateToActivity: () -> Unit,
+    onNavigateToSettings: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val portfolioState by viewModel.portfolioState.collectAsState()
@@ -105,6 +106,7 @@ fun HomeScreen(
                         },
                         onManageTokens = viewModel::onManageTokens,
                         onActivityClick = onNavigateToActivity,
+                        onSettingsClick = onNavigateToSettings,
                         onCreateWallet = onNavigateToWallets,
                         onImportWallet = onNavigateToWallets,
                         formatCurrency = viewModel::formatCurrency

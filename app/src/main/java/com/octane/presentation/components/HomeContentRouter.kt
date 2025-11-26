@@ -17,6 +17,7 @@ import com.octane.domain.models.Asset
 import com.octane.domain.models.Transaction
 import com.octane.domain.models.Wallet
 import com.octane.domain.usecases.asset.PortfolioState
+import com.octane.presentation.navigation.AppRoute
 import com.octane.presentation.theme.AppColors
 import com.octane.presentation.theme.AppTypography
 import com.octane.presentation.theme.Dimensions
@@ -42,6 +43,7 @@ internal fun HomeContentRouter(
     onQuickBuy: () -> Unit,
     onManageTokens: () -> Unit,
     onActivityClick: () -> Unit,
+    onSettingsClick: () -> Unit,
     onCreateWallet: () -> Unit,
     onImportWallet: () -> Unit,
     formatCurrency: (Double) -> String
@@ -62,10 +64,14 @@ internal fun HomeContentRouter(
                     portfolioData.totalValueUsd * (portfolioData.change24hPercent / 100.0)
                 ),
                 changePercent = portfolioData.change24hPercent,
-                walletName = activeWallet?.name, // ✅ Nullable - hides when null
+                walletName = activeWallet?.name,
+                // ✅ Provide value for walletIcon, using the wallet's icon property if available
+                walletIcon = activeWallet?.iconEmoji, // Assuming your Wallet class has an 'icon: String?' property
                 onWalletClick = onWalletClick,
-                onHistoryClick = onActivityClick,
-                onSearchClick = { }
+                // ✅ Updated to new parameter name
+                onActivityClick = onActivityClick,
+                // ✅ New parameter (connect to a placeholder or a real action, like navigating to Settings)
+                onSettingsClick = onSettingsClick
             )
         }
 

@@ -8,7 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
-import androidx.compose.material.icons.rounded.Search
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -16,6 +16,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.octane.presentation.theme.AppColors
 import com.octane.presentation.theme.AppTypography
@@ -24,31 +25,32 @@ import com.octane.presentation.utils.UiFormatters
 import com.octane.presentation.utils.metallicBorder
 
 /**
- * Home screen header with balance and wallet info.
+ * ✅ Updated Home header with Settings icon and proper wallet icon display.
  */
 @Composable
 fun HomeHeader(
     totalBalance: String,
     changeAmount: String,
     changePercent: Double,
-    walletName: String?,  // ⭐ Now nullable
+    walletName: String?,
+    walletIcon: String?, // ✅ NEW: Wallet emoji/icon
     onWalletClick: () -> Unit = {},
-    onHistoryClick: () -> Unit = {},
-    onSearchClick: () -> Unit = {},
+    onActivityClick: () -> Unit = {},
+    onSettingsClick: () -> Unit = {}, // ✅ NEW: Settings click
     modifier: Modifier = Modifier
 ) {
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = Dimensions.Spacing.large)
+            .padding(vertical = Dimensions.Spacing.medium)
     ) {
-        // Top Bar: Wallet Selector + Actions
+        // Top Bar: Wallet Selector + Action Icons
         Row(
             modifier = Modifier.fillMaxWidth(),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // ⭐ Only show wallet selector if wallet exists
+            // ✅ Wallet selector - only show if wallet exists
             if (walletName != null) {
                 Row(
                     modifier = Modifier
@@ -67,25 +69,28 @@ fun HomeHeader(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)
                 ) {
+                    // ✅ Wallet icon/emoji
                     Box(
                         modifier = Modifier
                             .size(Dimensions.Avatar.small)
                             .clip(CircleShape)
-                            .background(AppColors.Background),
+                            .background(AppColors.SurfaceHighlight),
                         contentAlignment = Alignment.Center
                     ) {
                         Text(
-                            walletName.take(1),
-                            style = AppTypography.labelSmall,
-                            color = Color.White
+                            walletIcon ?: walletName.take(1).uppercase(),
+                            style = AppTypography.labelMedium,
+                            fontWeight = FontWeight.Medium
                         )
                     }
+
                     Text(
                         walletName,
                         style = AppTypography.labelLarge,
-                        color = AppColors.TextPrimary
+                        color = AppColors.TextPrimary,
+                        fontWeight = FontWeight.Medium
                     )
-                    // ⭐ Dropdown arrow
+
                     Icon(
                         Icons.Rounded.KeyboardArrowDown,
                         contentDescription = "Switch wallet",
@@ -94,26 +99,26 @@ fun HomeHeader(
                     )
                 }
             } else {
-                Spacer(modifier = Modifier.width(1.dp)) // Placeholder when no wallet
+                Spacer(modifier = Modifier.width(1.dp))
             }
 
-            // Action Icons
+            // ✅ Action Icons: Activity + Settings (replaced Search)
             Row(horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)) {
                 Icon(
                     Icons.Rounded.History,
-                    contentDescription = "History",
+                    contentDescription = "Activity",
                     tint = AppColors.TextPrimary,
                     modifier = Modifier
                         .size(Dimensions.IconSize.standard)
-                        .clickable(onClick = onHistoryClick)
+                        .clickable(onClick = onActivityClick)
                 )
                 Icon(
-                    Icons.Rounded.Search,
-                    contentDescription = "Search",
+                    Icons.Rounded.Settings,
+                    contentDescription = "Settings",
                     tint = AppColors.TextPrimary,
                     modifier = Modifier
                         .size(Dimensions.IconSize.standard)
-                        .clickable(onClick = onSearchClick)
+                        .clickable(onClick = onSettingsClick)
                 )
             }
         }

@@ -19,6 +19,7 @@ object AppColors {
     
     val TextPrimary = Color(0xFFFFFFFF)          // Main text
     val TextSecondary = Color(0xFF8E8E93)        // Secondary text
+    val IconSecondary = Color(0xFF626267)        // Secondary Icon
     val TextTertiary = Color(0xFF48484A)         // Disabled/placeholder
     val TextDisabled = Color(0xFF3A3A3C)         // Fully disabled
     

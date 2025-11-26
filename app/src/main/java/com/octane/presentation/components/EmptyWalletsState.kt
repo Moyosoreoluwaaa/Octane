@@ -29,7 +29,8 @@ import com.octane.presentation.theme.Dimensions
 @Composable
 internal fun EmptyWalletsState(
     onCreateWallet: () -> Unit,
-    onImportWallet: () -> Unit
+    onImportWallet: () -> Unit,
+    modifier: Modifier
 ) {
     Column(
         modifier = Modifier
