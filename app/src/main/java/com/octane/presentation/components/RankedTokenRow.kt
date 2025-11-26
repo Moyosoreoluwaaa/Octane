@@ -109,7 +109,7 @@ fun RankedTokenRow(
             Box(
                 contentAlignment = Alignment.Center,
                 modifier = Modifier
-                    .size(Dimensions.Avatar.medium)
+                    .size(Dimensions.Avatar.large)
                     .clip(CircleShape)
                     .background(fallbackIconColor) // Fallback background color
             ) {
@@ -120,7 +120,9 @@ fun RankedTokenRow(
                         .build(),
                     contentDescription = "$symbol Logo",
                     contentScale = ContentScale.Crop,
-                    modifier = Modifier.fillMaxSize().clip(CircleShape),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(CircleShape),
                     // Set fallback state on error or if data is null/empty
                     onLoading = { showFallback = false },
                     onSuccess = { showFallback = false },
@@ -140,12 +142,12 @@ fun RankedTokenRow(
 
             Column {
                 Text(
-                    symbol,
+                    symbol.uppercase(),
                     style = AppTypography.titleSmall,
                     color = AppColors.TextPrimary
                 )
                 Text(
-                    name,
+                    marketCap,
                     style = AppTypography.bodySmall,
                     color = AppColors.TextSecondary,
                     maxLines = 1
@@ -153,17 +155,8 @@ fun RankedTokenRow(
             }
         }
 
-        Spacer(modifier = Modifier.width(Dimensions.Spacing.small))
 
-        // RIGHT: Market Cap (if space)
-        Text(
-            marketCap,
-            style = AppTypography.bodySmall,
-            color = AppColors.TextSecondary,
-            modifier = Modifier.widthIn(min = 60.dp)
-        )
-
-        Spacer(modifier = Modifier.width(Dimensions.Spacing.standard))
+        Spacer(modifier = Modifier.width(Dimensions.Spacing.large))
 
         // FAR RIGHT: Price + Change
         Column(

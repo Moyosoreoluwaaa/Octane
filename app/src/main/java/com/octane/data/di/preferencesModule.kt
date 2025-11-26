@@ -1,11 +1,11 @@
-// :app/src/main/java/com/octane/data/di/preferencesModule.kt
-
 package com.octane.data.di
 
 import android.content.Context
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.Preferences
 import androidx.datastore.preferences.preferencesDataStore
+import com.octane.data.local.datastore.DAppPreferencesStore
+import com.octane.data.local.datastore.DAppPreferencesStoreImpl
 import com.octane.data.local.datastore.UserPreferencesStore
 import com.octane.data.local.datastore.UserPreferencesStoreImpl
 import org.koin.android.ext.koin.androidContext
@@ -31,5 +31,9 @@ val preferencesModule = module {
     // Provide UserPreferencesStore implementation
     single<UserPreferencesStore> {
         UserPreferencesStoreImpl(context = androidContext()) // ✅ Use androidContext()
+    }
+
+    single<DAppPreferencesStore> {
+        DAppPreferencesStoreImpl(context = androidContext())
     }
 }

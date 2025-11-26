@@ -38,7 +38,7 @@ sealed interface AppRoute {
     @Serializable
     data class DAppWebViewRoute(
         val url: String,
-//        val title: String
+        val title: String
     ) : AppRoute
 
     @Serializable

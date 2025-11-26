@@ -11,8 +11,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.octane.core.util.LoadingState
+import com.octane.domain.models.Perp
 import com.octane.presentation.components.*
 import com.octane.presentation.theme.*
+import com.octane.presentation.utils.UiFormatters
 import com.octane.presentation.viewmodel.PerpDetailViewModel
 import org.koin.androidx.compose.koinViewModel
 
@@ -31,6 +33,11 @@ fun PerpDetailScreen(
     val chartData by viewModel.chartData.collectAsState()
     val selectedTimeframe by viewModel.selectedTimeframe.collectAsState()
     val selectedLeverage by viewModel.selectedLeverage.collectAsState()
+    // Extract Perp data for TopBar usage
+    val perp: Perp? = when (val state = perpDetail) {
+        is LoadingState.Success -> state.data
+        else -> null
+    }
 
     LaunchedEffect(perpSymbol) {
         viewModel.loadPerp(perpSymbol)
@@ -38,12 +45,15 @@ fun PerpDetailScreen(
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // Logo (AsyncImage)
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .padding(end = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
                             // ✅ Perp Logo
                             if (perpDetail is LoadingState.Success) {
@@ -51,26 +61,41 @@ fun PerpDetailScreen(
                                 AsyncImage(
                                     model = perp.logoUrl,
                                     contentDescription = null,
-                                    modifier = Modifier.size(32.dp)
+                                    modifier = Modifier.fillMaxSize()
                                 )
                             }
+                        }
 
+                        // ✅ FIXED: Display Symbol and "Perp" in a Column <-- THIS IS THE TARGET BLOCK
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.Start
+                        ) {
                             Text(
-                                perpSymbol,
-                                style = AppTypography.titleMedium
+                                // Primary Symbol (e.g., WIP-USDC)
+                                perpSymbol.uppercase(),
+                                style = AppTypography.headlineSmall,
+                                color = AppColors.TextPrimary
+                            )
+                            Text(
+                                // Sub-text "Perp" indicator
+                                "Perp",
+                                style = AppTypography.labelMedium,
+                                color = AppColors.TextSecondary
                             )
                         }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Rounded.ArrowBack, "Back")
-                        }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppColors.Surface
-                    )
-                )
-            }
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.Background)
+            )
         }
     ) { padding ->
         val pad = padding
@@ -84,27 +109,6 @@ fun PerpDetailScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
         ) {
-            // Header
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            tint = AppColors.TextPrimary
-                        )
-                    }
-                    Text(
-                        perpSymbol,
-                        style = AppTypography.headlineSmall,
-                        color = AppColors.TextPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
 
             when (val state = perpDetail) {
                 is LoadingState.Success -> {
@@ -113,7 +117,7 @@ fun PerpDetailScreen(
                     // Price Header with Chart
                     item {
                         DetailHeader(
-                            price = "$${perp.indexPrice}",
+                            price = UiFormatters.formatUsd(perp.indexPrice), // <--- CHANGE
                             changeAmount = "$${(perp.indexPrice * (perp.priceChange24h / 100.0))}",
                             changePercent = perp.priceChange24h,
                             isPositive = perp.priceChange24h >= 0,

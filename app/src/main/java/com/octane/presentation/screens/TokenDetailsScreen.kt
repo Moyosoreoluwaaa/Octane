@@ -1,5 +1,6 @@
 package com.octane.presentation.screens
 
+import android.R.attr.padding
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.material.icons.Icons
@@ -9,6 +10,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import coil3.compose.AsyncImage
 import com.octane.core.util.LoadingState
 import com.octane.presentation.components.*
@@ -39,43 +41,69 @@ fun TokenDetailsScreen(
 
     Scaffold(
         topBar = {
-            Column {
-                TopAppBar(
-                    title = {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Dimensions.Spacing.small)
+            TopAppBar(
+                title = {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        // 1. Logo/Icon (Always in a fixed size Box for consistent layout)
+                        Box(
+                            modifier = Modifier
+                                .size(60.dp)
+                                .padding(end = 8.dp),
+                            contentAlignment = Alignment.Center
                         ) {
-                            // ✅ Token Logo
-                            if (tokenDetail is LoadingState.Success) {
-                                val token = (tokenDetail as LoadingState.Success).data
-                                AsyncImage(
-                                    model = token.logoUrl,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(32.dp)
-                                )
-                            }
-
-                            Text(
-                                symbol,
-                                style = AppTypography.titleMedium
+                            // Safely retrieve the logo URL from the loaded state
+                            val logoUrl = (tokenDetail as? LoadingState.Success)?.data?.logoUrl
+                            AsyncImage(
+                                model = logoUrl
+                                    ?: "logo_url_for_$symbol", // Use actual URL or fallback placeholder
+                                contentDescription = "$symbol Logo",
+                                modifier = Modifier.fillMaxSize()
                             )
                         }
-                    },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Rounded.ArrowBack, "Back")
+
+                        // 2. Title content (Symbol + Name)
+                        Column(horizontalAlignment = Alignment.Start) {
+                            when (val state = tokenDetail) {
+                                is LoadingState.Success -> {
+                                    Text(
+                                        state.data.symbol.uppercase(), // e.g., SOL
+                                        style = AppTypography.headlineSmall,
+                                        color = AppColors.TextPrimary
+                                    )
+                                    Text(
+                                        state.data.name, // e.g., Solana (The full name)
+                                        style = AppTypography.labelMedium,
+                                        color = AppColors.TextSecondary
+                                    )
+                                }
+
+                                else -> {
+                                    // Fallback Text while loading
+                                    Text(
+                                        symbol.uppercase(),
+                                        style = AppTypography.headlineSmall,
+                                        color = AppColors.TextPrimary
+                                    )
+                                }
+                            }
                         }
-                    },
-                    colors = TopAppBarDefaults.topAppBarColors(
-                        containerColor = AppColors.Surface
-                    )
-                )
-            }
-        }
+                    }
+                },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Rounded.ArrowBack, contentDescription = "Back")
+                    }
+                },
+                actions = {
+                    // Placeholder for actions
+                },
+                colors = TopAppBarDefaults.topAppBarColors(containerColor = AppColors.Background)
+            )
+        },
     ) { padding ->
         LazyColumn(
-            modifier = modifier.fillMaxSize()
+            modifier = modifier
+                .fillMaxSize()
                 .padding(padding),
             contentPadding = PaddingValues(
                 horizontal = Dimensions.Padding.standard,
@@ -83,27 +111,6 @@ fun TokenDetailsScreen(
             ),
             verticalArrangement = Arrangement.spacedBy(Dimensions.Spacing.standard)
         ) {
-            // Header
-            item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onBack) {
-                        Icon(
-                            Icons.Rounded.ArrowBack,
-                            contentDescription = "Back",
-                            tint = AppColors.TextPrimary
-                        )
-                    }
-                    Text(
-                        symbol,
-                        style = AppTypography.headlineSmall,
-                        color = AppColors.TextPrimary,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
-            }
 
             // Content
             when (val state = tokenDetail) {
@@ -113,7 +120,7 @@ fun TokenDetailsScreen(
                     // Price Header with Chart
                     item {
                         DetailHeader(
-                            price = viewModel.formatPrice(token.currentPrice),
+                            price = UiFormatters.formatUsd(token.currentPrice), // <--- CHANGE: Used to be "$${token.currentPrice}"
                             changeAmount = UiFormatters.formatUsd(
                                 token.currentPrice * (token.priceChange24h / 100.0)
                             ),
@@ -148,7 +155,10 @@ fun TokenDetailsScreen(
                                 InfoRow("Name", token.name)
                                 InfoRow("Symbol", token.symbol)
                                 InfoRow("Market Cap", token.formattedMarketCap)
-                                InfoRow("24h Volume", UiFormatters.formatCompactNumber(token.volume24h))
+                                InfoRow(
+                                    "24h Volume",
+                                    UiFormatters.formatCompactNumber(token.volume24h)
+                                )
                                 if (token.mintAddress != null) {
                                     InfoRow(
                                         "Mint Address",

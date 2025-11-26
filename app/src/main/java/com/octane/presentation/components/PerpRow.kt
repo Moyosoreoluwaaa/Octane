@@ -9,7 +9,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.AllInclusive
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
-import androidx.compose.runtime.* // Import all runtime components
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -32,7 +32,7 @@ import com.octane.presentation.utils.metallicBorder
 @Composable
 fun PerpRow(
     symbol: String,
-    name: String,
+    name: String, // Kept for data, but no longer used for main title
     price: String,
     changePercent: Double,
     volume24h: String,
@@ -64,19 +64,19 @@ fun PerpRow(
         ) {
             // Icon with Infinity Badge
             Box(contentAlignment = Alignment.BottomEnd) {
-                // ⭐ ASYNC IMAGE INTEGRATION WITH FALLBACK CORRECTION ⭐
+                // Async Image Integration
                 var showFallback by remember { mutableStateOf(false) }
 
                 Box(
                     contentAlignment = Alignment.Center,
                     modifier = Modifier
-                        .size(Dimensions.Avatar.medium)
+                        .size(Dimensions.Avatar.large)
                         .clip(CircleShape)
                         .background(fallbackIconColor) // Fallback background color
                 ) {
                     AsyncImage(
                         model = ImageRequest.Builder(LocalContext.current)
-                            .data(logoUrl) // Use the logo URL
+                            .data(logoUrl)
                             .crossfade(true)
                             .build(),
                         contentDescription = "$symbol Logo",
@@ -96,9 +96,9 @@ fun PerpRow(
                         )
                     }
                 }
-                // ⭐ END ASYNC IMAGE INTEGRATION ⭐
+                // End Async Image Integration
 
-                // Perp Badge (remains the same)
+                // Perp Badge
                 Box(
                     modifier = Modifier
                         .offset(x = 4.dp, y = 4.dp)
@@ -118,7 +118,8 @@ fun PerpRow(
 
             Column {
                 Text(
-                    name,
+                    // ✅ FIXED: Use the symbol (e.g., WIP-USDC) as the main title for consistency
+                    symbol.uppercase(),
                     style = AppTypography.titleSmall,
                     color = AppColors.TextPrimary
                 )

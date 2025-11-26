@@ -56,6 +56,14 @@ val viewModelModule = module {
     }
 
     viewModel {
+        DAppBrowserViewModel(
+            observeActiveWalletUseCase = get(),
+            oObserveWalletsUseCase = get(),
+            setActiveWalletUseCase = get(),
+            dappPreferencesStore = get()
+        )
+    }
+    viewModel {
         PerpDetailViewModel(get())
     }
 

@@ -36,6 +36,7 @@ val domainModule = module {
     factory { SetActiveWalletUseCase(get()) }
     factory { SwitchActiveWalletUseCase(get(), get()) }
     factory { ObserveWalletsUseCase(get()) }
+    factory { ObserveActiveWalletUseCase(get()) }
     factory { DeleteWalletUseCase(get(), get()) }
     factory { ClaimRewardsUseCase(get(), get()) }
     factory { UpdateWalletMetadataUseCase(get()) }

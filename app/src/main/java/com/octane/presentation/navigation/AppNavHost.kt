@@ -10,6 +10,7 @@ import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
 import com.octane.presentation.navigation.AppRoute.DAppWebViewRoute
+import com.octane.presentation.screens.DAppBrowserScreen
 import com.octane.presentation.screens.DAppWebViewScreen
 import com.octane.presentation.screens.DiscoverScreen
 import com.octane.presentation.screens.HomeScreen
@@ -105,7 +106,7 @@ fun AppNavHost(
                 },
                 // 3. Add New DApp Navigation
                 onNavigateToDAppDetails = { url ->
-                    navController.navigate(AppRoute.DAppWebViewRoute(url))
+                    navController.navigate(AppRoute.DAppWebViewRoute(url, "DApp"))
                 }
             )
         }
@@ -145,10 +146,11 @@ fun AppNavHost(
 
         // ============ Other Screens ============
 
-        composable< AppRoute.DAppWebViewRoute> { backStackEntry ->
+        composable<AppRoute.DAppWebViewRoute> { backStackEntry ->
             val route = backStackEntry.toRoute<AppRoute.DAppWebViewRoute>()
-            DAppWebViewScreen(
-                url = route.url,
+            DAppBrowserScreen(
+                initialUrl = route.url,
+                initialTitle = route.title,
                 onBack = { navController.navigateUp() }
             )
         }
