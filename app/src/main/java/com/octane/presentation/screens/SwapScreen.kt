@@ -4,6 +4,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.Icon
@@ -148,7 +149,7 @@ private fun SwapHeader(
     ) {
         IconButton(onClick = onBack) {
             Icon(
-                Icons.Rounded.ArrowBack,
+                Icons.AutoMirrored.Rounded.ArrowBack,
                 contentDescription = "Back",
                 tint = AppColors.TextPrimary
             )

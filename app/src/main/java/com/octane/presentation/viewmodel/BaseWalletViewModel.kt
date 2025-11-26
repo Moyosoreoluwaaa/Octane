@@ -4,11 +4,11 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.octane.core.util.LoadingState
 import com.octane.domain.models.Wallet
-import com.octane.domain.usecases.wallet.SetActiveWalletUseCase
 import com.octane.domain.usecases.wallet.CreateWalletUseCase
 import com.octane.domain.usecases.wallet.DeleteWalletUseCase
 import com.octane.domain.usecases.wallet.ImportWalletUseCase
 import com.octane.domain.usecases.wallet.ObserveWalletsUseCase
+import com.octane.domain.usecases.wallet.SetActiveWalletUseCase
 import com.octane.domain.usecases.wallet.UpdateWalletUseCase
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -19,36 +19,22 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 
-
-/**
- * Shared wallet management state.
- * Used by: WalletsScreen, WalletSwitcherSheet, SettingsScreen
- * 
- * RESPONSIBILITY:
- * - Wallet CRUD (create, import, delete)
- * - Active wallet switching
- * - Wallet list observation
- * 
- * Pattern: shared/BaseWalletViewModel.kt
- */
-open class BaseWalletViewModel (
+open class BaseWalletViewModel(
     private val observeWalletsUseCase: ObserveWalletsUseCase,
     private val createWalletUseCase: CreateWalletUseCase,
     private val importWalletUseCase: ImportWalletUseCase,
     private val deleteWalletUseCase: DeleteWalletUseCase,
-    private val setActiveWalletUseCase: SetActiveWalletUseCase, // You'll need to create this
-    private val updateWalletUseCase: UpdateWalletUseCase  // ⭐ ADD THIS
+    private val setActiveWalletUseCase: SetActiveWalletUseCase,
+    private val updateWalletUseCase: UpdateWalletUseCase
 ) : ViewModel() {
-    
-    // UI State: All wallets
+
     val walletsState: StateFlow<LoadingState<List<Wallet>>> = observeWalletsUseCase()
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = LoadingState.Loading
         )
-    
-    // UI State: Active wallet
+
     val activeWallet: StateFlow<Wallet?> = walletsState
         .map { state ->
             (state as? LoadingState.Success)?.data?.find { it.isActive }
@@ -58,15 +44,10 @@ open class BaseWalletViewModel (
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = null
         )
-    
-    // One-time events (navigation, toasts)
+
     private val _events = MutableSharedFlow<WalletEvent>(replay = 0, extraBufferCapacity = 1)
     val events: SharedFlow<WalletEvent> = _events.asSharedFlow()
-    
-    /**
-     * Create new wallet with generated keypair.
-     * Shows seed phrase screen after creation.
-     */
+
     fun createWallet(
         name: String,
         iconEmoji: String? = null,
@@ -74,20 +55,20 @@ open class BaseWalletViewModel (
     ) {
         viewModelScope.launch {
             createWalletUseCase(name, iconEmoji, colorHex)
-                .onSuccess { wallet ->
-                    _events.emit(WalletEvent.WalletCreated(wallet))
+                .onSuccess { result ->
+                    _events.emit(
+                        WalletEvent.WalletCreatedWithSeed(
+                            wallet = result.wallet,
+                            seedPhrase = result.seedPhrase
+                        )
+                    )
                 }
                 .onFailure { e ->
                     _events.emit(WalletEvent.Error("Failed to create wallet: ${e.message}"))
                 }
         }
     }
-    
-    /**
-     * Import existing wallet from seed phrase.
-     * @param seedPhrase 12 or 24-word BIP39 phrase
-     * @param name Wallet name
-     */
+
     fun importWallet(
         seedPhrase: String,
         name: String,
@@ -104,12 +85,7 @@ open class BaseWalletViewModel (
                 }
         }
     }
-    
-    /**
-     * Delete wallet permanently.
-     * Shows confirmation dialog before deletion.
-     * @param walletId Wallet database ID
-     */
+
     fun deleteWallet(walletId: String) {
         viewModelScope.launch {
             deleteWalletUseCase(walletId)
@@ -121,12 +97,7 @@ open class BaseWalletViewModel (
                 }
         }
     }
-    
-    /**
-     * Switch active wallet.
-     * Triggers portfolio refresh, updates all screens.
-     * @param walletId Wallet to activate
-     */
+
     fun switchWallet(walletId: String) {
         viewModelScope.launch {
             setActiveWalletUseCase(walletId)
@@ -138,10 +109,7 @@ open class BaseWalletViewModel (
                 }
         }
     }
-    
-    /**
-     * Update wallet metadata (name, emoji, color).
-     */
+
     fun updateWalletMetadata(
         walletId: String,
         name: String? = null,
@@ -160,14 +128,12 @@ open class BaseWalletViewModel (
     }
 }
 
-/**
- * One-time wallet events for navigation/toasts.
- */
 sealed interface WalletEvent {
     data class WalletCreated(val wallet: Wallet) : WalletEvent
+    data class WalletCreatedWithSeed(val wallet: Wallet, val seedPhrase: String) : WalletEvent
     data class WalletImported(val wallet: Wallet) : WalletEvent
     data object WalletDeleted : WalletEvent
     data object WalletSwitched : WalletEvent
-    data object WalletUpdated : WalletEvent  // ⭐ ADD THIS LINE
+    data object WalletUpdated : WalletEvent
     data class Error(val message: String) : WalletEvent
 }

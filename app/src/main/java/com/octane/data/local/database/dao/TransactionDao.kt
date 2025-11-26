@@ -115,4 +115,7 @@ interface TransactionDao {
     fun observeTransactionCount(walletId: String): Flow<Int>
 
 
+    @Query("SELECT * FROM transactions WHERE tx_hash = :txHash LIMIT 1")
+    fun observeTransactionByHash(txHash: String): Flow<TransactionEntity?>
+
 }

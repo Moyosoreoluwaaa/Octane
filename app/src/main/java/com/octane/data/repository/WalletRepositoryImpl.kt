@@ -31,7 +31,7 @@ class WalletRepositoryImpl(
     }
 
     override suspend fun getWalletByPublicKey(publicKey: String): Wallet? {
-        TODO("Not yet implemented")
+        return walletDao.getWalletByPublicKey(publicKey)?.toDomain()
     }
 
     override suspend fun createWallet(wallet: Wallet) {

@@ -40,6 +40,8 @@ val domainModule = module {
     factory { DeleteWalletUseCase(get(), get()) }
     factory { ClaimRewardsUseCase(get(), get()) }
     factory { UpdateWalletMetadataUseCase(get()) }
+    factory { ValidateSeedPhraseUseCase() }
+    factory { ExportSeedPhraseUseCase(get(), get(), get()) }
 
     // Asset Use Cases
     factory { ObservePortfolioUseCase(get(), get()) }

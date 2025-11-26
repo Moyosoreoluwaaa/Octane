@@ -18,4 +18,5 @@ interface TransactionRepository {
         errorMessage: String?
     )
     suspend fun refreshTransactionHistory(walletId: String, publicKey: String)
+    fun observeTransactionByHash(txHash: String): Flow<Transaction?>
 }

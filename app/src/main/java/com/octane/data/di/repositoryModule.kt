@@ -1,5 +1,7 @@
 package com.octane.data.di
 
+import com.octane.core.blockchain.SolanaKeyGenerator
+import com.octane.data.repository.SolanaKeyGeneratorImpl
 import com.octane.data.repository.AssetRepositoryImpl
 import com.octane.data.repository.DiscoverRepositoryImpl
 import com.octane.data.repository.TransactionRepositoryImpl
@@ -39,6 +41,7 @@ val repositoryModule = module {
     }
 
     single<WalletRepository> { WalletRepositoryImpl(get()) }
+    single<SolanaKeyGenerator> { SolanaKeyGeneratorImpl() }
     single<AssetRepository> { AssetRepositoryImpl(get(), get(), get(), get()) }
     single<TransactionRepository> { TransactionRepositoryImpl(get(), get(), get()) }
 

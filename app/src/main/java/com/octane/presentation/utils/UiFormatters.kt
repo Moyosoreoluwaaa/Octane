@@ -4,7 +4,10 @@ package com.octane.presentation.utils
 
 import androidx.compose.ui.graphics.Color
 import com.octane.presentation.theme.AppColors
+import java.text.DecimalFormat
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
+import java.util.Date
 import java.util.Locale
 
 /**
@@ -39,6 +42,14 @@ object UiFormatters {
             }
             else -> "$0.00"
         }
+    }
+
+    /**
+     * Format SOL amount (9 decimals).
+     */
+    fun formatSol(lamports: Long): String {
+        val sol = lamports / 1_000_000_000.0
+        return formatCryptoAmount(sol, "SOL")
     }
     
     /**
@@ -123,7 +134,39 @@ object UiFormatters {
         if (address.length <= prefixLength + suffixLength) return address
         return "${address.take(prefixLength)}...${address.takeLast(suffixLength)}"
     }
-    
+
+    /**
+     * Format transaction hash.
+     */
+    fun formatTxHash(hash: String): String = formatAddress(hash, 8, 8)
+
+    /**
+     * Format currency with proper decimals.
+     */
+    fun formatCurrency(amount: Double, currency: String = "USD"): String {
+        val formatter = DecimalFormat("#,##0.00")
+        return when (currency) {
+            "USD" -> "$${formatter.format(amount)}"
+            "EUR" -> "€${formatter.format(amount)}"
+            "GBP" -> "£${formatter.format(amount)}"
+            else -> "${formatter.format(amount)} $currency"
+        }
+    }
+
+    /**
+     * Format crypto amount with dynamic decimals.
+     */
+    fun formatCryptoAmount(amount: Double, symbol: String): String {
+        val decimals = when {
+            amount >= 1000 -> 2
+            amount >= 1 -> 4
+            amount >= 0.01 -> 6
+            else -> 8
+        }
+        val formatter = DecimalFormat("#,##0.${"0".repeat(decimals)}")
+        return "${formatter.format(amount)} $symbol"
+    }
+
     // ==================== Time Formatting ====================
     
     /**
@@ -141,6 +184,26 @@ object UiFormatters {
             diff < 604_800_000 -> "${diff / 86_400_000}d ago"
             diff < 2_592_000_000 -> "${diff / 604_800_000}w ago"
             else -> formatDate(timestamp)
+        }
+    }
+
+    /**
+     * Format timestamp to time string.
+     */
+    fun formatTime(timestamp: Long): String {
+        val formatter = SimpleDateFormat("HH:mm:ss", Locale.getDefault())
+        return formatter.format(Date(timestamp))
+    }
+
+    /**
+     * Format large numbers with K/M/B suffixes.
+     */
+    fun formatCompactNumber(value: Double): String {
+        return when {
+            value >= 1_000_000_000 -> "${"%.2f".format(value / 1_000_000_000)}B"
+            value >= 1_000_000 -> "${"%.2f".format(value / 1_000_000)}M"
+            value >= 1_000 -> "${"%.2f".format(value / 1_000)}K"
+            else -> "%.2f".format(value)
         }
     }
     

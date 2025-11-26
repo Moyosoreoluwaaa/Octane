@@ -114,4 +114,9 @@ class TransactionRepositoryImpl(
             // Log error, don't throw (offline-first pattern)
         }
     }
+
+    override fun observeTransactionByHash(txHash: String): Flow<Transaction?> {
+        return transactionDao.observeTransactionByHash(txHash)
+            .map { it?.toDomain() }
+    }
 }

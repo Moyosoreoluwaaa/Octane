@@ -59,6 +59,7 @@ fun HomeScreen(
                 is HomeEvent.NavigateToSend -> onNavigateToSend(event.tokenSymbol)
                 HomeEvent.NavigateToReceive -> onNavigateToReceive()
                 HomeEvent.NavigateToSwap -> onNavigateToSwap()
+                HomeEvent.NavigateToBuy -> { /* TODO: Buy flow */ }
                 HomeEvent.NavigateToManage -> onNavigateToManage()
                 is HomeEvent.NavigateToDetails -> onNavigateToDetails(event.assetId, event.symbol)
                 is HomeEvent.NavigateToTransactionDetails -> { }

@@ -10,7 +10,10 @@ enum class TransactionType {
     APPROVE,
     REVOKE,
     NFT_MINT,
-    NFT_TRANSFER
+    NFT_TRANSFER,
+    SINGLE,
+    MULTIPLE,
+    MESSAGE
 }
 
 enum class TransactionStatus {

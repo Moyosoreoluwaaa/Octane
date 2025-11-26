@@ -1,5 +1,3 @@
-// presentation/navigation/AppNavHost.kt
-
 package com.octane.presentation.navigation
 
 import androidx.compose.runtime.Composable
@@ -9,25 +7,9 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.toRoute
-import com.octane.presentation.navigation.AppRoute.DAppWebViewRoute
-import com.octane.presentation.screens.DAppBrowserScreen
-import com.octane.presentation.screens.DAppWebViewScreen
-import com.octane.presentation.screens.DiscoverScreen
-import com.octane.presentation.screens.HomeScreen
-import com.octane.presentation.screens.ManageTokensScreen
-import com.octane.presentation.screens.PerpDetailScreen
-import com.octane.presentation.screens.ReceiveScreen
-import com.octane.presentation.screens.SendScreen
-import com.octane.presentation.screens.SettingsScreen
-import com.octane.presentation.screens.SwapScreen
-import com.octane.presentation.screens.TokenDetailsScreen
-import com.octane.presentation.screens.WalletScreen
+import com.octane.presentation.screens.*
 import org.koin.androidx.compose.koinViewModel
 
-/**
- * Main navigation host for Octane Wallet.
- * Handles all screen routing with type-safe navigation.
- */
 @Composable
 fun AppNavHost(
     modifier: Modifier = Modifier,
@@ -39,13 +21,11 @@ fun AppNavHost(
         startDestination = startDestination,
         modifier = modifier
     ) {
-
-        // ============ Main Tabs ============
-
+        // Main Tabs
         composable<AppRoute.Home> {
             HomeScreen(
                 viewModel = koinViewModel(),
-                navController = navController, // ✅ Pass navController
+                navController = navController,
                 onNavigateToDetails = { assetId, symbol ->
                     navController.navigate(AppRoute.TokenDetails(assetId, symbol))
                 },
@@ -74,7 +54,7 @@ fun AppNavHost(
             WalletScreen(
                 activityViewModel = koinViewModel(),
                 walletsViewModel = koinViewModel(),
-                navController = navController, // ✅ Pass navController
+                navController = navController,
                 onNavigateToDetails = { txHash ->
                     navController.navigate(AppRoute.TransactionDetails(txHash))
                 },
@@ -85,7 +65,7 @@ fun AppNavHost(
         composable<AppRoute.Swap> {
             SwapScreen(
                 viewModel = koinViewModel(),
-                navController = navController, // ✅ Pass navController
+                navController = navController,
                 onBack = { navController.popBackStack() },
                 onSuccess = { txHash ->
                     navController.navigate(AppRoute.TransactionDetails(txHash))
@@ -96,24 +76,20 @@ fun AppNavHost(
         composable<AppRoute.Search> {
             DiscoverScreen(
                 viewModel = koinViewModel(),
-                navController = navController, // ✅ Pass navController
+                navController = navController,
                 onNavigateToTokenDetails = { assetId, symbol ->
                     navController.navigate(AppRoute.TokenDetails(assetId, symbol))
                 },
-                // 2. Add New Perp Navigation
                 onNavigateToPerpDetails = { perpSymbol ->
                     navController.navigate(AppRoute.PerpDetailRoute(perpSymbol))
                 },
-                // 3. Add New DApp Navigation
                 onNavigateToDAppDetails = { url ->
                     navController.navigate(AppRoute.DAppWebViewRoute(url, "DApp"))
                 }
             )
         }
 
-        // ============ Detail Screens (No Bottom Nav) ============
-
-        // Token Detail Screen
+        // Detail Screens
         composable<AppRoute.TokenDetails> { backStackEntry ->
             val route = backStackEntry.toRoute<AppRoute.TokenDetails>()
             TokenDetailsScreen(
@@ -121,30 +97,25 @@ fun AppNavHost(
                 symbol = route.symbol,
                 onBack = { navController.navigateUp() },
                 onNavigateToSend = { symbol ->
-                    // Navigate to send screen
+                    navController.navigate(AppRoute.Send(tokenSymbol = symbol))
                 },
                 onNavigateToReceive = { symbol ->
-                    // Navigate to receive screen
+                    navController.navigate(AppRoute.Receive(tokenSymbol = symbol))
                 },
                 onNavigateToSwap = { symbol ->
-                    // Navigate to swap screen
+                    navController.navigate(AppRoute.Swap)
                 }
             )
         }
 
-        // Perp Detail Screen
         composable<AppRoute.PerpDetailRoute> { backStackEntry ->
             val route = backStackEntry.toRoute<AppRoute.PerpDetailRoute>()
             PerpDetailScreen(
                 perpSymbol = route.perpSymbol,
                 onBack = { navController.navigateUp() },
-                onNavigateToTrade = { perpSymbol ->
-                    // Navigate to perp trading screen
-                }
+                onNavigateToTrade = { perpSymbol -> /* Navigate to trading */ }
             )
         }
-
-        // ============ Other Screens ============
 
         composable<AppRoute.DAppWebViewRoute> { backStackEntry ->
             val route = backStackEntry.toRoute<AppRoute.DAppWebViewRoute>()
@@ -191,23 +162,32 @@ fun AppNavHost(
             )
         }
 
-//        composable<AppRoute.Activity> {
-//            ActivityScreen(
-//                viewModel = koinViewModel(),
-//                onNavigateToDetails = { txHash ->
-//                    navController.navigate(AppRoute.TransactionDetails(txHash))
-//                },
-//                onBack = { navController.popBackStack() }
-//            )
-//        }
-//
-//        composable<AppRoute.TransactionDetails> { backStackEntry ->
-//            val route = backStackEntry.toRoute<AppRoute.TransactionDetails>()
-//            TransactionDetailsScreen(
-//                viewModel = koinViewModel(),
-//                txHash = route.txHash,
-//                onBack = { navController.popBackStack() }
-//            )
-//        }
+        // NEW: Wallet Management Routes
+        composable<AppRoute.SeedPhraseDisplay> { backStackEntry ->
+            val route = backStackEntry.toRoute<AppRoute.SeedPhraseDisplay>()
+            SeedPhraseDisplayScreen(
+                seedPhrase = route.seedPhrase,
+                walletName = route.walletName,
+                onConfirm = {
+                    // Navigate back to home after confirming backup
+                    navController.navigate(AppRoute.Home) {
+                        popUpTo(AppRoute.Home) { inclusive = true }
+                    }
+                },
+                onBack = { navController.navigateUp() }
+            )
+        }
+
+        composable<AppRoute.ImportWallet> {
+            ImportWalletScreen(
+                viewModel = koinViewModel(),
+                onSuccess = {
+                    navController.navigate(AppRoute.Home) {
+                        popUpTo(AppRoute.Home) { inclusive = true }
+                    }
+                },
+                onBack = { navController.navigateUp() }
+            )
+        }
     }
 }

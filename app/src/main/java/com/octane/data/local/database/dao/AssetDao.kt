@@ -61,45 +61,45 @@ interface ContactDao {
     suspend fun deleteContact(contactId: String)
 }
 
-// app/core/data/local/database/dao/ApprovalDao.kt
-
-@Dao
-interface ApprovalDao {
-    
-    @Query("""
-        SELECT * FROM approvals 
-        WHERE wallet_id = :walletId 
-        AND is_revoked = 0 
-        ORDER BY approved_at DESC
-    """)
-    fun observeActiveApprovals(walletId: String): Flow<List<ApprovalEntity>>
-    
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertApproval(approval: ApprovalEntity)
-    
-    @Query("UPDATE approvals SET is_revoked = 1, revoked_at = :timestamp WHERE id = :approvalId")
-    suspend fun revokeApproval(approvalId: String, timestamp: Long)
-}
-
-// app/core/data/local/database/dao/StakingDao.kt
-
-@Dao
-interface StakingDao {
-    
-    @Query("""
-        SELECT * FROM staking_positions 
-        WHERE wallet_id = :walletId 
-        AND is_active = 1 
-        ORDER BY staked_at DESC
-    """)
-    fun observeActivePositions(walletId: String): Flow<List<StakingPositionEntity>>
-    
-    @Insert(onConflict = OnConflictStrategy.REPLACE)
-    suspend fun insertPosition(position: StakingPositionEntity)
-    
-    @Query("UPDATE staking_positions SET is_active = 0, unstaked_at = :timestamp WHERE id = :positionId")
-    suspend fun unstakePosition(positionId: String, timestamp: Long)
-    
-    @Query("SELECT SUM(CAST(amount_staked AS REAL)) FROM staking_positions WHERE wallet_id = :walletId AND is_active = 1")
-    fun observeTotalStaked(walletId: String): Flow<Double?>
-}
+//// app/core/data/local/database/dao/ApprovalDao.kt
+//
+//@Dao
+//interface ApprovalDao {
+//
+//    @Query("""
+//        SELECT * FROM approvals
+//        WHERE wallet_id = :walletId
+//        AND is_revoked = 0
+//        ORDER BY approved_at DESC
+//    """)
+//    fun observeActiveApprovals(walletId: String): Flow<List<ApprovalEntity>>
+//
+//    @Insert(onConflict = OnConflictStrategy.REPLACE)
+//    suspend fun insertApproval(approval: ApprovalEntity)
+//
+//    @Query("UPDATE approvals SET is_revoked = 1, revoked_at = :timestamp WHERE id = :approvalId")
+//    suspend fun revokeApproval(approvalId: String, timestamp: Long)
+//}
+//
+//// app/core/data/local/database/dao/StakingDao.kt
+//
+//@Dao
+//interface StakingDao {
+//
+//    @Query("""
+//        SELECT * FROM staking_positions
+//        WHERE wallet_id = :walletId
+//        AND is_active = 1
+//        ORDER BY staked_at DESC
+//    """)
+//    fun observeActivePositions(walletId: String): Flow<List<StakingPositionEntity>>
+//
+//    @Insert(onConflict = OnConflictStrategy.REPLACE)
+//    suspend fun insertPosition(position: StakingPositionEntity)
+//
+//    @Query("UPDATE staking_positions SET is_active = 0, unstaked_at = :timestamp WHERE id = :positionId")
+//    suspend fun unstakePosition(positionId: String, timestamp: Long)
+//
+//    @Query("SELECT SUM(CAST(amount_staked AS REAL)) FROM staking_positions WHERE wallet_id = :walletId AND is_active = 1")
+//    fun observeTotalStaked(walletId: String): Flow<Double?>
+//}

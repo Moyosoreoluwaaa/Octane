@@ -58,7 +58,12 @@ androidxSecurityCrypto = "1.1.0"  # Latest stable; deprecated but still usable f
 web3j = "4.12.3"
 bitcoinj = "0.17.1"
 bouncycastle = "1.79"
+sol4k = "0.6.0"
 solanaMobileWalletAdapter = "2.0.0-rc.2"  # Latest release candidate for Solana-native wallet integration
+solanaKotlin = "1.0.0"
+eddsa = "0.3.0"
+kotlinBip39 = "1.0.6"
+bitcoinjCore = "0.16.2"
 
 # QR Code
 zxing = "3.5.3"
@@ -217,7 +222,12 @@ androidx-biometric = { group = "androidx.biometric", name = "biometric", version
 
 # Blockchain Libraries (Android/JVM - wrap with expect/actual for KMP)
 web3j-core = { group = "org.web3j", name = "core", version.ref = "web3j" }
-bitcoinj-core = { group = "org.bitcoinj", name = "bitcoinj-core", version.ref = "bitcoinj" }
+#bitcoinj-core = { group = "org.bitcoinj", name = "bitcoinj-core", version.ref = "bitcoinj" }
+#solana-kotlin = { module = "com.solana:solana-kotlin", version.ref = "solanaKotlin" }
+eddsa = { module = "net.i2p.crypto:eddsa", version.ref = "eddsa" }
+kotlin-bip39 = { module = "cash.z.ecc.android:kotlin-bip39", version.ref = "kotlinBip39" }
+bitcoinj-core = { module = "org.bitcoinj:bitcoinj-core", version.ref = "bitcoinjCore" }
+sol4k = { group = "org.sol4k", name = "sol4k", version.ref = "sol4k" }
 bouncycastle-bcprov = { group = "org.bouncycastle", name = "bcprov-jdk18on", version.ref = "bouncycastle" }
 
 # QR Code

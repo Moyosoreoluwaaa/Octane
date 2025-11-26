@@ -72,4 +72,6 @@ val viewModelModule = module {
 
     // Security (V1.8)
     viewModel { SecurityViewModel(get(), get()) }
+
+    viewModel { TransactionDetailsViewModel(get(), get()) }
 }

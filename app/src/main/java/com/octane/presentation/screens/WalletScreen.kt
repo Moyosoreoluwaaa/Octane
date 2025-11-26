@@ -92,6 +92,8 @@ fun WalletScreen(
                 is WalletEvent.Error -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
+
+                is WalletEvent.WalletCreatedWithSeed -> TODO()
             }
         }
     }

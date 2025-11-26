@@ -52,6 +52,20 @@ sealed interface AppRoute {
         val tokenSymbol: String = "SOL"
     ) : AppRoute
 
+    // Wallet management
+    @Serializable
+    data class SeedPhraseDisplay(
+        val walletId: String,
+        val walletName: String,
+        val seedPhrase: String
+    ) : AppRoute
+
+    @Serializable
+    data object ImportWallet : AppRoute
+
+    @Serializable
+    data object CreateWallet : AppRoute
+
     @Serializable
     data object ManageTokens : AppRoute
 

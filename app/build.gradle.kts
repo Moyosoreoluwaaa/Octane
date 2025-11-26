@@ -195,6 +195,19 @@ dependencies {
 // Benchmarking
     androidTestImplementation(libs.androidx.benchmark.macro)
 
+    // Solana SDK
+    implementation(libs.sol4k)
+//    implementation(libs.solana.kotlin)
+
+    // Ed25519 Cryptography
+    implementation(libs.eddsa)
+
+    // BIP39 Mnemonic Generation
+    implementation(libs.kotlin.bip39)
+
+    // Base58 Encoding
+    implementation(libs.bitcoinj.core)
+
     /* TEMPORARILY COMMENTED OUT - Dependencies with Repository Issues
      *
      * WalletConnect and Solana Mobile Wallet Adapter require additional setup:

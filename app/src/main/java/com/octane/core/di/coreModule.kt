@@ -5,6 +5,7 @@ import com.octane.core.monitoring.*
 import com.octane.core.network.*
 import com.octane.core.security.*
 import com.octane.data.repository.NetworkMonitorImpl
+import com.octane.data.repository.SolanaKeyGeneratorImpl
 import kotlinx.coroutines.Dispatchers
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.qualifier.named
@@ -51,12 +52,14 @@ val coreModule = module {
     single { GasFeeEstimator() }
     single<TransactionSimulator> { TransactionSimulatorImpl() }
     single { TransactionBuilder() }
+    single { SolanaWalletAdapter(get(), get(), get(), get(), get(), get()) }
 
     // ===== SECURITY =====
     // Keystore for secure key storage
     single {
         KeystoreManager(androidContext())
     }
+    single { SolanaWalletAdapter(get(), get(), get(), get(), get(), get()) }
 
     // Biometric authentication
     single {

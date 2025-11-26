@@ -25,6 +25,9 @@ fun TransactionType.toEntity(): EntityType = when (this) {
     TransactionType.REVOKE -> EntityType.REVOKE
     TransactionType.NFT_MINT -> TODO()
     TransactionType.NFT_TRANSFER -> TODO()
+    TransactionType.SINGLE -> TODO()
+    TransactionType.MULTIPLE -> TODO()
+    TransactionType.MESSAGE -> TODO()
 }
 
 fun EntityStatus.toDomain(): TransactionStatus = when (this) {
