@@ -2,6 +2,7 @@ package com.octane.browser.presentation.components
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -31,7 +32,7 @@ fun EmptyState(
             imageVector = icon,
             contentDescription = null,
             modifier = Modifier.size(80.dp),
-            tint = BrowserColors.BrowserColorTertiaryText
+            tint = MaterialTheme.colorScheme.outline // ✅ CHANGED
         )
 
         Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingLarge))
@@ -39,10 +40,10 @@ fun EmptyState(
         // Title
         Text(
             text = title,
-            style = BrowserTypography.BrowserFontHeadlineMedium.copy(
+            style = MaterialTheme.typography.headlineMedium.copy( // ✅ CHANGED
                 fontWeight = FontWeight.SemiBold
             ),
-            color = BrowserColors.BrowserColorPrimaryText,
+            color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
             textAlign = TextAlign.Center
         )
 
@@ -51,8 +52,8 @@ fun EmptyState(
         // Message
         Text(
             text = message,
-            style = BrowserTypography.BrowserFontBodyMedium,
-            color = BrowserColors.BrowserColorSecondaryText,
+            style = MaterialTheme.typography.bodyMedium, // ✅ CHANGED
+            color = MaterialTheme.colorScheme.onSurfaceVariant, // ✅ CHANGED
             textAlign = TextAlign.Center
         )
     }

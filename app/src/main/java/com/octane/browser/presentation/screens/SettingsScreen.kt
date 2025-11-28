@@ -1,46 +1,25 @@
 package com.octane.browser.presentation.screens
 
+import android.os.Build
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Switch
-import androidx.compose.material3.SwitchDefaults
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.octane.browser.design.BrowserColors
-import com.octane.browser.design.BrowserDimens
-import com.octane.browser.design.BrowserOpacity
-import com.octane.browser.design.BrowserTypography
+import com.octane.browser.design.*
+import com.octane.browser.domain.models.Theme
 import com.octane.browser.presentation.components.ConfirmationBottomSheet
+import com.octane.browser.presentation.components.ThemePickerBottomSheet
 import com.octane.browser.presentation.viewmodels.ConnectionViewModel
 import com.octane.browser.presentation.viewmodels.SettingsViewModel
 import org.koin.androidx.compose.koinViewModel
@@ -52,25 +31,55 @@ fun SettingsScreen(
     settingsViewModel: SettingsViewModel = koinViewModel(),
     connectionViewModel: ConnectionViewModel = koinViewModel()
 ) {
+
     val settings by settingsViewModel.settings.collectAsState()
     val connections by connectionViewModel.allConnections.collectAsState()
 
     var showDisconnectAllSheet by remember { mutableStateOf(false) }
+    var showThemePicker by remember { mutableStateOf(false) }
 
     // FLOATING DESIGN: Box with background + floating elements
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BrowserColors.BrowserColorPrimaryBackground)
+            .background(MaterialTheme.colorScheme.background) // ✅ Material theme
     ) {
         // Content Area
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(top = 72.dp) // Space for floating top bar
+                .padding(top = 35.dp)
                 .verticalScroll(rememberScrollState())
         ) {
+            // NEW: Appearance Section
+            SettingsSection(title = "Appearance") {
+                SettingItem(
+                    title = "Theme",
+                    description = when (settings.theme) {
+                        Theme.LIGHT -> "Light"
+                        Theme.DARK -> "Dark"
+                        Theme.SYSTEM -> "Follow System"
+                    },
+                    onClick = { showThemePicker = true }
+                )
+
+                // Dynamic Colors (Android 12+)
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    SettingSwitchItem(
+                        title = "Dynamic Colors",
+                        description = "Use colors from wallpaper",
+                        checked = settings.useDynamicColors,
+                        onCheckedChange = {
+                            settingsViewModel.updateSettings(
+                                settings.copy(useDynamicColors = it)
+                            )
+                        }
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingMedium))
+
             // Privacy Section
             SettingsSection(title = "Privacy") {
                 SettingSwitchItem(
@@ -179,20 +188,32 @@ fun SettingsScreen(
                 )
             }
 
-            Spacer(modifier = Modifier.height(100.dp)) // Bottom padding
+            Spacer(modifier = Modifier.height(100.dp))
         }
 
-        // FLOATING TOP BAR (Rounded Pill)
+        // FLOATING TOP BAR
         SettingsTopBar(
             onBack = onBack,
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .statusBarsPadding()
                 .padding(
-                    top = BrowserDimens.BrowserSpacingMedium,
                     start = BrowserDimens.BrowserPaddingScreenEdge,
                     end = BrowserDimens.BrowserPaddingScreenEdge
                 )
+        )
+    }
+
+    // Theme Picker Bottom Sheet
+    if (showThemePicker) {
+        ThemePickerBottomSheet(
+            currentTheme = settings.theme,
+            onDismiss = { showThemePicker = false },
+            onThemeSelected = { theme ->
+                settingsViewModel.updateSettings(
+                    settings.copy(theme = theme)
+                )
+                showThemePicker = false
+            }
         )
     }
 
@@ -220,7 +241,9 @@ private fun SettingsTopBar(
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        color = MaterialTheme.colorScheme.surface.copy(
+            alpha = BrowserOpacity.BrowserOpacitySurfaceHigh
+        ),
         shadowElevation = BrowserDimens.BrowserElevationMedium
     ) {
         Row(
@@ -237,29 +260,30 @@ private fun SettingsTopBar(
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                         CircleShape
                     )
             ) {
                 Icon(
                     Icons.Rounded.ArrowBack,
                     contentDescription = "Back",
-                    tint = BrowserColors.BrowserColorPrimaryText
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
 
             // Title
             Text(
                 text = "Settings",
-                style = BrowserTypography.BrowserFontHeadlineSmall,
-                color = BrowserColors.BrowserColorPrimaryText
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
-            // Spacer for balance (same size as back button)
+            // Spacer for balance
             Spacer(modifier = Modifier.size(40.dp))
         }
     }
 }
+
 
 @Composable
 fun SettingsSection(
@@ -273,17 +297,17 @@ fun SettingsSection(
     ) {
         Text(
             text = title,
-            style = BrowserTypography.BrowserFontLabelLarge.copy(
+            style = MaterialTheme.typography.labelLarge.copy(
                 fontWeight = FontWeight.Bold
             ),
-            color = BrowserColors.BrowserColorAccent,
+            color = MaterialTheme.colorScheme.primary,
             modifier = Modifier.padding(bottom = BrowserDimens.BrowserSpacingMedium)
         )
 
         Surface(
             modifier = Modifier.fillMaxWidth(),
             shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-            color = BrowserColors.BrowserColorPrimarySurface,
+            color = MaterialTheme.colorScheme.surface,
             shadowElevation = BrowserDimens.BrowserElevationLow
         ) {
             Column {
@@ -311,21 +335,21 @@ private fun SettingItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = BrowserTypography.BrowserFontBodyLarge.copy(
+                style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.Medium
                 ),
                 color = if (isDestructive)
-                    BrowserColors.BrowserColorError
+                    MaterialTheme.colorScheme.error
                 else
-                    BrowserColors.BrowserColorPrimaryText
+                    MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = description,
-                style = BrowserTypography.BrowserFontBodySmall,
-                color = BrowserColors.BrowserColorSecondaryText
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -333,7 +357,7 @@ private fun SettingItem(
             Icons.Rounded.ChevronRight,
             contentDescription = null,
             modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
-            tint = BrowserColors.BrowserColorSecondaryText
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -355,18 +379,18 @@ private fun SettingSwitchItem(
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = title,
-                style = BrowserTypography.BrowserFontBodyLarge.copy(
+                style = MaterialTheme.typography.bodyLarge.copy(
                     fontWeight = FontWeight.Medium
                 ),
-                color = BrowserColors.BrowserColorPrimaryText
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Spacer(modifier = Modifier.height(2.dp))
 
             Text(
                 text = description,
-                style = BrowserTypography.BrowserFontBodySmall,
-                color = BrowserColors.BrowserColorSecondaryText
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
 
@@ -374,11 +398,11 @@ private fun SettingSwitchItem(
             checked = checked,
             onCheckedChange = onCheckedChange,
             colors = SwitchDefaults.colors(
-                checkedThumbColor = BrowserColors.BrowserColorPrimarySurface,
-                checkedTrackColor = BrowserColors.BrowserColorAccent,
-                uncheckedThumbColor = BrowserColors.BrowserColorPrimarySurface,
-                uncheckedTrackColor = BrowserColors.BrowserColorTertiaryText,
-                uncheckedBorderColor = BrowserColors.BrowserColorTertiaryText
+                checkedThumbColor = MaterialTheme.colorScheme.surface,
+                checkedTrackColor = MaterialTheme.colorScheme.primary,
+                uncheckedThumbColor = MaterialTheme.colorScheme.surface,
+                uncheckedTrackColor = MaterialTheme.colorScheme.outline,
+                uncheckedBorderColor = MaterialTheme.colorScheme.outline
             )
         )
     }

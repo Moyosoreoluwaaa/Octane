@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.Home
 import androidx.compose.material.icons.rounded.MoreVert
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -47,8 +48,8 @@ fun NavigationControls(
         modifier = modifier
             .fillMaxWidth()
             .height(64.dp),
-        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedLarge),
-        color = BrowserColors.BrowserColorPrimarySurface,
+        shape = MaterialTheme.shapes.large, // ✅ CHANGED
+        color = MaterialTheme.colorScheme.surface, // ✅ CHANGED
         shadowElevation = BrowserDimens.BrowserElevationHigh
     ) {
         Row(
@@ -56,7 +57,7 @@ fun NavigationControls(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceEvenly
         ) {
-            // 1. BACK BUTTON (with disabled state)
+            // Back Button
             IconButton(
                 onClick = onBack,
                 enabled = webViewState.canGoBack
@@ -65,12 +66,12 @@ fun NavigationControls(
                     Icons.Rounded.ArrowBack,
                     contentDescription = "Back",
                     tint = if (webViewState.canGoBack)
-                        BrowserColors.BrowserColorPrimaryText
-                    else BrowserColors.BrowserColorSecondaryText.copy(alpha = 0.3f)
+                        MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f) // ✅ CHANGED
                 )
             }
 
-            // 2. FORWARD BUTTON (with disabled state)
+            // Forward Button
             IconButton(
                 onClick = onForward,
                 enabled = webViewState.canGoForward
@@ -79,36 +80,36 @@ fun NavigationControls(
                     Icons.Rounded.ArrowForward,
                     contentDescription = "Forward",
                     tint = if (webViewState.canGoForward)
-                        BrowserColors.BrowserColorPrimaryText
-                    else BrowserColors.BrowserColorSecondaryText.copy(alpha = 0.3f)
+                        MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f) // ✅ CHANGED
                 )
             }
 
-            // 3. CENTER HOME BUTTON (Prominent Circle)
+            // Center Home Button
             Box(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(BrowserColors.BrowserColorAccent)
+                    .background(MaterialTheme.colorScheme.primary) // ✅ CHANGED
                     .clickable { onHome() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Rounded.Home,
                     contentDescription = "Home",
-                    tint = Color.White,
+                    tint = MaterialTheme.colorScheme.onPrimary, // ✅ CHANGED
                     modifier = Modifier.size(24.dp)
                 )
             }
 
-            // 4. TAB COUNTER (Bordered Box)
+            // Tab Counter
             Box(
                 modifier = Modifier
                     .size(32.dp)
                     .clip(RoundedCornerShape(BrowserDimens.BrowserShapeRoundedSmall))
                     .border(
                         2.dp,
-                        BrowserColors.BrowserColorPrimaryText,
+                        MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
                         RoundedCornerShape(BrowserDimens.BrowserShapeRoundedSmall)
                     )
                     .clickable { onTabManager() },
@@ -116,21 +117,19 @@ fun NavigationControls(
             ) {
                 Text(
                     text = "$tabCount",
-                    style = BrowserTypography.BrowserFontLabelNav.copy(
+                    style = MaterialTheme.typography.labelMedium.copy( // ✅ CHANGED
                         fontWeight = FontWeight.Bold
                     ),
-                    color = BrowserColors.BrowserColorPrimaryText
+                    color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                 )
             }
 
-            // 5. MENU/OPTIONS BUTTON
-            IconButton(
-                onClick = { /* Menu action - handle in parent */ }
-            ) {
+            // Menu Button
+            IconButton(onClick = { /* Menu */ }) {
                 Icon(
                     Icons.Rounded.MoreVert,
                     contentDescription = "Menu",
-                    tint = BrowserColors.BrowserColorPrimaryText
+                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                 )
             }
         }

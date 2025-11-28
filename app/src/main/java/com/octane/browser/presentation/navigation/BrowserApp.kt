@@ -1,10 +1,11 @@
 package com.octane.browser.presentation.navigation
 
 import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.Scaffold
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.navigation.compose.rememberNavController
-import com.octane.browser.presentation.navigation.BrowserNavGraph
 
 /**
  * Main entry point for the browser feature
@@ -16,8 +17,14 @@ fun BrowserApp(
 ) {
     val navController = rememberNavController()
 
-    BrowserNavGraph(
-        navController = navController,
-        modifier = modifier.fillMaxSize()
-    )
+    Scaffold(
+        modifier = modifier
+    ) { paddingValues ->
+        BrowserNavGraph(
+            navController = navController,
+            modifier = Modifier
+                .padding(paddingValues)
+                .fillMaxSize()
+        )
+    }
 }

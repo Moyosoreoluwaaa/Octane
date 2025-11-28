@@ -1,14 +1,20 @@
 package com.octane.browser.di
 
+import android.os.Build
+import androidx.annotation.RequiresApi
 import androidx.room.Room
+import com.octane.browser.data.local.datastore.SettingsDataStore
+import com.octane.browser.data.local.datastore.SettingsDataStoreImpl
 import com.octane.browser.data.local.db.BrowserDatabase
 import com.octane.browser.data.repository.*
+import com.octane.browser.domain.managers.ThemeManager
 import com.octane.browser.domain.repository.*
 import com.octane.browser.domain.usecases.bookmark.*
 import com.octane.browser.domain.usecases.connection.*
 import com.octane.browser.domain.usecases.history.*
 import com.octane.browser.domain.usecases.navigation.NavigateToUrlUseCase
 import com.octane.browser.domain.usecases.security.*
+import com.octane.browser.domain.usecases.settings.*
 import com.octane.browser.domain.usecases.tab.*
 import com.octane.browser.domain.usecases.validation.ValidateUrlUseCase
 import com.octane.browser.presentation.viewmodels.*
@@ -18,12 +24,26 @@ import com.octane.browser.webview.AdvancedFeatureManager
 import com.octane.browser.webview.WebViewManager
 import com.octane.browser.webview.bridge.BridgeManager
 import com.octane.browser.webview.bridge.WalletBridge
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.SupervisorJob
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import timber.log.Timber
 
+@RequiresApi(Build.VERSION_CODES.O)
 val browserModule = module {
+
+    // ========================================
+    // CORE - Coroutine Scope
+    // ========================================
+
+    single {
+        Timber.d("Initializing Application CoroutineScope...")
+        CoroutineScope(SupervisorJob()).also {
+            Timber.d("✅ Application CoroutineScope initialized")
+        }
+    }
 
     // ========================================
     // DATABASE & DAOs
@@ -48,6 +68,18 @@ val browserModule = module {
 
 
     // ========================================
+    // DATASTORE - Settings Persistence
+    // ========================================
+
+    single<SettingsDataStore> {
+        Timber.d("Initializing SettingsDataStore...")
+        SettingsDataStoreImpl(androidContext()).also {
+            Timber.d("✅ SettingsDataStore initialized")
+        }
+    }
+
+
+    // ========================================
     // REPOSITORIES
     // ========================================
 
@@ -65,6 +97,28 @@ val browserModule = module {
 
     single<ConnectionRepository> {
         ConnectionRepositoryImpl(get())
+    }
+
+    single<SettingsRepository> {
+        Timber.d("Initializing SettingsRepository...")
+        SettingsRepositoryImpl(get()).also {
+            Timber.d("✅ SettingsRepository initialized")
+        }
+    }
+
+
+    // ========================================
+    // MANAGERS - Theme & App-level State
+    // ========================================
+
+    single {
+        Timber.d("Initializing ThemeManager...")
+        ThemeManager(
+            settingsRepository = get(),
+            scope = get()
+        ).also {
+            Timber.d("✅ ThemeManager initialized")
+        }
     }
 
 
@@ -104,6 +158,16 @@ val browserModule = module {
     factory { RequestConnectionUseCase(get()) }
     factory { DisconnectDAppUseCase(get()) }
     factory { GetConnectionUseCase(get()) }
+
+
+    // ========================================
+    // USE CASES - Settings
+    // ========================================
+
+    factory { ObserveSettingsUseCase(get()) }
+    factory { UpdateSettingsUseCase(get()) }
+    factory { UpdateThemeUseCase(get()) }
+    factory { UpdateDynamicColorsUseCase(get()) }
 
 
     // ========================================
@@ -246,32 +310,13 @@ val browserModule = module {
         )
     }
 
-    // SettingsViewModel - New instance per screen
+    // SettingsViewModel - New instance per screen (NOW WITH USECASES)
     viewModel {
-        SettingsViewModel()
+        SettingsViewModel(
+            observeSettingsUseCase = get(),
+            updateSettingsUseCase = get(),
+            updateThemeUseCase = get(),
+            updateDynamicColorsUseCase = get()
+        )
     }
 }
-
-/**
- * 📝 SETUP CHECKLIST
- *
- * ✅ 1. Database & DAOs configured
- * ✅ 2. Repositories configured
- * ✅ 3. Use Cases configured (18 total)
- * ✅ 4. WebView components configured (proper dependency order)
- * ✅ 5. ViewModels configured (6 total)
- * ✅ 6. Logging enabled for debugging
- *
- * 🔍 DEBUGGING
- *
- * - Check Logcat for "BrowserModule" tags
- * - Verify WebView version is modern (142+)
- * - Confirm no DI errors during startup
- *
- * 🎯 NEXT STEPS
- *
- * 1. Test on complex websites (drift.trade, uniswap, etc.)
- * 2. Monitor GPU errors (should be reduced)
- * 3. Check page load times in logs
- * 4. Verify Service Workers work (PWAs)
- */

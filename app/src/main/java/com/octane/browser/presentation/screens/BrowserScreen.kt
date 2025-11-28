@@ -51,27 +51,26 @@ fun BrowserScreen(
         }
     }
 
-    // --- MAIN UI LAYOUT: BOX WITH FLOATING ELEMENTS ---
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BrowserColors.BrowserColorPrimaryBackground)
+            .background(MaterialTheme.colorScheme.background) // ✅ CHANGED
     ) {
-        // 1. Full Screen WebView Content
+        // Full Screen WebView Content
         WebViewContainer(
             browserViewModel = browserViewModel,
             modifier = Modifier.fillMaxSize()
         )
 
-        // Snackbar at bottom (appears above WebView, below bars)
+        // Snackbar at bottom
         SnackbarHost(
             hostState = snackbarHostState,
             modifier = Modifier
                 .align(Alignment.BottomCenter)
-                .padding(bottom = 100.dp) // Above navigation bar
+                .padding(bottom = 100.dp)
         )
 
-        // 2. Floating Top Bar
+        // Floating Top Bar
         AddressBar(
             webViewState = webViewState,
             isBookmarked = isBookmarked,
@@ -82,15 +81,13 @@ fun BrowserScreen(
             onMenuClick = { showMenu = true },
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .statusBarsPadding()
                 .padding(
-                    top = BrowserDimens.BrowserSpacingMedium,
                     start = BrowserDimens.BrowserPaddingScreenEdge,
                     end = BrowserDimens.BrowserPaddingScreenEdge
                 )
         )
 
-        // 3. Floating Bottom Navigation
+        // Floating Bottom Navigation
         NavigationControls(
             webViewState = webViewState,
             tabCount = tabs.size,
@@ -108,8 +105,6 @@ fun BrowserScreen(
                 )
         )
     }
-
-    // --- DIALOGS & SHEETS ---
 
     // Browser Menu
     if (showMenu) {
@@ -150,7 +145,7 @@ fun BrowserScreen(
                 Icon(
                     Icons.Rounded.Warning,
                     contentDescription = null,
-                    tint = BrowserColors.BrowserColorWarning
+                    tint = BrowserColors.BrowserColorWarning // Keep warning color as-is
                 )
             },
             title = { Text("Security Warning") },
@@ -159,7 +154,7 @@ fun BrowserScreen(
                 Button(
                     onClick = { browserViewModel.dismissPhishingWarning() },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = BrowserColors.BrowserColorAccent
+                        containerColor = MaterialTheme.colorScheme.primary // ✅ CHANGED
                     )
                 ) {
                     Text("Go Back")

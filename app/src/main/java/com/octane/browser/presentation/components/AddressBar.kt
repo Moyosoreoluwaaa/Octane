@@ -21,9 +21,7 @@ import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.octane.browser.design.BrowserColors
 import com.octane.browser.design.BrowserDimens
-import com.octane.browser.design.BrowserTypography
 import com.octane.browser.domain.models.WebViewState
 
 @Composable
@@ -37,11 +35,9 @@ fun AddressBar(
     onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    // State for URL editing
     var urlInput by remember { mutableStateOf(webViewState.url) }
     var isEditing by remember { mutableStateOf(false) }
 
-    // Sync with WebView state when not editing
     LaunchedEffect(webViewState.url) {
         if (!isEditing) {
             urlInput = webViewState.url
@@ -59,43 +55,43 @@ fun AddressBar(
             modifier = Modifier
                 .size(40.dp)
                 .background(
-                    BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                    // ✅ CHANGED: Use Material theme colors
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                     CircleShape
                 )
         ) {
             Icon(
                 Icons.Rounded.Menu,
                 contentDescription = "Menu",
-                tint = BrowserColors.BrowserColorPrimaryText
+                tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
             )
         }
 
-        // CENTER: Address Pill (ALL FUNCTIONALITY INTEGRATED)
+        // CENTER: Address Pill
         Surface(
             modifier = Modifier
                 .weight(1f)
                 .height(44.dp)
                 .clickable { isEditing = true },
-            shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-            color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.95f),
+            shape = MaterialTheme.shapes.medium, // ✅ CHANGED
+            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), // ✅ CHANGED
             shadowElevation = BrowserDimens.BrowserElevationLow
         ) {
             Box {
-                // BACKGROUND: Progress Indicator (integrated)
+                // Progress Indicator
                 if (webViewState.isLoading) {
                     LinearProgressIndicator(
                         progress = { webViewState.progress / 100f },
                         modifier = Modifier
                             .fillMaxSize()
                             .alpha(0.1f),
-                        color = BrowserColors.BrowserColorAccent,
+                        color = MaterialTheme.colorScheme.primary, // ✅ CHANGED
                         trackColor = Color.Transparent
                     )
                 }
 
-                // FOREGROUND: Content
+                // Content
                 if (isEditing) {
-                    // EDITING MODE: Show TextField
                     AddressBarEditMode(
                         urlInput = urlInput,
                         onUrlChange = { urlInput = it },
@@ -107,7 +103,6 @@ fun AddressBar(
                         onClear = { urlInput = "" }
                     )
                 } else {
-                    // DISPLAY MODE: Show Domain + Actions
                     AddressBarDisplayMode(
                         url = webViewState.url,
                         isSecure = webViewState.isSecure,
@@ -119,13 +114,13 @@ fun AddressBar(
             }
         }
 
-        // RIGHT: Bookmark Button (Circular with state)
+        // RIGHT: Bookmark Button
         IconButton(
             onClick = onBookmarkToggle,
             modifier = Modifier
                 .size(40.dp)
                 .background(
-                    BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
                     CircleShape
                 )
         ) {
@@ -134,8 +129,8 @@ fun AddressBar(
                 else Icons.Rounded.StarBorder,
                 contentDescription = "Bookmark",
                 tint = if (isBookmarked)
-                    BrowserColors.BrowserColorAccent
-                else BrowserColors.BrowserColorPrimaryText
+                    MaterialTheme.colorScheme.primary // ✅ CHANGED
+                else MaterialTheme.colorScheme.onSurface // ✅ CHANGED
             )
         }
     }
@@ -156,29 +151,27 @@ private fun AddressBarEditMode(
             .fillMaxSize()
             .padding(horizontal = 12.dp),
         singleLine = true,
-        textStyle = BrowserTypography.BrowserFontBodySmall.copy(
+        textStyle = MaterialTheme.typography.bodySmall.copy( // ✅ CHANGED
             fontWeight = FontWeight.SemiBold,
-            color = BrowserColors.BrowserColorPrimaryText,
+            color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
             textAlign = TextAlign.Start
         ),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
-        keyboardActions = KeyboardActions(
-            onGo = { onNavigate() }
-        ),
+        keyboardActions = KeyboardActions(onGo = { onNavigate() }),
         decorationBox = { innerTextField ->
             Row(
                 modifier = Modifier.fillMaxSize(),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Lock Icon (leading)
+                // Lock Icon
                 Icon(
                     if (isSecure) Icons.Rounded.Lock
                     else Icons.Rounded.LockOpen,
                     contentDescription = "Security",
                     modifier = Modifier.size(14.dp),
                     tint = if (isSecure)
-                        BrowserColors.BrowserColorPrimaryText
-                    else BrowserColors.BrowserColorSecondaryText
+                        MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                    else MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
                 )
 
                 Spacer(Modifier.width(8.dp))
@@ -188,14 +181,14 @@ private fun AddressBarEditMode(
                     if (urlInput.isEmpty()) {
                         Text(
                             "Search or enter URL",
-                            style = BrowserTypography.BrowserFontBodySmall,
-                            color = BrowserColors.BrowserColorSecondaryText
+                            style = MaterialTheme.typography.bodySmall, // ✅ CHANGED
+                            color = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
                         )
                     }
                     innerTextField()
                 }
 
-                // Clear Button (trailing - when editing)
+                // Clear Button
                 if (urlInput.isNotEmpty()) {
                     IconButton(
                         onClick = onClear,
@@ -205,7 +198,7 @@ private fun AddressBarEditMode(
                             Icons.Rounded.Close,
                             contentDescription = "Clear",
                             modifier = Modifier.size(16.dp),
-                            tint = BrowserColors.BrowserColorSecondaryText
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
                         )
                     }
                 }
@@ -235,31 +228,28 @@ private fun AddressBarDisplayMode(
             contentDescription = "Security",
             modifier = Modifier.size(14.dp),
             tint = if (isSecure)
-                BrowserColors.BrowserColorPrimaryText
-            else BrowserColors.BrowserColorSecondaryText
+                MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+            else MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
         )
 
         Spacer(Modifier.width(8.dp))
 
-        // Domain Text (centered)
+        // Domain Text
         Text(
             text = extractDomain(url),
-            style = BrowserTypography.BrowserFontBodySmall.copy(
+            style = MaterialTheme.typography.bodySmall.copy( // ✅ CHANGED
                 fontWeight = FontWeight.SemiBold
             ),
-            color = BrowserColors.BrowserColorPrimaryText,
+            color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
             textAlign = TextAlign.Center
         )
 
-        // Reload/Stop Button (trailing - context-aware)
+        // Reload/Stop Button
         IconButton(
-            onClick = {
-                if (isLoading) onStop()
-                else onReload()
-            },
+            onClick = { if (isLoading) onStop() else onReload() },
             modifier = Modifier.size(24.dp)
         ) {
             Icon(
@@ -267,13 +257,12 @@ private fun AddressBarDisplayMode(
                 else Icons.Rounded.Refresh,
                 contentDescription = if (isLoading) "Stop" else "Reload",
                 modifier = Modifier.size(16.dp),
-                tint = BrowserColors.BrowserColorPrimaryText
+                tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
             )
         }
     }
 }
 
-// Helper function
 private fun extractDomain(url: String): String {
     return try {
         java.net.URI(url).host ?: url

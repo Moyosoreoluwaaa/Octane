@@ -7,5 +7,8 @@ data class BrowserSettings(
     val enablePhishingProtection: Boolean = true,
     val clearDataOnExit: Boolean = false,
     val saveHistory: Boolean = true,
-    val enableWeb3: Boolean = true
+    val enableWeb3: Boolean = true,
+    // NEW: Theme settings
+    val theme: Theme = Theme.SYSTEM,
+    val useDynamicColors: Boolean = true
 )

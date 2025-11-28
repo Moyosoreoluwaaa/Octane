@@ -19,6 +19,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -28,9 +29,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.octane.browser.design.BrowserColors
 import com.octane.browser.design.BrowserDimens
-import com.octane.browser.design.BrowserTypography
 import com.octane.browser.domain.models.BrowserTab
 
 @Composable
@@ -46,8 +45,8 @@ fun TabPreview(
             .fillMaxWidth()
             .height(140.dp)
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-        color = BrowserColors.BrowserColorPrimarySurface,
+        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
+        color = MaterialTheme.colorScheme.surface, // ✅ CHANGED
         shadowElevation = if (isActive)
             BrowserDimens.BrowserElevationMedium
         else
@@ -70,18 +69,18 @@ fun TabPreview(
                         contentDescription = null,
                         modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
                         tint = if (isActive)
-                            BrowserColors.BrowserColorAccent
+                            MaterialTheme.colorScheme.primary // ✅ CHANGED
                         else
-                            BrowserColors.BrowserColorSecondaryText
+                            MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
                     )
 
                     // Title
                     Text(
                         text = tab.title.ifEmpty { "New Tab" },
-                        style = BrowserTypography.BrowserFontBodyMedium.copy(
+                        style = MaterialTheme.typography.bodyMedium.copy( // ✅ CHANGED
                             fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
                         ),
-                        color = BrowserColors.BrowserColorPrimaryText,
+                        color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
@@ -93,8 +92,8 @@ fun TabPreview(
                 // URL
                 Text(
                     text = tab.url.takeIf { it != "about:blank" } ?: "New Tab",
-                    style = BrowserTypography.BrowserFontBodySmall,
-                    color = BrowserColors.BrowserColorSecondaryText,
+                    style = MaterialTheme.typography.bodySmall, // ✅ CHANGED
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // ✅ CHANGED
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -108,7 +107,7 @@ fun TabPreview(
                     .padding(4.dp)
                     .size(32.dp)
                     .background(
-                        BrowserColors.BrowserColorSecondarySurface,
+                        MaterialTheme.colorScheme.surfaceVariant, // ✅ CHANGED
                         CircleShape
                     )
             ) {
@@ -116,7 +115,7 @@ fun TabPreview(
                     Icons.Rounded.Close,
                     contentDescription = "Close Tab",
                     modifier = Modifier.size(16.dp),
-                    tint = BrowserColors.BrowserColorPrimaryText
+                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                 )
             }
 
@@ -133,7 +132,7 @@ fun TabPreview(
                                 bottomEnd = BrowserDimens.BrowserShapeRoundedMedium
                             )
                         )
-                        .background(BrowserColors.BrowserColorAccent)
+                        .background(MaterialTheme.colorScheme.primary) // ✅ CHANGED
                 )
             }
         }

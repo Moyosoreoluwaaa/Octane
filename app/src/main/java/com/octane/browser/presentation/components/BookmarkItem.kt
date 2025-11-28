@@ -29,8 +29,8 @@ fun BookmarkItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
+        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh), // ✅ CHANGED
         shadowElevation = BrowserDimens.BrowserElevationLow
     ) {
         Row(
@@ -43,7 +43,7 @@ fun BookmarkItem(
             Surface(
                 modifier = Modifier.size(40.dp),
                 shape = CircleShape,
-                color = BrowserColors.BrowserColorAccent.copy(alpha = 0.12f)
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f) // ✅ CHANGED
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -53,7 +53,7 @@ fun BookmarkItem(
                         Icons.Rounded.Language,
                         contentDescription = null,
                         modifier = Modifier.size(BrowserDimens.BrowserSizeIconLarge),
-                        tint = BrowserColors.BrowserColorAccent
+                        tint = MaterialTheme.colorScheme.primary // ✅ CHANGED
                     )
                 }
             }
@@ -64,10 +64,10 @@ fun BookmarkItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = bookmark.title,
-                    style = BrowserTypography.BrowserFontBodyMedium.copy(
+                    style = MaterialTheme.typography.bodyMedium.copy( // ✅ CHANGED
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = BrowserColors.BrowserColorPrimaryText,
+                    color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -76,8 +76,8 @@ fun BookmarkItem(
 
                 Text(
                     text = bookmark.url,
-                    style = BrowserTypography.BrowserFontBodySmall,
-                    color = BrowserColors.BrowserColorSecondaryText,
+                    style = MaterialTheme.typography.bodySmall, // ✅ CHANGED
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // ✅ CHANGED
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -89,7 +89,7 @@ fun BookmarkItem(
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        BrowserColors.BrowserColorError.copy(alpha = 0.1f),
+                        MaterialTheme.colorScheme.error.copy(alpha = 0.1f), // ✅ CHANGED
                         CircleShape
                     )
             ) {
@@ -97,7 +97,7 @@ fun BookmarkItem(
                     Icons.Rounded.Delete,
                     contentDescription = "Delete",
                     modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
-                    tint = BrowserColors.BrowserColorError
+                    tint = MaterialTheme.colorScheme.error // ✅ CHANGED
                 )
             }
         }

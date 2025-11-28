@@ -31,18 +31,15 @@ fun TabManagerScreen(
 
     var showCloseAllSheet by remember { mutableStateOf(false) }
 
-    // FLOATING DESIGN: Box with background + floating elements
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BrowserColors.BrowserColorPrimaryBackground)
+            .background(MaterialTheme.colorScheme.background) // ✅ CHANGED
     ) {
-        // Content Area
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(top = 72.dp) // Space for floating top bar
+                .padding(top = 72.dp)
         ) {
             if (tabs.isEmpty()) {
                 EmptyState(
@@ -54,8 +51,7 @@ fun TabManagerScreen(
                 LazyVerticalGrid(
                     columns = GridCells.Fixed(2),
                     contentPadding = PaddingValues(
-                        horizontal = BrowserDimens.BrowserPaddingScreenEdge,
-//                        bottom = 96.dp // Space for FAB
+                        horizontal = BrowserDimens.BrowserPaddingScreenEdge
                     ),
                     horizontalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingUnit),
                     verticalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingUnit),
@@ -78,19 +74,17 @@ fun TabManagerScreen(
             }
         }
 
-        // FLOATING TOP BAR (Rounded Pill)
+        // Floating Top Bar
         Surface(
             modifier = Modifier
                 .align(Alignment.TopCenter)
-                .statusBarsPadding()
                 .padding(
-                    top = BrowserDimens.BrowserSpacingMedium,
                     start = BrowserDimens.BrowserPaddingScreenEdge,
                     end = BrowserDimens.BrowserPaddingScreenEdge
                 )
                 .fillMaxWidth(),
-            shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-            color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+            shape = MaterialTheme.shapes.medium, // ✅ CHANGED
+            color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh), // ✅ CHANGED
             shadowElevation = BrowserDimens.BrowserElevationMedium
         ) {
             Row(
@@ -101,50 +95,47 @@ fun TabManagerScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                // Back Button (Circular)
                 IconButton(
                     onClick = onBack,
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
                             CircleShape
                         )
                 ) {
                     Icon(
                         Icons.Rounded.ArrowBack,
                         contentDescription = "Back",
-                        tint = BrowserColors.BrowserColorPrimaryText
+                        tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                     )
                 }
 
-                // Title
                 Text(
                     text = "Tabs (${tabs.size})",
-                    style = BrowserTypography.BrowserFontHeadlineSmall,
-                    color = BrowserColors.BrowserColorPrimaryText
+                    style = MaterialTheme.typography.headlineSmall, // ✅ CHANGED
+                    color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                 )
 
-                // Clear All Button (Circular)
                 IconButton(
                     onClick = { showCloseAllSheet = true },
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
                             CircleShape
                         )
                 ) {
                     Icon(
                         Icons.Rounded.DeleteSweep,
                         contentDescription = "Close All",
-                        tint = BrowserColors.BrowserColorError
+                        tint = MaterialTheme.colorScheme.error // ✅ CHANGED
                     )
                 }
             }
         }
 
-        // FLOATING ACTION BUTTON (Circular, Accent Color)
+        // Floating Action Button
         FloatingActionButton(
             onClick = {
                 tabManagerViewModel.createNewTab()
@@ -157,8 +148,8 @@ fun TabManagerScreen(
                     end = BrowserDimens.BrowserPaddingScreenEdge,
                     bottom = BrowserDimens.BrowserPaddingBarBottom
                 ),
-            containerColor = BrowserColors.BrowserColorAccent,
-            contentColor = BrowserColors.BrowserColorPrimarySurface,
+            containerColor = MaterialTheme.colorScheme.primary, // ✅ CHANGED
+            contentColor = MaterialTheme.colorScheme.onPrimary, // ✅ CHANGED
             shape = CircleShape
         ) {
             Icon(
@@ -169,7 +160,6 @@ fun TabManagerScreen(
         }
     }
 
-    // Close All Confirmation Bottom Sheet
     if (showCloseAllSheet) {
         ConfirmationBottomSheet(
             title = "Close All Tabs?",

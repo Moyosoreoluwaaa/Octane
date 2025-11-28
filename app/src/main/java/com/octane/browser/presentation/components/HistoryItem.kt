@@ -16,6 +16,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Language
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -30,7 +31,6 @@ import com.octane.browser.design.BrowserOpacity
 import com.octane.browser.design.BrowserTypography
 import com.octane.browser.domain.models.HistoryEntry
 
-
 @Composable
 fun HistoryItem(
     entry: HistoryEntry,
@@ -41,8 +41,8 @@ fun HistoryItem(
         modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick),
-        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
+        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh), // ✅ CHANGED
         shadowElevation = BrowserDimens.BrowserElevationLow
     ) {
         Row(
@@ -55,7 +55,7 @@ fun HistoryItem(
             Surface(
                 modifier = Modifier.size(40.dp),
                 shape = CircleShape,
-                color = BrowserColors.BrowserColorInfo.copy(alpha = 0.12f)
+                color = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.5f) // ✅ CHANGED (using primaryContainer for info)
             ) {
                 Box(
                     modifier = Modifier.fillMaxSize(),
@@ -65,7 +65,7 @@ fun HistoryItem(
                         Icons.Rounded.Language,
                         contentDescription = null,
                         modifier = Modifier.size(BrowserDimens.BrowserSizeIconLarge),
-                        tint = BrowserColors.BrowserColorInfo
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer // ✅ CHANGED
                     )
                 }
             }
@@ -76,10 +76,10 @@ fun HistoryItem(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = entry.title.ifEmpty { "Untitled" },
-                    style = BrowserTypography.BrowserFontBodyMedium.copy(
+                    style = MaterialTheme.typography.bodyMedium.copy( // ✅ CHANGED
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = BrowserColors.BrowserColorPrimaryText,
+                    color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -88,8 +88,8 @@ fun HistoryItem(
 
                 Text(
                     text = entry.url,
-                    style = BrowserTypography.BrowserFontBodySmall,
-                    color = BrowserColors.BrowserColorSecondaryText,
+                    style = MaterialTheme.typography.bodySmall, // ✅ CHANGED
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // ✅ CHANGED
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -99,15 +99,15 @@ fun HistoryItem(
                 // Timestamp
                 Text(
                     text = formatTimestamp(entry.visitedAt),
-                    style = BrowserTypography.BrowserFontLabelMedium,
-                    color = BrowserColors.BrowserColorTertiaryText
+                    style = MaterialTheme.typography.labelMedium, // ✅ CHANGED
+                    color = MaterialTheme.colorScheme.outline // ✅ CHANGED
                 )
             }
         }
     }
 }
 
-// Helper function to format timestamp (you can customize this)
+// Helper function to format timestamp
 private fun formatTimestamp(timestamp: Long): String {
     val now = System.currentTimeMillis()
     val diff = now - timestamp

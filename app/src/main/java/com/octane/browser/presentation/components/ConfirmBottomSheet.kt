@@ -28,7 +28,7 @@ fun ConfirmationBottomSheet(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = BrowserColors.BrowserColorPrimarySurface,
+        containerColor = MaterialTheme.colorScheme.surface, // ✅ CHANGED
         shape = RoundedCornerShape(
             topStart = BrowserDimens.BrowserShapeRoundedMedium,
             topEnd = BrowserDimens.BrowserShapeRoundedMedium
@@ -40,7 +40,7 @@ fun ConfirmationBottomSheet(
                     .width(32.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(BrowserColors.BrowserColorTertiaryText)
+                    .background(MaterialTheme.colorScheme.outline) // ✅ CHANGED
             )
         }
     ) {
@@ -56,7 +56,7 @@ fun ConfirmationBottomSheet(
                     Icons.Rounded.Warning,
                     contentDescription = null,
                     modifier = Modifier.size(BrowserDimens.BrowserSizeIconXLarge),
-                    tint = BrowserColors.BrowserColorError
+                    tint = MaterialTheme.colorScheme.error // ✅ CHANGED
                 )
 
                 Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingLarge))
@@ -65,10 +65,10 @@ fun ConfirmationBottomSheet(
             // Title
             Text(
                 text = title,
-                style = BrowserTypography.BrowserFontHeadlineMedium.copy(
+                style = MaterialTheme.typography.headlineMedium.copy( // ✅ CHANGED
                     fontWeight = FontWeight.Bold
                 ),
-                color = BrowserColors.BrowserColorPrimaryText,
+                color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
                 textAlign = TextAlign.Center
             )
 
@@ -77,8 +77,8 @@ fun ConfirmationBottomSheet(
             // Message
             Text(
                 text = message,
-                style = BrowserTypography.BrowserFontBodyMedium,
-                color = BrowserColors.BrowserColorSecondaryText,
+                style = MaterialTheme.typography.bodyMedium, // ✅ CHANGED
+                color = MaterialTheme.colorScheme.onSurfaceVariant, // ✅ CHANGED
                 textAlign = TextAlign.Center
             )
 
@@ -95,9 +95,9 @@ fun ConfirmationBottomSheet(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
-                    shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+                    shape = MaterialTheme.shapes.medium, // ✅ CHANGED
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = BrowserColors.BrowserColorPrimaryText
+                        contentColor = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                     ),
                     border = ButtonDefaults.outlinedButtonBorder.copy(
                         width = 1.5.dp
@@ -105,7 +105,7 @@ fun ConfirmationBottomSheet(
                 ) {
                     Text(
                         dismissText,
-                        style = BrowserTypography.BrowserFontLabelLarge.copy(
+                        style = MaterialTheme.typography.labelLarge.copy( // ✅ CHANGED
                             fontWeight = FontWeight.SemiBold
                         )
                     )
@@ -120,18 +120,21 @@ fun ConfirmationBottomSheet(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
-                    shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+                    shape = MaterialTheme.shapes.medium, // ✅ CHANGED
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isDestructive)
-                            BrowserColors.BrowserColorError
+                            MaterialTheme.colorScheme.error // ✅ CHANGED
                         else
-                            BrowserColors.BrowserColorAccent,
-                        contentColor = BrowserColors.BrowserColorPrimarySurface
+                            MaterialTheme.colorScheme.primary, // ✅ CHANGED
+                        contentColor = if (isDestructive)
+                            MaterialTheme.colorScheme.onError // ✅ CHANGED
+                        else
+                            MaterialTheme.colorScheme.onPrimary // ✅ CHANGED
                     )
                 ) {
                     Text(
                         confirmText,
-                        style = BrowserTypography.BrowserFontLabelLarge.copy(
+                        style = MaterialTheme.typography.labelLarge.copy( // ✅ CHANGED
                             fontWeight = FontWeight.Bold
                         )
                     )

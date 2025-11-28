@@ -33,18 +33,15 @@ fun BookmarksScreen(
 
     var showSearchBar by remember { mutableStateOf(false) }
 
-    // FLOATING DESIGN: Box with background + floating elements
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(BrowserColors.BrowserColorPrimaryBackground)
+            .background(MaterialTheme.colorScheme.background) // ✅ CHANGED
     ) {
-        // Content Area
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .statusBarsPadding()
-                .padding(top = 72.dp) // Space for floating top bar
+                .padding(top = 72.dp)
         ) {
             if (filteredBookmarks.isEmpty()) {
                 EmptyState(
@@ -78,7 +75,6 @@ fun BookmarksScreen(
             }
         }
 
-        // FLOATING TOP BAR (Rounded Pill)
         if (showSearchBar) {
             BookmarkSearchBar(
                 query = searchQuery,
@@ -89,12 +85,6 @@ fun BookmarksScreen(
                 },
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .statusBarsPadding()
-                    .padding(
-                        top = BrowserDimens.BrowserSpacingMedium,
-                        start = BrowserDimens.BrowserPaddingScreenEdge,
-                        end = BrowserDimens.BrowserPaddingScreenEdge
-                    )
             )
         } else {
             BookmarkTopBar(
@@ -102,9 +92,7 @@ fun BookmarksScreen(
                 onSearch = { showSearchBar = true },
                 modifier = Modifier
                     .align(Alignment.TopCenter)
-                    .statusBarsPadding()
                     .padding(
-                        top = BrowserDimens.BrowserSpacingMedium,
                         start = BrowserDimens.BrowserPaddingScreenEdge,
                         end = BrowserDimens.BrowserPaddingScreenEdge
                     )
@@ -121,8 +109,8 @@ private fun BookmarkTopBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
+        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh), // ✅ CHANGED
         shadowElevation = BrowserDimens.BrowserElevationMedium
     ) {
         Row(
@@ -133,44 +121,41 @@ private fun BookmarkTopBar(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween
         ) {
-            // Back Button
             IconButton(
                 onClick = onBack,
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
                         CircleShape
                     )
             ) {
                 Icon(
                     Icons.Rounded.ArrowBack,
                     contentDescription = "Back",
-                    tint = BrowserColors.BrowserColorPrimaryText
+                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                 )
             }
 
-            // Title
             Text(
                 text = "Bookmarks",
-                style = BrowserTypography.BrowserFontHeadlineSmall,
-                color = BrowserColors.BrowserColorPrimaryText
+                style = MaterialTheme.typography.headlineSmall, // ✅ CHANGED
+                color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
             )
 
-            // Search Button
             IconButton(
                 onClick = onSearch,
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
                         CircleShape
                     )
             ) {
                 Icon(
                     Icons.Rounded.Search,
                     contentDescription = "Search",
-                    tint = BrowserColors.BrowserColorPrimaryText
+                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                 )
             }
         }
@@ -186,8 +171,8 @@ private fun BookmarkSearchBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
+        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh), // ✅ CHANGED
         shadowElevation = BrowserDimens.BrowserElevationMedium
     ) {
         Row(
@@ -197,7 +182,6 @@ private fun BookmarkSearchBar(
                 .padding(horizontal = BrowserDimens.BrowserSpacingMedium),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Back Button
             IconButton(
                 onClick = onClose,
                 modifier = Modifier.size(40.dp)
@@ -205,19 +189,18 @@ private fun BookmarkSearchBar(
                 Icon(
                     Icons.Rounded.ArrowBack,
                     contentDescription = "Close Search",
-                    tint = BrowserColors.BrowserColorPrimaryText
+                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                 )
             }
 
             Spacer(modifier = Modifier.width(BrowserDimens.BrowserSpacingSmall))
 
-            // Search TextField
             BasicTextField(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.weight(1f),
-                textStyle = BrowserTypography.BrowserFontBodyMedium.copy(
-                    color = BrowserColors.BrowserColorPrimaryText
+                textStyle = MaterialTheme.typography.bodyMedium.copy( // ✅ CHANGED
+                    color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                 ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -225,15 +208,14 @@ private fun BookmarkSearchBar(
                     if (query.isEmpty()) {
                         Text(
                             "Search bookmarks...",
-                            style = BrowserTypography.BrowserFontBodyMedium,
-                            color = BrowserColors.BrowserColorSecondaryText
+                            style = MaterialTheme.typography.bodyMedium, // ✅ CHANGED
+                            color = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
                         )
                     }
                     innerTextField()
                 }
             )
 
-            // Clear Button
             if (query.isNotEmpty()) {
                 IconButton(
                     onClick = { onQueryChange("") },
@@ -243,7 +225,7 @@ private fun BookmarkSearchBar(
                         Icons.Rounded.Close,
                         contentDescription = "Clear",
                         modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
-                        tint = BrowserColors.BrowserColorSecondaryText
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
                     )
                 }
             }

@@ -28,7 +28,7 @@ fun BrowserMenu(
 ) {
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = BrowserColors.BrowserColorPrimarySurface,
+        containerColor = MaterialTheme.colorScheme.surface, // ✅ CHANGED
         shape = RoundedCornerShape(
             topStart = BrowserDimens.BrowserShapeRoundedMedium,
             topEnd = BrowserDimens.BrowserShapeRoundedMedium
@@ -40,7 +40,7 @@ fun BrowserMenu(
                     .width(32.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(BrowserColors.BrowserColorTertiaryText)
+                    .background(MaterialTheme.colorScheme.outline) // ✅ CHANGED
             )
         }
     ) {
@@ -85,7 +85,7 @@ fun BrowserMenu(
                     vertical = BrowserDimens.BrowserSpacingUnit,
                     horizontal = BrowserDimens.BrowserSpacingMedium
                 ),
-                color = BrowserColors.BrowserColorTertiaryText.copy(alpha = 0.3f)
+                color = MaterialTheme.colorScheme.outline.copy(alpha = 0.3f) // ✅ CHANGED
             )
 
             // Settings
@@ -111,8 +111,8 @@ private fun BrowserMenuItem(
         modifier = modifier
             .fillMaxWidth()
             .padding(horizontal = BrowserDimens.BrowserSpacingMedium, vertical = 4.dp),
-        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-        color = BrowserColors.BrowserColorPrimarySurface
+        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
+        color = MaterialTheme.colorScheme.surface // ✅ CHANGED
     ) {
         Row(
             modifier = Modifier
@@ -129,15 +129,15 @@ private fun BrowserMenuItem(
                 icon,
                 contentDescription = null,
                 modifier = Modifier.size(BrowserDimens.BrowserSizeIconLarge),
-                tint = BrowserColors.BrowserColorPrimaryText
+                tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
             )
 
             Text(
                 text,
-                style = BrowserTypography.BrowserFontBodyLarge.copy(
+                style = MaterialTheme.typography.bodyLarge.copy( // ✅ CHANGED
                     fontWeight = FontWeight.Medium
                 ),
-                color = BrowserColors.BrowserColorPrimaryText
+                color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
             )
         }
     }

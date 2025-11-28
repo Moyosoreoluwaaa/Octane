@@ -24,7 +24,7 @@ fun ClearDataBottomSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        containerColor = BrowserColors.BrowserColorPrimarySurface,
+        containerColor = MaterialTheme.colorScheme.surface, // ✅ CHANGED
         shape = RoundedCornerShape(
             topStart = BrowserDimens.BrowserShapeRoundedMedium,
             topEnd = BrowserDimens.BrowserShapeRoundedMedium
@@ -36,7 +36,7 @@ fun ClearDataBottomSheet(
                     .width(32.dp)
                     .height(4.dp)
                     .clip(RoundedCornerShape(2.dp))
-                    .background(BrowserColors.BrowserColorTertiaryText)
+                    .background(MaterialTheme.colorScheme.outline) // ✅ CHANGED
             )
         }
     ) {
@@ -48,18 +48,18 @@ fun ClearDataBottomSheet(
             // Header
             Text(
                 text = "Clear Browsing Data",
-                style = BrowserTypography.BrowserFontHeadlineMedium.copy(
+                style = MaterialTheme.typography.headlineMedium.copy( // ✅ CHANGED
                     fontWeight = FontWeight.Bold
                 ),
-                color = BrowserColors.BrowserColorPrimaryText
+                color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
             )
 
             Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingSmall))
 
             Text(
                 text = "Select what you want to clear",
-                style = BrowserTypography.BrowserFontBodyMedium,
-                color = BrowserColors.BrowserColorSecondaryText
+                style = MaterialTheme.typography.bodyMedium, // ✅ CHANGED
+                color = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
             )
 
             Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingXLarge))
@@ -102,9 +102,9 @@ fun ClearDataBottomSheet(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
-                    shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+                    shape = MaterialTheme.shapes.medium, // ✅ CHANGED
                     colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = BrowserColors.BrowserColorPrimaryText
+                        contentColor = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                     ),
                     border = ButtonDefaults.outlinedButtonBorder.copy(
                         width = 1.5.dp
@@ -112,7 +112,7 @@ fun ClearDataBottomSheet(
                 ) {
                     Text(
                         "Cancel",
-                        style = BrowserTypography.BrowserFontLabelLarge.copy(
+                        style = MaterialTheme.typography.labelLarge.copy( // ✅ CHANGED
                             fontWeight = FontWeight.SemiBold
                         )
                     )
@@ -126,15 +126,15 @@ fun ClearDataBottomSheet(
                     modifier = Modifier
                         .weight(1f)
                         .height(48.dp),
-                    shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+                    shape = MaterialTheme.shapes.medium, // ✅ CHANGED
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = BrowserColors.BrowserColorError,
-                        contentColor = BrowserColors.BrowserColorPrimarySurface
+                        containerColor = MaterialTheme.colorScheme.error, // ✅ CHANGED
+                        contentColor = MaterialTheme.colorScheme.onError // ✅ CHANGED (was BrowserColorPrimarySurface)
                     )
                 ) {
                     Text(
                         "Clear Data",
-                        style = BrowserTypography.BrowserFontLabelLarge.copy(
+                        style = MaterialTheme.typography.labelLarge.copy( // ✅ CHANGED
                             fontWeight = FontWeight.Bold
                         )
                     )
@@ -156,8 +156,8 @@ private fun ClearDataOption(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
-        color = BrowserColors.BrowserColorSecondarySurface
+        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
+        color = MaterialTheme.colorScheme.surfaceVariant // ✅ CHANGED
     ) {
         Row(
             modifier = Modifier
@@ -169,8 +169,8 @@ private fun ClearDataOption(
                 checked = checked,
                 onCheckedChange = onCheckedChange,
                 colors = CheckboxDefaults.colors(
-                    checkedColor = BrowserColors.BrowserColorAccent,
-                    uncheckedColor = BrowserColors.BrowserColorSecondaryText
+                    checkedColor = MaterialTheme.colorScheme.primary, // ✅ CHANGED
+                    uncheckedColor = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
                 )
             )
 
@@ -179,18 +179,18 @@ private fun ClearDataOption(
             Column(modifier = Modifier.weight(1f)) {
                 Text(
                     text = title,
-                    style = BrowserTypography.BrowserFontBodyMedium.copy(
+                    style = MaterialTheme.typography.bodyMedium.copy( // ✅ CHANGED
                         fontWeight = FontWeight.SemiBold
                     ),
-                    color = BrowserColors.BrowserColorPrimaryText
+                    color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
                 )
 
                 Spacer(modifier = Modifier.height(2.dp))
 
                 Text(
                     text = description,
-                    style = BrowserTypography.BrowserFontBodySmall,
-                    color = BrowserColors.BrowserColorSecondaryText
+                    style = MaterialTheme.typography.bodySmall, // ✅ CHANGED
+                    color = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
                 )
             }
         }
