@@ -37,7 +37,8 @@ class WebViewManager(
             featureManager.enableAllFeatures(this, settings)
 
             // Use your FULL, powerful clients — NOT the old inner stub
-            webViewClient = CustomWebViewClient(browserViewModel, bridgeManager)
+            // ✅ UPDATED: Pass context.applicationContext to the CustomWebViewClient constructor
+            webViewClient = CustomWebViewClient(context.applicationContext, browserViewModel, bridgeManager)
             webChromeClient = CustomWebChromeClient(browserViewModel)
 
             // Add JS bridge
@@ -71,7 +72,14 @@ class WebViewManager(
             cacheMode = WebSettings.LOAD_DEFAULT
             blockNetworkLoads = false
             blockNetworkImage = false
-            mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+
+            // ✅ FIX 4: Change to COMPATIBILITY_MODE (safer/better for DApps)
+            mixedContentMode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+                WebSettings.MIXED_CONTENT_COMPATIBILITY_MODE
+            } else {
+                WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+            }
+
             safeBrowsingEnabled = true
 
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN) {
@@ -86,6 +94,15 @@ class WebViewManager(
             builtInZoomControls = true
             displayZoomControls = false
             mediaPlaybackRequiresUserGesture = false
+
+            // ✅ FIX 3: Layout Algorithm MUST be NORMAL
+            // This prevents React/TradingView charts from miscalculating their size and rendering blank.
+            layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL
+
+            // ✅ FIX 5: Custom User Agent (for better server compatibility)
+            // Ensure you keep 'Mobile' in the string
+            val defaultUA = userAgentString
+            userAgentString = "$defaultUA OctaneBrowser/1.0"
 
             // Critical for smooth chart rendering
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -102,6 +119,7 @@ class WebViewManager(
         Timber.d("   JavaScript: ${settings.javaScriptEnabled}")
         Timber.d("   DOM Storage: ${settings.domStorageEnabled}")
         Timber.d("   Offscreen Pre-Raster: ${if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) settings.offscreenPreRaster else "N/A"}")
+        Timber.d("   Layout Algorithm: ${settings.layoutAlgorithm}")
         Timber.d("   Renderer Priority: IMPORTANT")
         Timber.d("─────────────────────────────────────")
     }

@@ -1,17 +1,21 @@
 package com.octane.browser.webview
 
+import android.content.Context
+import android.content.Intent
 import android.graphics.Bitmap
+import android.net.Uri
 import android.net.http.SslError
 import android.os.Build
 import android.webkit.*
+import androidx.core.net.toUri
 import com.octane.BuildConfig
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import com.octane.browser.webview.bridge.BridgeManager
 import timber.log.Timber
 import java.io.ByteArrayInputStream
-import androidx.core.net.toUri
 
 class CustomWebViewClient(
+    private val context: Context,
     private val browserViewModel: BrowserViewModel,
     private val bridgeManager: BridgeManager
 ) : WebViewClient() {
@@ -44,6 +48,20 @@ class CustomWebViewClient(
                 val loadTime = System.currentTimeMillis() - loadStartTime
                 Timber.d("✅ Page finished: $it (${loadTime}ms)")
 
+                // FIX: Viewport Injection (Crucial for complex React/DeFi apps like Drift)
+                // Forces the web page to respect the device's width.
+                webView.evaluateJavascript("""
+                    javascript:(function() { 
+                        var meta = document.querySelector('meta[name="viewport"]');
+                        if (!meta) {
+                            meta = document.createElement('meta');
+                            meta.name = 'viewport'; 
+                            document.getElementsByTagName('head')[0].appendChild(meta);
+                        }
+                        meta.content = 'width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no'; 
+                    })()
+                """, null)
+
                 // Inject bridge after page loads
                 bridgeManager.injectBridge(webView, it)
 
@@ -60,57 +78,47 @@ class CustomWebViewClient(
         }
     }
 
+    /**
+     * ✅ RESTORED NAVIGATION LOGIC: All standard web links are now kept internal.
+     */
     override fun shouldOverrideUrlLoading(
         view: WebView?,
         request: WebResourceRequest?
     ): Boolean {
         val url = request?.url?.toString() ?: return false
 
-        Timber.d("🔗 URL loading: $url")
+        Timber.d("🔗 Navigation Requested: $url")
 
-        return when {
-            url.startsWith("wc:") -> {
-                Timber.d("🔌 WalletConnect URL detected")
-                // TODO: Handle WalletConnect
-                true
-            }
-            url.startsWith("dapp:") -> {
-                Timber.d("🌐 dApp URL detected")
-                // TODO: Handle custom dApp scheme
-                true
-            }
-            url.startsWith("tel:") || url.startsWith("mailto:") -> {
-                Timber.d("📞 Special URL detected: $url")
-                // Let Android handle tel: and mailto:
-                try {
-                    android.content.Intent(android.content.Intent.ACTION_VIEW).apply {
-                        data = url.toUri()
-                        view?.context?.startActivity(this)
-                    }
-                } catch (e: Exception) {
-                    Timber.e(e, "Failed to handle special URL")
-                }
-                true
-            }
-            else -> {
-                // Allow normal navigation
-                false
-            }
+        // 1. Critical Schemes (WalletConnect, Tel, Mail, Intents) -> External
+        if (url.startsWith("wc:") || url.startsWith("dapp:") || url.startsWith("tel:") || url.startsWith("mailto:") || url.startsWith("intent:")) {
+            handleSpecialScheme(url)
+            return true // Consumed: open external app/intent
         }
+
+        // 2. Fix Hamburger Menus & SPA Routers
+        if (url.startsWith("javascript:") || url.contains("#")) {
+            return false // Let WebView handle it internally (Fixes menus/routing)
+        }
+
+        // 3. Standard Web (http:, https:) -> Internal (User's request)
+        if (url.startsWith("http://") || url.startsWith("https://")) {
+            Timber.d("➡️ Standard web link, loading internally: $url")
+            return false // Return false to load in the current WebView
+        }
+
+        // Fallback for any other unrecognized custom scheme
+        handleSpecialScheme(url)
+        return true
     }
 
-    /**
-     * ✅ ENHANCED: Better resource interception for complex sites
-     */
     override fun shouldInterceptRequest(
         view: WebView?,
         request: WebResourceRequest?
     ): WebResourceResponse? {
-        val url = request?.url?.toString() ?: return null
-        val method = request.method
+        val method = request?.method
 
         if (method == "OPTIONS") {
-            // Handle CORS preflight
+            // Handle CORS preflight (essential for some dApp APIs)
             val headers = mapOf(
                 "Access-Control-Allow-Origin" to "*",
                 "Access-Control-Allow-Methods" to "POST,GET,OPTIONS",
@@ -119,7 +127,6 @@ class CustomWebViewClient(
             return WebResourceResponse("text/plain", "UTF-8", 200, "OK", headers, ByteArrayInputStream(byteArrayOf()))
         }
 
-        // Cache or modify resources if needed (e.g., for charts)
         return super.shouldInterceptRequest(view, request)
     }
 
@@ -129,7 +136,6 @@ class CustomWebViewClient(
         host: String?,
         realm: String?
     ) {
-        // TODO: Handle auth if needed
         handler?.cancel()
     }
 
@@ -164,9 +170,8 @@ class CustomWebViewClient(
         if (request?.isForMainFrame == true) {
             Timber.e("❌ Main frame error [$errorCode]: $description")
             Timber.e("   URL: $url")
-            browserViewModel.onError("Error loading page: $description")
+            browserViewModel.onError("Error loading page: ${getUserFriendlyErrorMessage(errorCode, description)}")
         } else {
-            // Log subresource errors
             Timber.v("⚠️ Subresource error [$errorCode]: $url")
         }
     }
@@ -223,6 +228,18 @@ class CustomWebViewClient(
             }
         }
     }
+
+    private fun handleSpecialScheme(url: String) {
+        try {
+            Timber.d("🚀 Opening special scheme link externally: $url")
+            val intent = Intent(Intent.ACTION_VIEW, url.toUri())
+            intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+            context.startActivity(intent)
+        } catch (e: Exception) {
+            Timber.e(e, "Failed to handle scheme: $url")
+        }
+    }
+
 
     private fun getUserFriendlyErrorMessage(errorCode: Int, description: String): String {
         return when (errorCode) {
