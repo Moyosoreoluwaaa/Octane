@@ -14,12 +14,14 @@ import com.octane.browser.domain.usecases.validation.ValidateUrlUseCase
 import com.octane.browser.presentation.viewmodels.*
 import com.octane.browser.wallet_integration.MockWalletConnector
 import com.octane.browser.wallet_integration.WalletConnector
+import com.octane.browser.webview.AdvancedFeatureManager
 import com.octane.browser.webview.WebViewManager
 import com.octane.browser.webview.bridge.BridgeManager
 import com.octane.browser.webview.bridge.WalletBridge
 import org.koin.android.ext.koin.androidContext
 import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
+import timber.log.Timber
 
 val browserModule = module {
 
@@ -28,6 +30,7 @@ val browserModule = module {
     // ========================================
 
     single {
+        Timber.d("Initializing Browser Database...")
         Room.databaseBuilder(
             androidContext(),
             BrowserDatabase::class.java,
@@ -35,6 +38,7 @@ val browserModule = module {
         )
             .fallbackToDestructiveMigration() // For development
             .build()
+            .also { Timber.d("✅ Database initialized") }
     }
 
     single { get<BrowserDatabase>().tabDao() }
@@ -125,25 +129,51 @@ val browserModule = module {
 
 
     // ========================================
-    // WEBVIEW COMPONENTS
+    // WEBVIEW COMPONENTS (CRITICAL ORDER)
     // ========================================
 
-    // WalletBridge (scoped to manage state)
+    // 1. WalletBridge (singleton - manages wallet integration)
     single {
-        WalletBridge()
+        Timber.d("Initializing WalletBridge...")
+        WalletBridge().also { Timber.d("✅ WalletBridge initialized") }
     }
 
-    // BridgeManager (singleton - manages JS injection)
+    // 2. BridgeManager (singleton - manages JS injection)
     single {
-        BridgeManager(get())
+        Timber.d("Initializing BridgeManager...")
+        BridgeManager(get()).also { bridge ->
+            // Set bidirectional reference
+            get<WalletBridge>().setBridgeManager(bridge)
+            Timber.d("✅ BridgeManager initialized")
+        }
     }
 
-    // WebViewManager (singleton - creates WebViews)
+    // 3. AdvancedFeatureManager (singleton - manages advanced web features)
     single {
+        Timber.d("Initializing AdvancedFeatureManager...")
+        AdvancedFeatureManager(androidContext()).also {
+            Timber.d("✅ AdvancedFeatureManager initialized")
+        }
+    }
+
+    // 4. WebViewManager (singleton - creates WebViews)
+    single {
+        Timber.d("Initializing WebViewManager...")
         WebViewManager(
             context = androidContext(),
-            bridgeManager = get()
-        )
+            bridgeManager = get(),
+            featureManager = get()
+        ).also {
+            Timber.d("✅ WebViewManager initialized")
+
+            // Log WebView availability
+            if (WebViewManager.isWebViewAvailable(androidContext())) {
+                val version = WebViewManager.getWebViewVersion(androidContext())
+                Timber.d("📱 WebView version: $version")
+            } else {
+                Timber.e("❌ WebView not available!")
+            }
+        }
     }
 
 
@@ -223,34 +253,25 @@ val browserModule = module {
 }
 
 /**
- * 1. Navigation Setup:
- *    - BrowserDestinations.kt: Type-safe routes
- *    - BrowserNavGraph.kt: Complete navigation graph
- *    - BrowserApp.kt: Entry point composable
+ * 📝 SETUP CHECKLIST
  *
- * 2. Bottom Sheets (Replace Dialogs):
- *    - AddBookmarkBottomSheet: Save bookmarks
- *    - ConfirmationBottomSheet: Generic confirmation
- *    - PhishingWarningBottomSheet: Security warning
- *    - ConnectionRequestBottomSheet: Web3 connection approval
- *    - ClearDataBottomSheet: Clear browsing data with options
+ * ✅ 1. Database & DAOs configured
+ * ✅ 2. Repositories configured
+ * ✅ 3. Use Cases configured (18 total)
+ * ✅ 4. WebView components configured (proper dependency order)
+ * ✅ 5. ViewModels configured (6 total)
+ * ✅ 6. Logging enabled for debugging
  *
- * 3. Manifest Updates:
- *    - Hardware acceleration enabled
- *    - Deep linking for WalletConnect (wc://)
- *    - Storage permissions for downloads
- *    - WebView optimizations
+ * 🔍 DEBUGGING
  *
- * 4. Koin DI Module:
- *    - Complete browserModule with all dependencies
- *    - Database, DAOs, Repositories
- *    - All Use Cases (18 total)
- *    - WebView components (Manager, Bridge, Wallet)
- *    - All ViewModels (6 total)
- *    - Integrated into OctaneApplication
+ * - Check Logcat for "BrowserModule" tags
+ * - Verify WebView version is modern (142+)
+ * - Confirm no DI errors during startup
  *
- * Testing Setup:
- *    - MainActivity now shows BrowserApp() for testing
- *    - After testing, uncomment wallet navigation
- *    - All dependencies properly injected via Koin
+ * 🎯 NEXT STEPS
+ *
+ * 1. Test on complex websites (drift.trade, uniswap, etc.)
+ * 2. Monitor GPU errors (should be reduced)
+ * 3. Check page load times in logs
+ * 4. Verify Service Workers work (PWAs)
  */

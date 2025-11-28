@@ -9,6 +9,8 @@ androidDesugarJdkLibs = "2.1.4"
 androidTools = "31.7.3"
 # Room
 room = "2.8.3"
+# WebKit version
+androidx-webkit = "1.14.0"
 
 # AndroidX Core
 coreKtx = "1.17.0"
@@ -123,6 +125,10 @@ material = { group = "com.google.android.material", name = "material", version.r
 androidx-room-runtime = { group = "androidx.room", name = "room-runtime", version.ref = "room" }
 androidx-room-ktx = { group = "androidx.room", name = "room-ktx", version.ref = "room" }
 androidx-room-compiler = { group = "androidx.room", name = "room-compiler", version.ref = "room" }
+
+# WebKit
+androidx-webkit = { group = "androidx.webkit", name = "webkit", version.ref = "androidx-webkit" }
+
 # Add this line:
 androidx-room-paging = { group = "androidx.room", name = "room-paging", version.ref = "room" }
 

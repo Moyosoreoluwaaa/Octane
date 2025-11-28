@@ -85,6 +85,8 @@ sqldelight {
 }
 
 dependencies {
+
+    implementation(libs.androidx.webkit)
 // Core Android
     coreLibraryDesugaring(libs.android.desugarJdkLibs)
     implementation(libs.androidx.core.ktx)

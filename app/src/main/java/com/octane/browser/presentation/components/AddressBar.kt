@@ -12,6 +12,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.google.common.math.LinearTransformation.horizontal
 import com.octane.browser.domain.models.WebViewState
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -37,22 +38,24 @@ fun AddressBar(
     }
     
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier.fillMaxWidth()
+            .padding(horizontal = 12.dp, vertical = 8.dp),
         tonalElevation = 2.dp
     ) {
         Column {
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .padding(horizontal = 12.dp, vertical = 8.dp),
+                    .padding(horizontal = 12.dp, vertical = 18.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                horizontalArrangement = Arrangement.spacedBy(4.dp)
             ) {
                 // URL TextField
                 OutlinedTextField(
                     value = urlInput,
                     onValueChange = { urlInput = it },
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.weight(1f)
+                        .height(55.dp),
                     placeholder = { Text("Search or enter URL") },
                     leadingIcon = {
                         SecurityBadge(isSecure = webViewState.isSecure)

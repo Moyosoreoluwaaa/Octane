@@ -1,12 +1,31 @@
 package com.octane.browser.presentation.screens
 
-import androidx.compose.foundation.layout.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Divider
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
-import com.octane.browser.presentation.components.*
+import com.octane.browser.presentation.components.AddressBar
+import com.octane.browser.presentation.components.NavigationControls
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
+import com.octane.browser.webview.WebViewContainer
 import org.koin.androidx.compose.koinViewModel
 
 @Composable
@@ -21,10 +40,10 @@ fun BrowserScreen(
     val isBookmarked by browserViewModel.isBookmarked.collectAsState()
     val tabs by browserViewModel.tabs.collectAsState()
     val showPhishingWarning by browserViewModel.showPhishingWarning.collectAsState()
-    
+
     var showMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
-    
+
     // Listen for navigation events
     LaunchedEffect(Unit) {
         browserViewModel.navigationEvent.collect { event ->
@@ -32,14 +51,17 @@ fun BrowserScreen(
                 is BrowserViewModel.NavigationEvent.ShowError -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
+
                 is BrowserViewModel.NavigationEvent.ShowMessage -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
-                else -> { /* Handled by WebViewContainer */ }
+
+                else -> { /* Handled by WebViewContainer */
+                }
             }
         }
     }
-    
+
     Scaffold(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
@@ -70,7 +92,7 @@ fun BrowserScreen(
             )
         }
     }
-    
+
     // Browser Menu
     if (showMenu) {
         BrowserMenu(
@@ -97,7 +119,7 @@ fun BrowserScreen(
             }
         )
     }
-    
+
     // Phishing Warning Dialog
     showPhishingWarning?.let { warning ->
         AlertDialog(

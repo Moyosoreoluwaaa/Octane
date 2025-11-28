@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- ✅ FIX 17: Network Security Configuration for Android 9+ -->
+<network-security-config>
+    <!-- ✅ Allow all subdomains for development/testing -->
+    <!-- TODO: In production, list only specific trusted domains -->
+    <base-config cleartextTrafficPermitted="false">
+        <trust-anchors>
+            <!-- Trust system certificates (default) -->
+            <certificates src="system" />
+
+            <!-- ✅ OPTIONAL: Trust user-installed certificates (for debugging with proxy tools) -->
+            <!-- Remove in production -->
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
+
+    <!-- ⚠️ DEBUG ONLY: Allow cleartext for localhost testing -->
+    <!-- REMOVE THIS IN PRODUCTION -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">localhost</domain>
+        <domain includeSubdomains="true">127.0.0.1</domain>
+        <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android emulator host -->
+    </domain-config>
+</network-security-config>
