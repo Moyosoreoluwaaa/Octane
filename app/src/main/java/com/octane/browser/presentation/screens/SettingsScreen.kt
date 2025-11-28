@@ -1,26 +1,31 @@
 package com.octane.browser.presentation.screens
 
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ChevronRight
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.HorizontalDivider
+import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -29,13 +34,17 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.octane.browser.design.BrowserColors
+import com.octane.browser.design.BrowserDimens
+import com.octane.browser.design.BrowserOpacity
+import com.octane.browser.design.BrowserTypography
 import com.octane.browser.presentation.components.ConfirmationBottomSheet
 import com.octane.browser.presentation.viewmodels.ConnectionViewModel
 import com.octane.browser.presentation.viewmodels.SettingsViewModel
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onBack: () -> Unit,
@@ -48,27 +57,23 @@ fun SettingsScreen(
 
     var showDisconnectAllSheet by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("Settings") },
-                navigationIcon = {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                    }
-                }
-            )
-        }
-    ) { paddingValues ->
+    // FLOATING DESIGN: Box with background + floating elements
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BrowserColors.BrowserColorPrimaryBackground)
+    ) {
+        // Content Area
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(paddingValues)
+                .statusBarsPadding()
+                .padding(top = 72.dp) // Space for floating top bar
                 .verticalScroll(rememberScrollState())
         ) {
             // Privacy Section
             SettingsSection(title = "Privacy") {
-                SwitchSettingItem(
+                SettingSwitchItem(
                     title = "Save History",
                     description = "Remember visited pages",
                     checked = settings.saveHistory,
@@ -79,7 +84,7 @@ fun SettingsScreen(
                     }
                 )
 
-                SwitchSettingItem(
+                SettingSwitchItem(
                     title = "Clear Data on Exit",
                     description = "Delete cookies, cache, and history when closing",
                     checked = settings.clearDataOnExit,
@@ -91,11 +96,11 @@ fun SettingsScreen(
                 )
             }
 
-            HorizontalDivider()
+            Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingMedium))
 
             // Content Section
             SettingsSection(title = "Content") {
-                SwitchSettingItem(
+                SettingSwitchItem(
                     title = "JavaScript",
                     description = "Enable JavaScript (required for most sites)",
                     checked = settings.enableJavaScript,
@@ -104,7 +109,7 @@ fun SettingsScreen(
                     }
                 )
 
-                SwitchSettingItem(
+                SettingSwitchItem(
                     title = "Block Ads",
                     description = "Block ads and trackers",
                     checked = settings.blockAds,
@@ -114,11 +119,11 @@ fun SettingsScreen(
                 )
             }
 
-            HorizontalDivider()
+            Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingMedium))
 
             // Security Section
             SettingsSection(title = "Security") {
-                SwitchSettingItem(
+                SettingSwitchItem(
                     title = "Phishing Protection",
                     description = "Warn about suspicious sites",
                     checked = settings.enablePhishingProtection,
@@ -128,11 +133,11 @@ fun SettingsScreen(
                 )
             }
 
-            HorizontalDivider()
+            Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingMedium))
 
             // Web3 Section
             SettingsSection(title = "Web3") {
-                SwitchSettingItem(
+                SettingSwitchItem(
                     title = "Enable Web3",
                     description = "Connect to dApps and use crypto features",
                     checked = settings.enableWeb3,
@@ -151,12 +156,13 @@ fun SettingsScreen(
                     SettingItem(
                         title = "Disconnect All Sites",
                         description = "Remove all Web3 connections",
-                        onClick = { showDisconnectAllSheet = true }
+                        onClick = { showDisconnectAllSheet = true },
+                        isDestructive = true
                     )
                 }
             }
 
-            HorizontalDivider()
+            Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingMedium))
 
             // About Section
             SettingsSection(title = "About") {
@@ -172,7 +178,22 @@ fun SettingsScreen(
                     onClick = { /* TODO: Open privacy policy */ }
                 )
             }
+
+            Spacer(modifier = Modifier.height(100.dp)) // Bottom padding
         }
+
+        // FLOATING TOP BAR (Rounded Pill)
+        SettingsTopBar(
+            onBack = onBack,
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(
+                    top = BrowserDimens.BrowserSpacingMedium,
+                    start = BrowserDimens.BrowserPaddingScreenEdge,
+                    end = BrowserDimens.BrowserPaddingScreenEdge
+                )
+        )
     }
 
     // Disconnect All Bottom Sheet
@@ -192,50 +213,83 @@ fun SettingsScreen(
 }
 
 @Composable
-private fun SettingsSection(
-    title: String,
-    content: @Composable ColumnScope.() -> Unit
+private fun SettingsTopBar(
+    onBack: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Column(modifier = Modifier.fillMaxWidth()) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleSmall,
-            color = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.padding(16.dp)
-        )
-        content()
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        shadowElevation = BrowserDimens.BrowserElevationMedium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = BrowserDimens.BrowserSpacingMedium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Back Button
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    tint = BrowserColors.BrowserColorPrimaryText
+                )
+            }
+
+            // Title
+            Text(
+                text = "Settings",
+                style = BrowserTypography.BrowserFontHeadlineSmall,
+                color = BrowserColors.BrowserColorPrimaryText
+            )
+
+            // Spacer for balance (same size as back button)
+            Spacer(modifier = Modifier.size(40.dp))
+        }
     }
 }
 
 @Composable
-private fun SwitchSettingItem(
+fun SettingsSection(
     title: String,
-    description: String,
-    checked: Boolean,
-    onCheckedChange: (Boolean) -> Unit
+    content: @Composable () -> Unit
 ) {
-    Row(
+    Column(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = BrowserDimens.BrowserPaddingScreenEdge)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = title,
-                style = MaterialTheme.typography.bodyLarge
-            )
-            Text(
-                text = description,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-
-        Switch(
-            checked = checked,
-            onCheckedChange = onCheckedChange
+        Text(
+            text = title,
+            style = BrowserTypography.BrowserFontLabelLarge.copy(
+                fontWeight = FontWeight.Bold
+            ),
+            color = BrowserColors.BrowserColorAccent,
+            modifier = Modifier.padding(bottom = BrowserDimens.BrowserSpacingMedium)
         )
+
+        Surface(
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+            color = BrowserColors.BrowserColorPrimarySurface,
+            shadowElevation = BrowserDimens.BrowserElevationLow
+        ) {
+            Column {
+                content()
+            }
+        }
     }
 }
 
@@ -243,36 +297,89 @@ private fun SwitchSettingItem(
 private fun SettingItem(
     title: String,
     description: String,
-    onClick: () -> Unit
+    onClick: () -> Unit,
+    isDestructive: Boolean = false,
+    modifier: Modifier = Modifier
 ) {
-    TextButton(
-        onClick = onClick,
-        modifier = Modifier
+    Row(
+        modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = 8.dp)
+            .clickable(onClick = onClick)
+            .padding(BrowserDimens.BrowserSpacingMedium),
+        verticalAlignment = Alignment.CenterVertically,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Text(
-                    text = description,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = BrowserTypography.BrowserFontBodyLarge.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = if (isDestructive)
+                    BrowserColors.BrowserColorError
+                else
+                    BrowserColors.BrowserColorPrimaryText
+            )
 
-            Icon(
-                Icons.Default.ChevronRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = description,
+                style = BrowserTypography.BrowserFontBodySmall,
+                color = BrowserColors.BrowserColorSecondaryText
             )
         }
+
+        Icon(
+            Icons.Rounded.ChevronRight,
+            contentDescription = null,
+            modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
+            tint = BrowserColors.BrowserColorSecondaryText
+        )
+    }
+}
+
+@Composable
+private fun SettingSwitchItem(
+    title: String,
+    description: String,
+    checked: Boolean,
+    onCheckedChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(BrowserDimens.BrowserSpacingMedium),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = title,
+                style = BrowserTypography.BrowserFontBodyLarge.copy(
+                    fontWeight = FontWeight.Medium
+                ),
+                color = BrowserColors.BrowserColorPrimaryText
+            )
+
+            Spacer(modifier = Modifier.height(2.dp))
+
+            Text(
+                text = description,
+                style = BrowserTypography.BrowserFontBodySmall,
+                color = BrowserColors.BrowserColorSecondaryText
+            )
+        }
+
+        Switch(
+            checked = checked,
+            onCheckedChange = onCheckedChange,
+            colors = SwitchDefaults.colors(
+                checkedThumbColor = BrowserColors.BrowserColorPrimarySurface,
+                checkedTrackColor = BrowserColors.BrowserColorAccent,
+                uncheckedThumbColor = BrowserColors.BrowserColorPrimarySurface,
+                uncheckedTrackColor = BrowserColors.BrowserColorTertiaryText,
+                uncheckedBorderColor = BrowserColors.BrowserColorTertiaryText
+            )
+        )
     }
 }

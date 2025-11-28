@@ -1,41 +1,27 @@
 package com.octane.browser.presentation.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
-import com.octane.browser.presentation.components.ConfirmationBottomSheet
-import com.octane.browser.presentation.components.EmptyState
-import com.octane.browser.presentation.components.HistoryItem
+import com.octane.browser.design.*
+import com.octane.browser.presentation.components.*
 import com.octane.browser.presentation.viewmodels.HistoryViewModel
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
     onBack: () -> Unit,
@@ -48,63 +34,82 @@ fun HistoryScreen(
     var showSearchBar by remember { mutableStateOf(false) }
     var showClearSheet by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            if (showSearchBar) {
-                HistorySearchBar(
-                    query = searchQuery,
-                    onQueryChange = { historyViewModel.updateSearchQuery(it) },
-                    onClose = {
-                        historyViewModel.updateSearchQuery("")
-                        showSearchBar = false
-                    }
+    // FLOATING DESIGN: Box with background + floating elements
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BrowserColors.BrowserColorPrimaryBackground)
+    ) {
+        // Content Area
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(top = 72.dp) // Space for floating top bar
+        ) {
+            if (historyEntries.isEmpty()) {
+                EmptyState(
+                    icon = Icons.Rounded.History,
+                    title = if (searchQuery.isEmpty()) "No History" else "No Results",
+                    message = if (searchQuery.isEmpty())
+                        "Your browsing history will appear here"
+                    else
+                        "No history entries match your search"
                 )
             } else {
-                TopAppBar(
-                    title = { Text("History") },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { showSearchBar = true }) {
-                            Icon(Icons.Default.Search, "Search")
-                        }
-                        IconButton(onClick = { showClearSheet = true }) {
-                            Icon(Icons.Default.DeleteSweep, "Clear History")
-                        }
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        horizontal = BrowserDimens.BrowserPaddingScreenEdge,
+//                        bottom = BrowserDimens.BrowserSpacingXLarge
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingUnit),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(historyEntries, key = { it.id }) { entry ->
+                        HistoryItem(
+                            entry = entry,
+                            onClick = {
+                                onOpenUrl(entry.url)
+                                onBack()
+                            }
+                        )
                     }
-                )
-            }
-        }
-    ) { paddingValues ->
-        if (historyEntries.isEmpty()) {
-            EmptyState(
-                icon = Icons.Default.History,
-                title = if (searchQuery.isEmpty()) "No History" else "No Results",
-                message = if (searchQuery.isEmpty())
-                    "Your browsing history will appear here"
-                else
-                    "No history entries match your search"
-            )
-        } else {
-            LazyColumn(
-                contentPadding = paddingValues,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-            ) {
-                items(historyEntries, key = { it.id }) { entry ->
-                    HistoryItem(
-                        entry = entry,
-                        onClick = {
-                            onOpenUrl(entry.url)
-                        }
-                    )
                 }
             }
+        }
+
+        // FLOATING TOP BAR (Rounded Pill)
+        if (showSearchBar) {
+            HistorySearchBar(
+                query = searchQuery,
+                onQueryChange = { historyViewModel.updateSearchQuery(it) },
+                onClose = {
+                    historyViewModel.updateSearchQuery("")
+                    showSearchBar = false
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(
+                        top = BrowserDimens.BrowserSpacingMedium,
+                        start = BrowserDimens.BrowserPaddingScreenEdge,
+                        end = BrowserDimens.BrowserPaddingScreenEdge
+                    )
+            )
+        } else {
+            HistoryTopBar(
+                onBack = onBack,
+                onSearch = { showSearchBar = true },
+                onClearAll = { showClearSheet = true },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(
+                        top = BrowserDimens.BrowserSpacingMedium,
+                        start = BrowserDimens.BrowserPaddingScreenEdge,
+                        end = BrowserDimens.BrowserPaddingScreenEdge
+                    )
+            )
         }
     }
 
@@ -123,37 +128,159 @@ fun HistoryScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun HistoryTopBar(
+    onBack: () -> Unit,
+    onSearch: () -> Unit,
+    onClearAll: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        shadowElevation = BrowserDimens.BrowserElevationMedium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = BrowserDimens.BrowserSpacingMedium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Back Button
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    tint = BrowserColors.BrowserColorPrimaryText
+                )
+            }
+
+            // Title
+            Text(
+                text = "History",
+                style = BrowserTypography.BrowserFontHeadlineSmall,
+                color = BrowserColors.BrowserColorPrimaryText
+            )
+
+            // Actions Row
+            Row(horizontalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingSmall)) {
+                IconButton(
+                    onClick = onSearch,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(
+                        Icons.Rounded.Search,
+                        contentDescription = "Search",
+                        tint = BrowserColors.BrowserColorPrimaryText
+                    )
+                }
+
+                IconButton(
+                    onClick = onClearAll,
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(
+                        Icons.Rounded.DeleteSweep,
+                        contentDescription = "Clear History",
+                        tint = BrowserColors.BrowserColorError
+                    )
+                }
+            }
+        }
+    }
+}
+
 @Composable
 private fun HistorySearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    TopAppBar(
-        title = {
-            TextField(
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        shadowElevation = BrowserDimens.BrowserElevationMedium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = BrowserDimens.BrowserSpacingMedium),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Back Button
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    Icons.Rounded.ArrowBack,
+                    contentDescription = "Close Search",
+                    tint = BrowserColors.BrowserColorPrimaryText
+                )
+            }
+
+            Spacer(modifier = Modifier.width(BrowserDimens.BrowserSpacingSmall))
+
+            // Search TextField
+            BasicTextField(
                 value = query,
                 onValueChange = onQueryChange,
-                placeholder = { Text("Search history...") },
+                modifier = Modifier.weight(1f),
+                textStyle = BrowserTypography.BrowserFontBodyMedium.copy(
+                    color = BrowserColors.BrowserColorPrimaryText
+                ),
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                decorationBox = { innerTextField ->
+                    if (query.isEmpty()) {
+                        Text(
+                            "Search history...",
+                            style = BrowserTypography.BrowserFontBodyMedium,
+                            color = BrowserColors.BrowserColorSecondaryText
+                        )
+                    }
+                    innerTextField()
+                }
             )
-        },
-        navigationIcon = {
-            IconButton(onClick = onClose) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
-            }
-        },
-        actions = {
+
+            // Clear Button
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Default.Clear, "Clear")
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.Close,
+                        contentDescription = "Clear",
+                        modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
+                        tint = BrowserColors.BrowserColorSecondaryText
+                    )
                 }
             }
         }
-    )
+    }
 }

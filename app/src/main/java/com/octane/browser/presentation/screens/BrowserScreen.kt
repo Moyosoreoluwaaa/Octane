@@ -1,28 +1,20 @@
 package com.octane.browser.presentation.screens
 
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Divider
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.octane.browser.design.BrowserColors
+import com.octane.browser.design.BrowserDimens
 import com.octane.browser.presentation.components.AddressBar
+import com.octane.browser.presentation.components.BrowserMenu
 import com.octane.browser.presentation.components.NavigationControls
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import com.octane.browser.webview.WebViewContainer
@@ -51,47 +43,73 @@ fun BrowserScreen(
                 is BrowserViewModel.NavigationEvent.ShowError -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
-
                 is BrowserViewModel.NavigationEvent.ShowMessage -> {
                     snackbarHostState.showSnackbar(event.message)
                 }
-
-                else -> { /* Handled by WebViewContainer */
-                }
+                else -> { /* Handled by WebViewContainer */ }
             }
         }
     }
 
-    Scaffold(
-        snackbarHost = { SnackbarHost(snackbarHostState) },
-        topBar = {
-            AddressBar(
-                webViewState = webViewState,
-                isBookmarked = isBookmarked,
-                onNavigate = { browserViewModel.navigateToUrl(it) },
-                onReload = { browserViewModel.reload() },
-                onStop = { browserViewModel.stopLoading() },
-                onBookmarkToggle = { browserViewModel.toggleBookmark() },
-                onMenuClick = { showMenu = true }
-            )
-        },
-        bottomBar = {
-            NavigationControls(
-                webViewState = webViewState,
-                tabCount = tabs.size,
-                onBack = { browserViewModel.goBack() },
-                onForward = { browserViewModel.goForward() },
-                onHome = { browserViewModel.navigateToUrl("about:blank") },
-                onTabManager = onOpenTabManager
-            )
-        }
-    ) { paddingValues ->
-        Box(modifier = Modifier.padding(paddingValues)) {
-            WebViewContainer(
-                browserViewModel = browserViewModel
-            )
-        }
+    // --- MAIN UI LAYOUT: BOX WITH FLOATING ELEMENTS ---
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BrowserColors.BrowserColorPrimaryBackground)
+    ) {
+        // 1. Full Screen WebView Content
+        WebViewContainer(
+            browserViewModel = browserViewModel,
+            modifier = Modifier.fillMaxSize()
+        )
+
+        // Snackbar at bottom (appears above WebView, below bars)
+        SnackbarHost(
+            hostState = snackbarHostState,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .padding(bottom = 100.dp) // Above navigation bar
+        )
+
+        // 2. Floating Top Bar
+        AddressBar(
+            webViewState = webViewState,
+            isBookmarked = isBookmarked,
+            onNavigate = { browserViewModel.navigateToUrl(it) },
+            onReload = { browserViewModel.reload() },
+            onStop = { browserViewModel.stopLoading() },
+            onBookmarkToggle = { browserViewModel.toggleBookmark() },
+            onMenuClick = { showMenu = true },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .statusBarsPadding()
+                .padding(
+                    top = BrowserDimens.BrowserSpacingMedium,
+                    start = BrowserDimens.BrowserPaddingScreenEdge,
+                    end = BrowserDimens.BrowserPaddingScreenEdge
+                )
+        )
+
+        // 3. Floating Bottom Navigation
+        NavigationControls(
+            webViewState = webViewState,
+            tabCount = tabs.size,
+            onBack = { browserViewModel.goBack() },
+            onForward = { browserViewModel.goForward() },
+            onHome = { browserViewModel.navigateToUrl("about:blank") },
+            onTabManager = onOpenTabManager,
+            modifier = Modifier
+                .align(Alignment.BottomCenter)
+                .navigationBarsPadding()
+                .padding(
+                    bottom = BrowserDimens.BrowserPaddingBarBottom,
+                    start = BrowserDimens.BrowserPaddingScreenEdge,
+                    end = BrowserDimens.BrowserPaddingScreenEdge
+                )
+        )
     }
+
+    // --- DIALOGS & SHEETS ---
 
     // Browser Menu
     if (showMenu) {
@@ -116,6 +134,10 @@ fun BrowserScreen(
             onShare = {
                 showMenu = false
                 // TODO: Implement share
+            },
+            onRefresh = {
+                showMenu = false
+                browserViewModel.reload()
             }
         )
     }
@@ -124,10 +146,22 @@ fun BrowserScreen(
     showPhishingWarning?.let { warning ->
         AlertDialog(
             onDismissRequest = { browserViewModel.dismissPhishingWarning() },
-            title = { Text("⚠️ Security Warning") },
+            icon = {
+                Icon(
+                    Icons.Rounded.Warning,
+                    contentDescription = null,
+                    tint = BrowserColors.BrowserColorWarning
+                )
+            },
+            title = { Text("Security Warning") },
             text = { Text(warning) },
             confirmButton = {
-                TextButton(onClick = { browserViewModel.dismissPhishingWarning() }) {
+                Button(
+                    onClick = { browserViewModel.dismissPhishingWarning() },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = BrowserColors.BrowserColorAccent
+                    )
+                ) {
                     Text("Go Back")
                 }
             },
@@ -138,65 +172,6 @@ fun BrowserScreen(
                     Text("Proceed Anyway")
                 }
             }
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun BrowserMenu(
-    onDismiss: () -> Unit,
-    onBookmarks: () -> Unit,
-    onHistory: () -> Unit,
-    onSettings: () -> Unit,
-    onNewTab: () -> Unit,
-    onShare: () -> Unit
-) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = 8.dp)
-        ) {
-            MenuItemButton(
-                text = "New Tab",
-                onClick = onNewTab
-            )
-            MenuItemButton(
-                text = "Bookmarks",
-                onClick = onBookmarks
-            )
-            MenuItemButton(
-                text = "History",
-                onClick = onHistory
-            )
-            MenuItemButton(
-                text = "Share",
-                onClick = onShare
-            )
-            Divider(modifier = Modifier.padding(vertical = 8.dp))
-            MenuItemButton(
-                text = "Settings",
-                onClick = onSettings
-            )
-        }
-    }
-}
-
-@Composable
-private fun MenuItemButton(
-    text: String,
-    onClick: () -> Unit
-) {
-    TextButton(
-        onClick = onClick,
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = 16.dp)
-    ) {
-        Text(
-            text = text,
-            modifier = Modifier.fillMaxWidth()
         )
     }
 }

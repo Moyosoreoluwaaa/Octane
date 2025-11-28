@@ -1,28 +1,19 @@
 package com.octane.browser.presentation.components
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.octane.browser.design.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,72 +27,118 @@ fun ConfirmationBottomSheet(
     onConfirm: () -> Unit
 ) {
     ModalBottomSheet(
-        onDismissRequest = onDismiss
+        onDismissRequest = onDismiss,
+        containerColor = BrowserColors.BrowserColorPrimarySurface,
+        shape = RoundedCornerShape(
+            topStart = BrowserDimens.BrowserShapeRoundedMedium,
+            topEnd = BrowserDimens.BrowserShapeRoundedMedium
+        ),
+        dragHandle = {
+            Box(
+                modifier = Modifier
+                    .padding(vertical = BrowserDimens.BrowserSpacingMedium)
+                    .width(32.dp)
+                    .height(4.dp)
+                    .clip(RoundedCornerShape(2.dp))
+                    .background(BrowserColors.BrowserColorTertiaryText)
+            )
+        }
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(24.dp),
+                .padding(BrowserDimens.BrowserSpacingXLarge),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
+            // Warning Icon (if destructive)
             if (isDestructive) {
                 Icon(
-                    Icons.Default.Warning,
+                    Icons.Rounded.Warning,
                     contentDescription = null,
-                    modifier = Modifier.size(48.dp),
-                    tint = MaterialTheme.colorScheme.error
+                    modifier = Modifier.size(BrowserDimens.BrowserSizeIconXLarge),
+                    tint = BrowserColors.BrowserColorError
                 )
 
-                Spacer(modifier = Modifier.height(16.dp))
+                Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingLarge))
             }
 
+            // Title
             Text(
                 text = title,
-                style = MaterialTheme.typography.titleLarge,
+                style = BrowserTypography.BrowserFontHeadlineMedium.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = BrowserColors.BrowserColorPrimaryText,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingMedium))
 
+            // Message
             Text(
                 text = message,
-                style = MaterialTheme.typography.bodyMedium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
+                style = BrowserTypography.BrowserFontBodyMedium,
+                color = BrowserColors.BrowserColorSecondaryText,
+                textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(24.dp))
+            Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingXLarge))
 
+            // Action Buttons
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(12.dp)
+                horizontalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingMedium)
             ) {
+                // Cancel Button
                 OutlinedButton(
                     onClick = onDismiss,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = BrowserColors.BrowserColorPrimaryText
+                    ),
+                    border = ButtonDefaults.outlinedButtonBorder.copy(
+                        width = 1.5.dp
+                    )
                 ) {
-                    Text(dismissText)
+                    Text(
+                        dismissText,
+                        style = BrowserTypography.BrowserFontLabelLarge.copy(
+                            fontWeight = FontWeight.SemiBold
+                        )
+                    )
                 }
 
+                // Confirm Button
                 Button(
                     onClick = {
                         onConfirm()
                         onDismiss()
                     },
-                    modifier = Modifier.weight(1f),
-                    colors = if (isDestructive) {
-                        ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
-                        )
-                    } else {
-                        ButtonDefaults.buttonColors()
-                    }
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp),
+                    shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDestructive)
+                            BrowserColors.BrowserColorError
+                        else
+                            BrowserColors.BrowserColorAccent,
+                        contentColor = BrowserColors.BrowserColorPrimarySurface
+                    )
                 ) {
-                    Text(confirmText)
+                    Text(
+                        confirmText,
+                        style = BrowserTypography.BrowserFontLabelLarge.copy(
+                            fontWeight = FontWeight.Bold
+                        )
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            Spacer(modifier = Modifier.height(BrowserDimens.BrowserSpacingMedium))
         }
     }
 }

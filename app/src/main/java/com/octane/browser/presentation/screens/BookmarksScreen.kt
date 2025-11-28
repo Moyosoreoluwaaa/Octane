@@ -1,38 +1,27 @@
 package com.octane.browser.presentation.screens
 
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Clear
-import androidx.compose.material.icons.filled.Search
-import androidx.compose.material.icons.filled.StarBorder
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextField
-import androidx.compose.material3.TextFieldDefaults
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.unit.dp
+import com.octane.browser.design.*
 import com.octane.browser.presentation.components.BookmarkItem
 import com.octane.browser.presentation.components.EmptyState
 import com.octane.browser.presentation.viewmodels.BookmarkViewModel
 import org.koin.androidx.compose.koinViewModel
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookmarksScreen(
     onBack: () -> Unit,
@@ -44,98 +33,220 @@ fun BookmarksScreen(
 
     var showSearchBar by remember { mutableStateOf(false) }
 
-    Scaffold(
-        topBar = {
-            if (showSearchBar) {
-                SearchBar(
-                    query = searchQuery,
-                    onQueryChange = { bookmarkViewModel.updateSearchQuery(it) },
-                    onClose = {
-                        bookmarkViewModel.updateSearchQuery("")
-                        showSearchBar = false
-                    }
+    // FLOATING DESIGN: Box with background + floating elements
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(BrowserColors.BrowserColorPrimaryBackground)
+    ) {
+        // Content Area
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .statusBarsPadding()
+                .padding(top = 72.dp) // Space for floating top bar
+        ) {
+            if (filteredBookmarks.isEmpty()) {
+                EmptyState(
+                    icon = Icons.Rounded.StarBorder,
+                    title = if (searchQuery.isEmpty()) "No Bookmarks" else "No Results",
+                    message = if (searchQuery.isEmpty())
+                        "Tap the star icon in the browser to bookmark pages"
+                    else
+                        "No bookmarks match your search"
                 )
             } else {
-                TopAppBar(
-                    title = { Text("Bookmarks") },
-                    navigationIcon = {
-                        IconButton(onClick = onBack) {
-                            Icon(Icons.Default.ArrowBack, "Back")
-                        }
-                    },
-                    actions = {
-                        IconButton(onClick = { showSearchBar = true }) {
-                            Icon(Icons.Default.Search, "Search")
-                        }
+                LazyColumn(
+                    contentPadding = PaddingValues(
+                        horizontal = BrowserDimens.BrowserPaddingScreenEdge
+                    ),
+                    verticalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingUnit),
+                    modifier = Modifier.fillMaxSize()
+                ) {
+                    items(filteredBookmarks, key = { it.id }) { bookmark ->
+                        BookmarkItem(
+                            bookmark = bookmark,
+                            onClick = {
+                                onOpenUrl(bookmark.url)
+                            },
+                            onDelete = {
+                                bookmarkViewModel.removeBookmark(bookmark.id)
+                            }
+                        )
                     }
-                )
+                }
             }
         }
-    ) { paddingValues ->
-        if (filteredBookmarks.isEmpty()) {
-            EmptyState(
-                icon = Icons.Default.StarBorder,
-                title = if (searchQuery.isEmpty()) "No Bookmarks" else "No Results",
-                message = if (searchQuery.isEmpty())
-                    "Tap the star icon in the browser to bookmark pages"
-                else
-                    "No bookmarks match your search"
+
+        // FLOATING TOP BAR (Rounded Pill)
+        if (showSearchBar) {
+            BookmarkSearchBar(
+                query = searchQuery,
+                onQueryChange = { bookmarkViewModel.updateSearchQuery(it) },
+                onClose = {
+                    bookmarkViewModel.updateSearchQuery("")
+                    showSearchBar = false
+                },
+                modifier = Modifier
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(
+                        top = BrowserDimens.BrowserSpacingMedium,
+                        start = BrowserDimens.BrowserPaddingScreenEdge,
+                        end = BrowserDimens.BrowserPaddingScreenEdge
+                    )
             )
         } else {
-            LazyColumn(
-                contentPadding = paddingValues,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            BookmarkTopBar(
+                onBack = onBack,
+                onSearch = { showSearchBar = true },
                 modifier = Modifier
-                    .fillMaxSize()
-                    .padding(horizontal = 16.dp)
-            ) {
-                items(filteredBookmarks, key = { it.id }) { bookmark ->
-                    BookmarkItem(
-                        bookmark = bookmark,
-                        onClick = {
-                            onOpenUrl(bookmark.url)
-                        },
-                        onDelete = {
-                            bookmarkViewModel.removeBookmark(bookmark.id)
-                        }
+                    .align(Alignment.TopCenter)
+                    .statusBarsPadding()
+                    .padding(
+                        top = BrowserDimens.BrowserSpacingMedium,
+                        start = BrowserDimens.BrowserPaddingScreenEdge,
+                        end = BrowserDimens.BrowserPaddingScreenEdge
                     )
-                }
+            )
+        }
+    }
+}
+
+@Composable
+private fun BookmarkTopBar(
+    onBack: () -> Unit,
+    onSearch: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        shadowElevation = BrowserDimens.BrowserElevationMedium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = BrowserDimens.BrowserSpacingMedium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Back Button
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    tint = BrowserColors.BrowserColorPrimaryText
+                )
+            }
+
+            // Title
+            Text(
+                text = "Bookmarks",
+                style = BrowserTypography.BrowserFontHeadlineSmall,
+                color = BrowserColors.BrowserColorPrimaryText
+            )
+
+            // Search Button
+            IconButton(
+                onClick = onSearch,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        BrowserColors.BrowserColorPrimarySurface.copy(alpha = 0.9f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Rounded.Search,
+                    contentDescription = "Search",
+                    tint = BrowserColors.BrowserColorPrimaryText
+                )
             }
         }
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
-private fun SearchBar(
+private fun BookmarkSearchBar(
     query: String,
     onQueryChange: (String) -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    TopAppBar(
-        title = {
-            TextField(
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+        color = BrowserColors.BrowserColorPrimarySurface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
+        shadowElevation = BrowserDimens.BrowserElevationMedium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = BrowserDimens.BrowserSpacingMedium),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Back Button
+            IconButton(
+                onClick = onClose,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Icon(
+                    Icons.Rounded.ArrowBack,
+                    contentDescription = "Close Search",
+                    tint = BrowserColors.BrowserColorPrimaryText
+                )
+            }
+
+            Spacer(modifier = Modifier.width(BrowserDimens.BrowserSpacingSmall))
+
+            // Search TextField
+            BasicTextField(
                 value = query,
                 onValueChange = onQueryChange,
-                placeholder = { Text("Search bookmarks...") },
+                modifier = Modifier.weight(1f),
+                textStyle = BrowserTypography.BrowserFontBodyMedium.copy(
+                    color = BrowserColors.BrowserColorPrimaryText
+                ),
                 singleLine = true,
-                colors = TextFieldDefaults.colors(
-                    focusedContainerColor = MaterialTheme.colorScheme.surface,
-                    unfocusedContainerColor = MaterialTheme.colorScheme.surface
-                )
+                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
+                decorationBox = { innerTextField ->
+                    if (query.isEmpty()) {
+                        Text(
+                            "Search bookmarks...",
+                            style = BrowserTypography.BrowserFontBodyMedium,
+                            color = BrowserColors.BrowserColorSecondaryText
+                        )
+                    }
+                    innerTextField()
+                }
             )
-        },
-        navigationIcon = {
-            IconButton(onClick = onClose) {
-                Icon(Icons.Default.ArrowBack, "Back")
-            }
-        },
-        actions = {
+
+            // Clear Button
             if (query.isNotEmpty()) {
-                IconButton(onClick = { onQueryChange("") }) {
-                    Icon(Icons.Default.Clear, "Clear")
+                IconButton(
+                    onClick = { onQueryChange("") },
+                    modifier = Modifier.size(40.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.Close,
+                        contentDescription = "Clear",
+                        modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
+                        tint = BrowserColors.BrowserColorSecondaryText
+                    )
                 }
             }
         }
-    )
+    }
 }
