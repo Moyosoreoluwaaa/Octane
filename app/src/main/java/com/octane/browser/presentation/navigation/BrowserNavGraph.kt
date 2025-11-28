@@ -1,0 +1,109 @@
+package com.octane.browser.presentation.navigation
+
+import androidx.compose.runtime.Composable
+import androidx.compose.ui.Modifier
+import androidx.navigation.NavHostController
+import androidx.navigation.compose.NavHost
+import androidx.navigation.compose.composable
+import com.octane.browser.presentation.screens.*
+import com.octane.browser.presentation.viewmodels.BrowserViewModel
+import org.koin.androidx.compose.koinViewModel
+
+@Composable
+fun BrowserNavGraph(
+    navController: NavHostController,
+    modifier: Modifier = Modifier
+) {
+    // Get shared BrowserViewModel scoped to Activity
+    val browserViewModel: BrowserViewModel = koinViewModel()
+
+    NavHost(
+        navController = navController,
+        startDestination = BrowserRoute,
+        modifier = modifier
+    ) {
+        // Main Browser Screen
+        composable<BrowserRoute> {
+            BrowserScreen(
+                onOpenTabManager = {
+                    navController.navigate(TabManagerRoute)
+                },
+                onOpenBookmarks = {
+                    navController.navigate(BookmarksRoute)
+                },
+                onOpenHistory = {
+                    navController.navigate(HistoryRoute)
+                },
+                onOpenSettings = {
+                    navController.navigate(SettingsRoute)
+                },
+                browserViewModel = browserViewModel // Pass shared ViewModel
+            )
+        }
+
+        // Tab Manager Screen
+        composable<TabManagerRoute> {
+            TabManagerScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                browserViewModel = browserViewModel // Share ViewModel
+            )
+        }
+
+        // Bookmarks Screen
+        composable<BookmarksRoute> {
+            BookmarksScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onOpenUrl = { url ->
+                    // Navigate back and load URL
+                    navController.popBackStack()
+                    browserViewModel.navigateToUrl(url)
+                }
+            )
+        }
+
+        // History Screen
+        composable<HistoryRoute> {
+            HistoryScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+                onOpenUrl = { url ->
+                    navController.popBackStack()
+                    browserViewModel.navigateToUrl(url)
+                }
+            )
+        }
+
+        // Settings Screen
+        composable<SettingsRoute> {
+            SettingsScreen(
+                onBack = {
+                    navController.popBackStack()
+                },
+//                onOpenConnections = {
+//                    navController.navigate(ConnectionsRoute)
+//                }
+            )
+        }
+
+        // Connections Screen
+        composable<ConnectionsRoute> {
+            ConnectionsScreen(
+                onBack = {
+                    navController.popBackStack()
+                }
+            )
+        }
+    }
+}
+
+
+// ============================================================================
+// BROWSER ENTRY POINT (For MainActivity)
+// ============================================================================
+
+// presentation/BrowserApp.kt

@@ -6,8 +6,15 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.USE_BIOMETRIC" />
 
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"
+        android:maxSdkVersion="28" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"
+        android:maxSdkVersion="32" />
+
     <application
-        android:name=".wallet.OctaneApplication"
+        android:hardwareAccelerated="true"
+        android:usesCleartextTraffic="false"
+        android:name=".browser.OctaneBrowserApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -18,16 +25,42 @@
         android:theme="@style/Theme.Octane"
         tools:targetApi="31">
         <activity
-            android:name=".wallet.MainActivity"
+            android:hardwareAccelerated="true"
+            android:name=".browser.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.Octane">
-            <intent-filter>
+            android:theme="@style/Theme.Octane"
+            android:configChanges="orientation|screenSize|keyboardHidden">
+        <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
+            <intent-filter android:autoVerify="true">
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- Replace with your actual domain -->
+                <data android:scheme="https"
+                    android:host="octane.app" />
+            </intent-filter>
+
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+
+                <!-- WalletConnect deep links -->
+                <data android:scheme="wc" />
+
+                <!-- Custom Octane scheme for dApp integration -->
+                <data android:scheme="octane" />
+            </intent-filter>
         </activity>
+
+        <meta-data
+            android:name="android.webkit.WebView.MetricsOptOut"
+            android:value="true" />
     </application>
 
 </manifest>
