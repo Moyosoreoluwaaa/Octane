@@ -1,22 +1,45 @@
 package com.octane.browser.presentation.screens
 
 import androidx.activity.compose.BackHandler
-import androidx.compose.animation.*
-import androidx.compose.animation.core.*
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Warning
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import androidx.navigation.NavController
 import com.octane.browser.design.BrowserColors
 import com.octane.browser.design.BrowserDimens
-import com.octane.browser.presentation.components.AddressBar
+import com.octane.browser.presentation.components.BrowserAddressBar
 import com.octane.browser.presentation.components.BrowserMenu
 import com.octane.browser.presentation.components.NavigationControls
+import com.octane.browser.presentation.navigation.HomeRoute
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import com.octane.browser.webview.WebViewContainer
 import kotlinx.coroutines.delay
@@ -28,7 +51,8 @@ fun BrowserScreen(
     onOpenBookmarks: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
-    browserViewModel: BrowserViewModel = koinViewModel()
+    browserViewModel: BrowserViewModel,
+    navController: NavController
 ) {
     val webViewState by browserViewModel.webViewState.collectAsState()
     val isBookmarked by browserViewModel.isBookmarked.collectAsState()
@@ -49,8 +73,18 @@ fun BrowserScreen(
         }
     }
 
-    BackHandler {
-        browserViewModel.handleBackPress()
+    BackHandler(enabled = true) {
+        if (showMenu) {
+            showMenu = false
+        } else if (webViewState.canGoBack) {
+            browserViewModel.goBack()
+        } else {
+            // ✅ Final destination when browser history is exhausted
+            navController.navigate(HomeRoute) {
+                // Pop the current BrowserRoute off the stack
+                popUpTo<HomeRoute> { inclusive = true }
+            }
+        }
     }
 
     LaunchedEffect(Unit) {
@@ -101,7 +135,7 @@ fun BrowserScreen(
             ) + fadeOut(animationSpec = tween(300)),
             modifier = Modifier.align(Alignment.TopCenter)
         ) {
-            AddressBar(
+            BrowserAddressBar(
                 webViewState = webViewState,
                 isBookmarked = isBookmarked,
                 isDesktopMode = isDesktopMode,

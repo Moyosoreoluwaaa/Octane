@@ -48,7 +48,7 @@ fun SettingsScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 35.dp)
+                .padding(top = 72.dp)
                 .verticalScroll(rememberScrollState())
         ) {
             // NEW: Appearance Section

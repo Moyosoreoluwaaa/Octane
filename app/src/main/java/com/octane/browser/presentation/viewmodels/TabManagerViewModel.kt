@@ -43,7 +43,8 @@ class TabManagerViewModel(
 
     fun createNewTab() {
         viewModelScope.launch {
-            createNewTabUseCase(url = "about:blank", makeActive = true)
+            // Create a tab with an empty URL to signal it's a fresh, unused tab
+            createNewTabUseCase(url = "", makeActive = true)
         }
     }
 

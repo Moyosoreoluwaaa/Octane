@@ -13,6 +13,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.octane.browser.design.BrowserDimens
@@ -79,13 +80,22 @@ fun NavigationControls(
                     .size(48.dp)
                     .clip(CircleShape)
                     .background(MaterialTheme.colorScheme.primary)
-                    .clickable { onHome() },
+                    .clickable { onHome() }
+                    .background(
+                        if (webViewState.url == "about:home") // Highlight if already on home
+                            MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                        else
+                            Color.Transparent
+                    ),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Rounded.Home,
                     contentDescription = "Home",
-                    tint = MaterialTheme.colorScheme.onPrimary,
+                    tint = if (webViewState.url == "about:home")
+                        MaterialTheme.colorScheme.onPrimary // Highlighted color
+                    else
+                        MaterialTheme.colorScheme.onSurface, // Default color
                     modifier = Modifier.size(24.dp)
                 )
             }

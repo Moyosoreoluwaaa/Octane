@@ -3,18 +3,43 @@ package com.octane.browser.presentation.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.offset
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.automirrored.rounded.ArrowBack
+import androidx.compose.material.icons.automirrored.rounded.ViewList
+import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.Close
+import androidx.compose.material.icons.rounded.GridView
+import androidx.compose.material.icons.rounded.Public
+import androidx.compose.material.icons.rounded.Tab
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -23,7 +48,9 @@ import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.zIndex
 import com.octane.browser.design.BrowserDimens
 import com.octane.browser.domain.models.BrowserTab
 import com.octane.browser.presentation.components.EmptyState
@@ -34,11 +61,20 @@ import org.koin.androidx.compose.koinViewModel
 @Composable
 fun TabManagerScreen(
     onBack: () -> Unit,
+    onNewTab: () -> Unit,
     browserViewModel: BrowserViewModel = koinViewModel(),
     tabManagerViewModel: TabManagerViewModel = koinViewModel()
 ) {
+
     val tabs by browserViewModel.tabs.collectAsState()
     val isGridLayout by tabManagerViewModel.isGridLayout.collectAsState()
+    val onAddTabClick = {
+        // 1. Create the new tab (calls TabManagerViewModel)
+        tabManagerViewModel.createNewTab()
+
+        // 2. Navigate away to the Home Screen
+        onNewTab() // This triggers navigation to HomeRoute via BrowserNavGraph
+    }
 
     Box(
         modifier = Modifier
@@ -78,21 +114,34 @@ fun TabManagerScreen(
                         }
                     }
                 } else {
-                    LazyColumn(
-                        contentPadding = PaddingValues(
-                            horizontal = BrowserDimens.BrowserPaddingScreenEdge,
-                            vertical = 16.dp
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(tabs, key = { it.id }) { tab ->
-                            // ✅ Uses original aesthetic (List Height 160.dp)
-                            TabCardCommon(
-                                tab = tab,
-                                isGrid = false,
-                                onClick = { browserViewModel.switchTab(tab.id); onBack() },
-                                onClose = { browserViewModel.closeTab(tab.id) }
-                            )
+                    if (isGridLayout) {
+                        // ... (LazyVerticalGrid - UNCHANGED) ...
+                    } else {
+                        // ✅ MODIFIED: Use itemsIndexed for Z-Index
+                        LazyColumn(
+                            contentPadding = PaddingValues(
+                                horizontal = BrowserDimens.BrowserPaddingScreenEdge,
+                                vertical = 16.dp
+                            ),
+                            verticalArrangement = Arrangement.spacedBy(12.dp)
+                        ) {
+                            itemsIndexed(tabs, key = { _, tab -> tab.id }) { index, tab ->
+                                // Calculate Z-Index: Higher index means lower in the list,
+                                // but we want it to look "under" the previous one, so we reverse it.
+                                val zIndex = (tabs.size - index).toFloat()
+
+                                // Calculate Offset: Offset subsequent cards slightly to show the stack
+                                val offset = if (index > 0) 10.dp else 0.dp
+
+                                TabCardCommon(
+                                    tab = tab,
+                                    isGrid = false,
+                                    zIndex = zIndex, // ✅ PASS Z-INDEX
+                                    horizontalOffset = offset, // ✅ PASS OFFSET
+                                    onClick = { browserViewModel.switchTab(tab.id); onBack() },
+                                    onClose = { browserViewModel.closeTab(tab.id) }
+                                )
+                            }
                         }
                     }
                 }
@@ -105,7 +154,7 @@ fun TabManagerScreen(
             isGrid = isGridLayout,
             onBack = onBack,
             onToggleLayout = { tabManagerViewModel.toggleLayout() },
-            onNewTab = { browserViewModel.createNewTab() },
+            onNewTab = onAddTabClick,
             modifier = Modifier
                 .align(Alignment.TopCenter)
                 .padding(
@@ -118,21 +167,27 @@ fun TabManagerScreen(
 }
 
 /**
- * ✅ UNIFIED DESIGN SYSTEM
- * This component handles both List and Grid layouts using your original
- * "Background Image + Gradient Overlay + Text Inside" style.
+ * Updated to accept Z-Index and Offset for stacking effect.
  */
 @Composable
 private fun TabCardCommon(
     tab: BrowserTab,
     isGrid: Boolean,
     onClick: () -> Unit,
-    onClose: () -> Unit
+    onClose: () -> Unit,
+    zIndex: Float = 0f, // Default to 0 for Grid/Safety
+    horizontalOffset: Dp = 0.dp // Default to 0 for Grid/Safety
 ) {
     Surface(
         modifier = Modifier
             .fillMaxWidth()
-            // List gets fixed height (160.dp from original), Grid gets Aspect Ratio
+            // Apply Z-Index and Offset only in List mode
+            .then(
+                if (!isGrid) Modifier
+                    .offset(x = horizontalOffset)
+                    .zIndex(zIndex) else Modifier
+            )
+            // List gets fixed height, Grid gets Aspect Ratio
             .then(if (isGrid) Modifier.aspectRatio(0.7f) else Modifier.height(160.dp)),
         shape = RoundedCornerShape(16.dp),
         color = if (tab.isActive)
@@ -311,7 +366,7 @@ private fun TabManagerTopBar(
                     )
             ) {
                 Icon(
-                    Icons.Rounded.ArrowBack,
+                    Icons.AutoMirrored.Rounded.ArrowBack,
                     contentDescription = "Back",
                     tint = MaterialTheme.colorScheme.onSurface
                 )
@@ -327,7 +382,7 @@ private fun TabManagerTopBar(
                 // Layout Toggle
                 IconButton(onClick = onToggleLayout) {
                     Icon(
-                        imageVector = if (isGrid) Icons.Rounded.ViewList else Icons.Rounded.GridView,
+                        imageVector = if (isGrid) Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView,
                         contentDescription = "Toggle Layout",
                         tint = MaterialTheme.colorScheme.onSurface
                     )

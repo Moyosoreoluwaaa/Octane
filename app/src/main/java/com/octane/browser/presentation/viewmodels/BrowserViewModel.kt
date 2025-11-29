@@ -73,12 +73,15 @@ class BrowserViewModel(
     // ═══════════════════════════════════════════════════════════
 
     init {
+        // ✅ STOP CREATING INITIAL TAB: Browser starts with 0 or restored tabs.
         viewModelScope.launch {
-            val activeTab = getActiveTabUseCase()
-            if (activeTab == null) {
-                createNewTab()
+            val tabsList = tabRepository.getAllTabs().first()
+            if (tabsList.isEmpty()) {
+                Timber.d("Starting on Home Screen.")
             } else {
-                loadTab(activeTab)
+                if (tabsList.none { it.isActive }) {
+                    switchTabUseCase(tabsList.first().id)
+                }
             }
         }
     }
@@ -129,28 +132,21 @@ class BrowserViewModel(
     // NAVIGATION
     // ═══════════════════════════════════════════════════════════
 
-    fun navigateToUrl(input: String) {
+    /**
+     * Handles navigation requested by URL input (e.g., from Home Screen).
+     * Decides whether to load in an existing active tab or create a new one.
+     */
+    fun navigateToUrl(url: String) {
         viewModelScope.launch {
-            // Hide home screen when navigating
-            _showHomeScreen.value = false
+            val currentTab = tabs.value.find { it.isActive }
 
-            val result = navigateToUrlUseCase(
-                tabId = getCurrentTabId(),
-                input = input,
-                currentTitle = _webViewState.value.title
-            )
-
-            when (result) {
-                is NavigateToUrlUseCase.NavigationResult.Success -> {
-                    // Add to navigation history
-                    _navigationHistory.value = _navigationHistory.value + result.url
-
-                    _navigationEvent.emit(NavigationEvent.LoadUrl(result.url))
-                    Timber.d("🌐 Navigating to: ${result.url}")
-                }
-                is NavigateToUrlUseCase.NavigationResult.Error -> {
-                    _navigationEvent.emit(NavigationEvent.ShowError(result.message))
-                }
+            if (currentTab == null) {
+                // Scenario 1: No active tab (First launch, or all tabs closed).
+                // Create a NEW tab and load the URL into it.
+                createNewTabUseCase(url = url, makeActive = true)
+            } else {
+                // Scenario 2: Active tab exists. Load the URL into the active tab.
+                navigateToUrlUseCase(currentTab.id, url)
             }
         }
     }
@@ -207,12 +203,14 @@ class BrowserViewModel(
     // TAB MANAGEMENT
     // ═══════════════════════════════════════════════════════════
 
+    /**
+     * Creates a new blank tab.
+     * Called from TabManagerScreen's add button.
+     */
     fun createNewTab() {
         viewModelScope.launch {
-            val tab = createNewTabUseCase()
-            loadTab(tab)
-            _showHomeScreen.value = true
-            Timber.d("➕ Created new tab: ${tab.id}")
+            // Create a tab with an empty URL to signal it's a fresh, unused tab
+            createNewTabUseCase(url = "", makeActive = true)
         }
     }
 

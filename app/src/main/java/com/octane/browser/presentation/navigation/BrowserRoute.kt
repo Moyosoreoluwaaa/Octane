@@ -6,6 +6,9 @@ import kotlinx.serialization.Serializable
 object BrowserRoute
 
 @Serializable
+object HomeRoute
+
+@Serializable
 object TabManagerRoute
 
 @Serializable
