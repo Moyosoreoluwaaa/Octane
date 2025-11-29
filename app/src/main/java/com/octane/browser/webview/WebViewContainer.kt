@@ -1,5 +1,6 @@
 package com.octane.browser.webview
 
+import android.os.Build
 import android.os.Bundle
 import android.webkit.WebView
 import androidx.compose.foundation.layout.Box
@@ -15,31 +16,38 @@ import org.koin.compose.koinInject
 import timber.log.Timber
 
 /**
- * ✅ ADVANCED VERSION: Preserves WebView state across configuration changes
- * and handles navigation events properly with SharedFlow
+ * ✅ UPDATED: Now exposes WebView reference for diagnostics
  */
 @Composable
 fun WebViewContainer(
     modifier: Modifier = Modifier,
     browserViewModel: BrowserViewModel = koinInject(),
     webViewManager: WebViewManager = koinInject(),
-    walletBridge: WalletBridge = koinInject()
+    walletBridge: WalletBridge = koinInject(),
+    onWebViewCreated: ((WebView) -> Unit)? = null // ✅ NEW callback
 ) {
     // ✅ Preserve WebView state across config changes (rotation, etc.)
     val savedBundle: Bundle = rememberSaveable { bundleOf() }
 
     // ✅ Remember WebView instance to avoid recreation
     val webView = remember {
-        webViewManager.createWebView(browserViewModel).also { view ->
-            walletBridge.setWebView(view)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            webViewManager.createWebView(browserViewModel).also { view ->
+                walletBridge.setWebView(view)
 
-            // Restore previous state if available
-            if (!savedBundle.isEmpty) {
-                view.restoreState(savedBundle)
-                Timber.d("📦 Restored WebView state")
+                // Restore previous state if available
+                if (!savedBundle.isEmpty) {
+                    view.restoreState(savedBundle)
+                    Timber.d("📦 Restored WebView state")
+                }
+
+                // ✅ NEW: Notify parent that WebView is created
+                onWebViewCreated?.invoke(view)
+
+                Timber.d("✅ WebView created")
             }
-
-            Timber.d("✅ WebView created")
+        } else {
+            TODO("VERSION.SDK_INT < O")
         }
     }
 

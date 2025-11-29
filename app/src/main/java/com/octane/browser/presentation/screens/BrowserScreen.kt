@@ -1,24 +1,43 @@
 package com.octane.browser.presentation.screens
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.navigationBarsPadding
+import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
+import androidx.compose.material.icons.rounded.Warning
+import androidx.compose.material3.AlertDialog
+import androidx.compose.material3.Button
+import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
+import com.octane.BuildConfig
 import com.octane.browser.design.BrowserColors
 import com.octane.browser.design.BrowserDimens
 import com.octane.browser.presentation.components.AddressBar
 import com.octane.browser.presentation.components.BrowserMenu
+import com.octane.browser.presentation.components.DiagnosticOverlay
 import com.octane.browser.presentation.components.NavigationControls
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import com.octane.browser.webview.WebViewContainer
+import com.octane.browser.webview.WebViewManager
 import org.koin.androidx.compose.koinViewModel
+import org.koin.compose.koinInject
 
 @Composable
 fun BrowserScreen(
@@ -26,7 +45,8 @@ fun BrowserScreen(
     onOpenBookmarks: () -> Unit,
     onOpenHistory: () -> Unit,
     onOpenSettings: () -> Unit,
-    browserViewModel: BrowserViewModel = koinViewModel()
+    browserViewModel: BrowserViewModel = koinViewModel(),
+    webViewManager: WebViewManager = koinInject()
 ) {
     val webViewState by browserViewModel.webViewState.collectAsState()
     val isBookmarked by browserViewModel.isBookmarked.collectAsState()
@@ -35,6 +55,9 @@ fun BrowserScreen(
 
     var showMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
+
+    // ✅ NEW: Store WebView reference for diagnostics
+    var currentWebView by remember { mutableStateOf<android.webkit.WebView?>(null) }
 
     // Listen for navigation events
     LaunchedEffect(Unit) {
@@ -54,13 +77,25 @@ fun BrowserScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background) // ✅ CHANGED
+            .background(MaterialTheme.colorScheme.background)
     ) {
         // Full Screen WebView Content
         WebViewContainer(
             browserViewModel = browserViewModel,
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier.fillMaxSize(),
+            onWebViewCreated = { webView ->
+                // ✅ NEW: Store WebView reference
+                currentWebView = webView
+            }
         )
+
+        // ✅ NEW: Diagnostic overlay (DEBUG only)
+        if (BuildConfig.DEBUG) {
+            DiagnosticOverlay(
+                webView = currentWebView,
+                isDebug = true
+            )
+        }
 
         // Snackbar at bottom
         SnackbarHost(
@@ -145,7 +180,7 @@ fun BrowserScreen(
                 Icon(
                     Icons.Rounded.Warning,
                     contentDescription = null,
-                    tint = BrowserColors.BrowserColorWarning // Keep warning color as-is
+                    tint = BrowserColors.BrowserColorWarning
                 )
             },
             title = { Text("Security Warning") },
@@ -154,7 +189,7 @@ fun BrowserScreen(
                 Button(
                     onClick = { browserViewModel.dismissPhishingWarning() },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary // ✅ CHANGED
+                        containerColor = MaterialTheme.colorScheme.primary
                     )
                 ) {
                     Text("Go Back")

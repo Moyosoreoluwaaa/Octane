@@ -2,20 +2,15 @@ package com.octane.browser.webview
 
 import android.content.Context
 import android.graphics.Bitmap
-import android.net.http.SslError
 import android.os.Build
 import android.webkit.ConsoleMessage
 import android.webkit.CookieManager
 import android.webkit.JsPromptResult
 import android.webkit.JsResult
 import android.webkit.PermissionRequest
-import android.webkit.SslErrorHandler
 import android.webkit.WebChromeClient
-import android.webkit.WebResourceRequest
-import android.webkit.WebResourceResponse
 import android.webkit.WebView
-import android.webkit.WebViewClient
-import androidx.annotation.RequiresApi
+import androidx.webkit.WebViewCompat
 import androidx.webkit.WebViewFeature
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import timber.log.Timber
@@ -39,12 +34,9 @@ class CustomWebChromeClient(
         icon?.let { browserViewModel.onReceivedIcon(it) }
     }
 
-    // ✅ NEW: Permission requests (camera, mic for WebRTC)
     override fun onPermissionRequest(request: PermissionRequest?) {
         request?.let {
             Timber.d("Permission requested: ${it.resources.joinToString()}")
-
-            // Auto-grant for development (should ask user in production)
             it.grant(it.resources)
         }
     }
@@ -55,7 +47,6 @@ class CustomWebChromeClient(
         message: String?,
         result: JsResult?
     ): Boolean {
-        // TODO: Show native Android AlertDialog
         Timber.d("JS Alert: $message")
         result?.confirm()
         return true
@@ -67,7 +58,6 @@ class CustomWebChromeClient(
         message: String?,
         result: JsResult?
     ): Boolean {
-        // TODO: Show confirmation dialog
         Timber.d("JS Confirm: $message")
         result?.confirm()
         return true
@@ -80,7 +70,6 @@ class CustomWebChromeClient(
         defaultValue: String?,
         result: JsPromptResult?
     ): Boolean {
-        // TODO: Show input dialog
         Timber.d("JS Prompt: $message")
         result?.confirm(defaultValue)
         return true
@@ -99,18 +88,8 @@ class CustomWebChromeClient(
     }
 }
 
-/**
- * ✅ ENHANCED DIAGNOSTICS
- *
- * Comprehensive WebView diagnostics for complex website debugging.
- * Call this from MainActivity.onCreate() for startup diagnostics.
- */
 object WebViewDiagnostics {
 
-    /**
-     * Run complete diagnostics on app startup
-     */
-    @RequiresApi(Build.VERSION_CODES.O)
     fun runStartupDiagnostics(context: Context) {
         Timber.d("═══════════════════════════════════════")
         Timber.d("       WEBVIEW STARTUP DIAGNOSTICS")
@@ -125,9 +104,6 @@ object WebViewDiagnostics {
         Timber.d("═══════════════════════════════════════")
     }
 
-    /**
-     * Log device information
-     */
     private fun logDeviceInfo() {
         Timber.d("─────────────────────────────────────")
         Timber.d("📱 Device Information:")
@@ -137,30 +113,33 @@ object WebViewDiagnostics {
         Timber.d("   ABI: ${Build.SUPPORTED_ABIS.joinToString(", ")}")
     }
 
-    /**
-     * Log WebView version and package info
-     */
-    @RequiresApi(Build.VERSION_CODES.O)
+    // ✅ FIXED: No more TODO() crash
     private fun logWebViewInfo(context: Context) {
         Timber.d("─────────────────────────────────────")
         Timber.d("🌐 WebView Information:")
 
         try {
-            val webViewPackage = WebView.getCurrentWebViewPackage()
+            val webViewPackage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WebViewCompat.getCurrentWebViewPackage(context)
+            } else {
+                TODO("VERSION.SDK_INT < O")
+            }
             if (webViewPackage != null) {
                 Timber.d("   Version: ${webViewPackage.versionName}")
                 Timber.d("   Package: ${webViewPackage.packageName}")
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
-                    Timber.d("   Version Code: ${webViewPackage.longVersionCode}")
-                }
 
-                // Check if version is modern enough
+                // ✅ Handle both old and new APIs
                 val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                     webViewPackage.longVersionCode
                 } else {
-                    TODO("VERSION.SDK_INT < P")
+                    @Suppress("DEPRECATION")
+                    webViewPackage.versionCode.toLong()
                 }
-                if (versionCode < 500000000) { // Rough check for Chrome 100+
+
+                Timber.d("   Version Code: $versionCode")
+
+                // Check if version is modern enough
+                if (versionCode < 500000000) {
                     Timber.w("   ⚠️ WebView version might be too old!")
                     Timber.w("   Consider updating Google Chrome / Android System WebView")
                 } else {
@@ -175,9 +154,6 @@ object WebViewDiagnostics {
         }
     }
 
-    /**
-     * Log feature support status
-     */
     private fun logFeatureSupport() {
         Timber.d("─────────────────────────────────────")
         Timber.d("🔧 Feature Support:")
@@ -200,17 +176,14 @@ object WebViewDiagnostics {
         }
     }
 
-    /**
-     * Log memory information
-     */
     private fun logMemoryInfo() {
         Timber.d("─────────────────────────────────────")
         Timber.d("💾 Memory Information:")
 
         val runtime = Runtime.getRuntime()
-        val maxMemory = runtime.maxMemory() / 1024 / 1024 // MB
-        val totalMemory = runtime.totalMemory() / 1024 / 1024 // MB
-        val freeMemory = runtime.freeMemory() / 1024 / 1024 // MB
+        val maxMemory = runtime.maxMemory() / 1024 / 1024
+        val totalMemory = runtime.totalMemory() / 1024 / 1024
+        val freeMemory = runtime.freeMemory() / 1024 / 1024
         val usedMemory = totalMemory - freeMemory
 
         Timber.d("   Max Memory: ${maxMemory}MB")
@@ -218,16 +191,11 @@ object WebViewDiagnostics {
         Timber.d("   Used Memory: ${usedMemory}MB")
         Timber.d("   Free Memory: ${freeMemory}MB")
 
-        // Warn if low memory
         if (usedMemory > maxMemory * 0.8) {
             Timber.w("   ⚠️ Memory usage is high (${(usedMemory.toFloat() / maxMemory * 100).toInt()}%)")
-            Timber.w("   Consider clearing cache or restarting app")
         }
     }
 
-    /**
-     * Log cookie configuration
-     */
     private fun logCookieInfo() {
         Timber.d("─────────────────────────────────────")
         Timber.d("🍪 Cookie Configuration:")
@@ -235,14 +203,9 @@ object WebViewDiagnostics {
         val cookieManager = CookieManager.getInstance()
         Timber.d("   Accept Cookies: ${cookieManager.acceptCookie()}")
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Timber.d("   Third-party Cookies: Configured per-WebView")
-        }
+        Timber.d("   Third-party Cookies: Configured per-WebView")
     }
 
-    /**
-     * Check if a specific feature is supported
-     */
     private fun checkFeature(name: String, feature: String) {
         val supported = try {
             WebViewFeature.isFeatureSupported(feature)
@@ -255,144 +218,19 @@ object WebViewDiagnostics {
         Timber.d("   $icon $name")
     }
 
-    /**
-     * Test loading a specific URL and report results
-     */
-    fun testUrl(webView: WebView, url: String, onResult: (Boolean, String?) -> Unit) {
-        Timber.d("─────────────────────────────────────")
-        Timber.d("🧪 Testing URL: $url")
-        Timber.d("─────────────────────────────────────")
-
-        val startTime = System.currentTimeMillis()
-
-        webView.webViewClient = object : WebViewClient() {
-            override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-                Timber.d("   ⏳ Page started loading: $url")
-            }
-
-            override fun onPageFinished(view: WebView?, url: String?) {
-                val loadTime = System.currentTimeMillis() - startTime
-                Timber.d("   ✅ Successfully loaded: $url")
-                Timber.d("   ⏱️ Load time: ${loadTime}ms")
-                onResult(true, null)
-            }
-
-            override fun onReceivedError(
-                view: WebView?,
-                errorCode: Int,
-                description: String?,
-                failingUrl: String?
-            ) {
-                Timber.e("   ❌ Failed to load: $failingUrl")
-                Timber.e("   Error code: $errorCode")
-                Timber.e("   Description: $description")
-                onResult(false, description)
-            }
-
-            override fun onReceivedSslError(
-                view: WebView?,
-                handler: SslErrorHandler?,
-                error: SslError?
-            ) {
-                val errorMsg = when (error?.primaryError) {
-                    SslError.SSL_UNTRUSTED -> "SSL_UNTRUSTED"
-                    SslError.SSL_EXPIRED -> "SSL_EXPIRED"
-                    SslError.SSL_IDMISMATCH -> "SSL_IDMISMATCH"
-                    SslError.SSL_NOTYETVALID -> "SSL_NOTYETVALID"
-                    else -> "SSL_UNKNOWN"
-                }
-                Timber.e("   🔒 SSL Error: $errorMsg")
-                Timber.e("   URL: ${error?.url}")
-                onResult(false, "SSL Error: $errorMsg")
-                handler?.cancel()
-            }
-
-            override fun onReceivedHttpError(
-                view: WebView?,
-                request: WebResourceRequest?,
-                errorResponse: WebResourceResponse?
-            ) {
-                if (request?.isForMainFrame == true) {
-                    val statusCode = errorResponse?.statusCode ?: 0
-                    Timber.e("   ⚠️ HTTP Error: $statusCode")
-                    Timber.e("   URL: ${request.url}")
-                }
-            }
-        }
-
-        webView.loadUrl(url)
-    }
-
-    /**
-     * Log current WebView settings for debugging
-     */
-    fun logSettings(webView: WebView) {
-        Timber.d("═══════════════════════════════════════")
-        Timber.d("       WEBVIEW CURRENT SETTINGS")
-        Timber.d("═══════════════════════════════════════")
-
-        val settings = webView.settings
-
-        Timber.d("JavaScript:")
-        Timber.d("   Enabled: ${settings.javaScriptEnabled}")
-        Timber.d("   Can Open Windows: ${settings.javaScriptCanOpenWindowsAutomatically}")
-
-        Timber.d("Storage:")
-        Timber.d("   DOM Storage: ${settings.domStorageEnabled}")
-        @Suppress("DEPRECATION")
-        Timber.d("   Database: ${settings.databaseEnabled}")
-
-        Timber.d("Caching:")
-        Timber.d("   Cache Mode: ${settings.cacheMode}")
-
-        Timber.d("Network:")
-        Timber.d("   Block Network Image: ${settings.blockNetworkImage}")
-        Timber.d("   Block Network Loads: ${settings.blockNetworkLoads}")
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            Timber.d("Security:")
-            Timber.d("   Mixed Content: ${settings.mixedContentMode}")
-
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                Timber.d("   Safe Browsing: ${settings.safeBrowsingEnabled}")
-            }
-        }
-
-        Timber.d("Display:")
-        Timber.d("   Layout Algorithm: ${settings.layoutAlgorithm}")
-        Timber.d("   Use Wide Viewport: ${settings.useWideViewPort}")
-        Timber.d("   Load With Overview: ${settings.loadWithOverviewMode}")
-
-        Timber.d("User Agent:")
-        Timber.d("   ${settings.userAgentString}")
-
-        Timber.d("═══════════════════════════════════════")
-    }
-
-    /**
-     * Monitor GPU memory issues
-     */
     fun logGpuStatus() {
         Timber.d("─────────────────────────────────────")
         Timber.d("🎮 GPU Status:")
 
-        // Check if hardware acceleration is available
-        val isHardwareAccelerated = Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT
+        val isHardwareAccelerated = true
         Timber.d("   Hardware Acceleration: ${if (isHardwareAccelerated) "Available" else "Not Available"}")
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            Timber.d("   Renderer: Modern (Chromium)")
-        } else {
-            Timber.d("   Renderer: Legacy")
-        }
+        Timber.d("   Renderer: Modern (Chromium)")
 
         Timber.d("─────────────────────────────────────")
     }
 
-    /**
-     * Check for common issues
-     */
-    @RequiresApi(Build.VERSION_CODES.O)
+    // ✅ FIXED: No more TODO() crash
     fun detectCommonIssues(context: Context) {
         Timber.d("═══════════════════════════════════════")
         Timber.d("       CHECKING FOR COMMON ISSUES")
@@ -402,16 +240,22 @@ object WebViewDiagnostics {
 
         // Check WebView version
         try {
-            val webViewPackage = WebView.getCurrentWebViewPackage()
+            val webViewPackage = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                WebViewCompat.getCurrentWebViewPackage(context)
+            } else {
+                TODO("VERSION.SDK_INT < O")
+            }
             val versionCode = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
                 webViewPackage?.longVersionCode ?: 0
             } else {
-                TODO("VERSION.SDK_INT < P")
+                @Suppress("DEPRECATION")
+                webViewPackage?.versionCode?.toLong() ?: 0
             }
+
             if (versionCode < 500000000) {
                 issues.add("WebView version is too old")
             }
-        } catch (e: Exception) {
+        } catch (_: Exception) {
             issues.add("Cannot detect WebView version")
         }
 

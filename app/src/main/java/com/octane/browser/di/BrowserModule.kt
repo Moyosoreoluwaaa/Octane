@@ -56,7 +56,7 @@ val browserModule = module {
             BrowserDatabase::class.java,
             "octane_browser.db"
         )
-            .fallbackToDestructiveMigration() // For development
+            .fallbackToDestructiveMigration(false) // For development
             .build()
             .also { Timber.d("✅ Database initialized") }
     }

@@ -28,7 +28,7 @@ class NavigateToUrlUseCase(
         }
         
         // Update tab
-        updateTabContentUseCase(tabId, finalUrl, currentTitle)
+        updateTabContentUseCase(tabId, finalUrl, currentTitle, favicon = null)
         
         // Record visit (will be updated again with proper title when page loads)
         recordVisitUseCase(finalUrl, currentTitle.ifEmpty { input })

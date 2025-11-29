@@ -1,24 +1,45 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ✅ FIX 17: Network Security Configuration for Android 9+ -->
 <network-security-config>
-    <!-- ✅ Allow all subdomains for development/testing -->
-    <!-- TODO: In production, list only specific trusted domains -->
-    <base-config cleartextTrafficPermitted="false">
+    <!-- ✅ Base config: Allow cleartext globally (for now) -->
+    <base-config cleartextTrafficPermitted="true">
         <trust-anchors>
-            <!-- Trust system certificates (default) -->
             <certificates src="system" />
-
-            <!-- ✅ OPTIONAL: Trust user-installed certificates (for debugging with proxy tools) -->
-            <!-- Remove in production -->
+            <!-- DEBUG ONLY: Remove in production -->
             <certificates src="user" />
         </trust-anchors>
     </base-config>
 
-    <!-- ⚠️ DEBUG ONLY: Allow cleartext for localhost testing -->
-    <!-- REMOVE THIS IN PRODUCTION -->
+    <!-- ✅ Specific domains with full trust -->
     <domain-config cleartextTrafficPermitted="true">
+        <!-- Local testing -->
         <domain includeSubdomains="true">localhost</domain>
         <domain includeSubdomains="true">127.0.0.1</domain>
-        <domain includeSubdomains="true">10.0.2.2</domain> <!-- Android emulator host -->
+        <domain includeSubdomains="true">10.0.2.2</domain>
+
+        <!-- Analytics (might use HTTP redirects) -->
+        <domain includeSubdomains="true">google-analytics.com</domain>
+        <domain includeSubdomains="true">googletagmanager.com</domain>
+
+        <!-- RPC endpoints (some use HTTP) -->
+        <domain includeSubdomains="true">rpc.ankr.com</domain>
+        <domain includeSubdomains="true">rpcpool.com</domain>
+        <domain includeSubdomains="true">mainnet-beta.solana.com</domain>
+        <domain includeSubdomains="true">solana.com</domain>
+        <domain includeSubdomains="true">projectserum.com</domain>
+        <domain includeSubdomains="true">quicknode.pro</domain>
+        <domain includeSubdomains="true">helius-rpc.com</domain>
+    </domain-config>
+
+    <!-- ✅ DeFi platforms with relaxed SSL/CORS -->
+    <domain-config cleartextTrafficPermitted="true">
+        <domain includeSubdomains="true">raydium.io</domain>
+        <domain includeSubdomains="true">drift.trade</domain>
+        <domain includeSubdomains="true">jupiter.ag</domain>
+        <domain includeSubdomains="true">marinade.finance</domain>
+        <domain includeSubdomains="true">orca.so</domain>
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
     </domain-config>
 </network-security-config>

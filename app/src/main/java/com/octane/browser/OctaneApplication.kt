@@ -10,13 +10,6 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.octane.BuildConfig
 import com.octane.browser.di.browserModule
-import com.octane.wallet.core.di.coreModule
-import com.octane.wallet.core.di.networkModule
-import com.octane.wallet.data.di.dataModule
-import com.octane.wallet.data.di.preferencesModule
-import com.octane.wallet.data.di.repositoryModule
-import com.octane.wallet.domain.di.domainModule
-import com.octane.wallet.presentation.di.viewModelModule
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
 import org.koin.android.ext.koin.androidContext
