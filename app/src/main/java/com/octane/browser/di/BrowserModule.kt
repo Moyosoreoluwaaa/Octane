@@ -227,19 +227,8 @@ val browserModule = module {
             context = androidContext(),
             bridgeManager = get(),
             featureManager = get()
-        ).also {
-            Timber.d("✅ WebViewManager initialized")
-
-            // Log WebView availability
-            if (WebViewManager.isWebViewAvailable(androidContext())) {
-                val version = WebViewManager.getWebViewVersion(androidContext())
-                Timber.d("📱 WebView version: $version")
-            } else {
-                Timber.e("❌ WebView not available!")
-            }
-        }
+        )
     }
-
 
     // ========================================
     // WALLET INTEGRATION
@@ -265,10 +254,7 @@ val browserModule = module {
             getActiveTabUseCase = get(),
             navigateToUrlUseCase = get(),
             toggleBookmarkUseCase = get(),
-            recordVisitUseCase = get(),
-            checkPhishingUseCase = get(),
             validateSslUseCase = get(),
-            bookmarkRepository = get(),
             tabRepository = get()
         )
     }
@@ -278,7 +264,8 @@ val browserModule = module {
         TabManagerViewModel(
             tabRepository = get(),
             createNewTabUseCase = get(),
-            closeTabUseCase = get()
+            closeTabUseCase = get(),
+            settingsRepository = get()
         )
     }
 

@@ -59,4 +59,12 @@ class SettingsRepositoryImpl(
     override suspend fun updateSearchEngine(url: String) {
         dataStore.updateSearchEngine(url)
     }
+
+    override fun observeTabLayout(): Flow<Boolean> {
+        return dataStore.observeTabLayout()
+    }
+
+    override suspend fun updateTabLayout(isGrid: Boolean) {
+        dataStore.updateTabLayout(isGrid)
+    }
 }

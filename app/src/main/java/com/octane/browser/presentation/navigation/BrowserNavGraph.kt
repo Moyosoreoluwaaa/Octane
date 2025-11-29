@@ -14,7 +14,6 @@ fun BrowserNavGraph(
     navController: NavHostController,
     modifier: Modifier = Modifier
 ) {
-    // Get shared BrowserViewModel scoped to Activity
     val browserViewModel: BrowserViewModel = koinViewModel()
 
     NavHost(
@@ -22,7 +21,6 @@ fun BrowserNavGraph(
         startDestination = BrowserRoute,
         modifier = modifier
     ) {
-        // Main Browser Screen
         composable<BrowserRoute> {
             BrowserScreen(
                 onOpenTabManager = {
@@ -37,35 +35,31 @@ fun BrowserNavGraph(
                 onOpenSettings = {
                     navController.navigate(SettingsRoute)
                 },
-                browserViewModel = browserViewModel // Pass shared ViewModel
+                browserViewModel = browserViewModel
             )
         }
 
-        // Tab Manager Screen
         composable<TabManagerRoute> {
             TabManagerScreen(
                 onBack = {
                     navController.popBackStack()
                 },
-                browserViewModel = browserViewModel // Share ViewModel
+                browserViewModel = browserViewModel
             )
         }
 
-        // Bookmarks Screen
         composable<BookmarksRoute> {
             BookmarksScreen(
                 onBack = {
                     navController.popBackStack()
                 },
                 onOpenUrl = { url ->
-                    // Navigate back and load URL
                     navController.popBackStack()
                     browserViewModel.navigateToUrl(url)
                 }
             )
         }
 
-        // History Screen
         composable<HistoryRoute> {
             HistoryScreen(
                 onBack = {
@@ -78,19 +72,14 @@ fun BrowserNavGraph(
             )
         }
 
-        // Settings Screen
         composable<SettingsRoute> {
             SettingsScreen(
                 onBack = {
                     navController.popBackStack()
-                },
-//                onOpenConnections = {
-//                    navController.navigate(ConnectionsRoute)
-//                }
+                }
             )
         }
 
-        // Connections Screen
         composable<ConnectionsRoute> {
             ConnectionsScreen(
                 onBack = {
@@ -100,10 +89,3 @@ fun BrowserNavGraph(
         }
     }
 }
-
-
-// ============================================================================
-// BROWSER ENTRY POINT (For MainActivity)
-// ============================================================================
-
-// presentation/BrowserApp.kt

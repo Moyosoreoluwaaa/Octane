@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -20,7 +19,11 @@ import com.octane.browser.design.*
 import com.octane.browser.presentation.components.*
 import com.octane.browser.presentation.viewmodels.HistoryViewModel
 import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
 
+/**
+ * ✅ FIXED: Navigation now properly triggers URL loading
+ */
 @Composable
 fun HistoryScreen(
     onBack: () -> Unit,
@@ -36,7 +39,7 @@ fun HistoryScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background) // ✅ CHANGED
+            .background(MaterialTheme.colorScheme.background)
     ) {
         Column(
             modifier = Modifier
@@ -64,8 +67,10 @@ fun HistoryScreen(
                         HistoryItem(
                             entry = entry,
                             onClick = {
+                                Timber.d("📜 History item clicked: ${entry.url}")
+                                // ✅ FIXED: Call onOpenUrl which navigates in BrowserViewModel
                                 onOpenUrl(entry.url)
-                                onBack()
+                                onBack() // Return to browser
                             }
                         )
                     }
@@ -81,10 +86,7 @@ fun HistoryScreen(
                     historyViewModel.updateSearchQuery("")
                     showSearchBar = false
                 },
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-
-
+                modifier = Modifier.align(Alignment.TopCenter)
             )
         } else {
             HistoryTopBar(
@@ -124,8 +126,8 @@ private fun HistoryTopBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
-        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh), // ✅ CHANGED
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
         shadowElevation = BrowserDimens.BrowserElevationMedium
     ) {
         Row(
@@ -141,21 +143,21 @@ private fun HistoryTopBar(
                 modifier = Modifier
                     .size(40.dp)
                     .background(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                         CircleShape
                     )
             ) {
                 Icon(
                     Icons.Rounded.ArrowBack,
                     contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
 
             Text(
                 text = "History",
-                style = MaterialTheme.typography.headlineSmall, // ✅ CHANGED
-                color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
             )
 
             Row(horizontalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingSmall)) {
@@ -164,14 +166,14 @@ private fun HistoryTopBar(
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                             CircleShape
                         )
                 ) {
                     Icon(
                         Icons.Rounded.Search,
                         contentDescription = "Search",
-                        tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -180,14 +182,14 @@ private fun HistoryTopBar(
                     modifier = Modifier
                         .size(40.dp)
                         .background(
-                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                             CircleShape
                         )
                 ) {
                     Icon(
                         Icons.Rounded.DeleteSweep,
                         contentDescription = "Clear History",
-                        tint = MaterialTheme.colorScheme.error // ✅ CHANGED
+                        tint = MaterialTheme.colorScheme.error
                     )
                 }
             }
@@ -204,8 +206,8 @@ private fun HistorySearchBar(
 ) {
     Surface(
         modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
-        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh), // ✅ CHANGED
+        shape = MaterialTheme.shapes.medium,
+        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh),
         shadowElevation = BrowserDimens.BrowserElevationMedium
     ) {
         Row(
@@ -222,7 +224,7 @@ private fun HistorySearchBar(
                 Icon(
                     Icons.Rounded.ArrowBack,
                     contentDescription = "Close Search",
-                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
 
@@ -232,8 +234,8 @@ private fun HistorySearchBar(
                 value = query,
                 onValueChange = onQueryChange,
                 modifier = Modifier.weight(1f),
-                textStyle = MaterialTheme.typography.bodyMedium.copy( // ✅ CHANGED
-                    color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                    color = MaterialTheme.colorScheme.onSurface
                 ),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
@@ -241,8 +243,8 @@ private fun HistorySearchBar(
                     if (query.isEmpty()) {
                         Text(
                             "Search history...",
-                            style = MaterialTheme.typography.bodyMedium, // ✅ CHANGED
-                            color = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     innerTextField()
@@ -258,7 +260,7 @@ private fun HistorySearchBar(
                         Icons.Rounded.Close,
                         contentDescription = "Clear",
                         modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }

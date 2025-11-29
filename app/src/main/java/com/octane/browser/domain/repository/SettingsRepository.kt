@@ -88,4 +88,7 @@ interface SettingsRepository {
      * @param url Search engine URL template
      */
     suspend fun updateSearchEngine(url: String)
+
+    fun observeTabLayout(): Flow<Boolean>
+    suspend fun updateTabLayout(isGrid: Boolean)
 }

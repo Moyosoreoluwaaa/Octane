@@ -3,13 +3,13 @@ package com.octane.browser.data.local.db
 import androidx.room.Database
 import androidx.room.RoomDatabase
 import com.octane.browser.data.local.db.dao.TabDao
-import com.octane.browser.data.local.db.entities.TabEntity
 import com.octane.browser.data.local.db.dao.*
 import com.octane.browser.data.local.db.entities.*
+import com.octane.browser.data.local.db.entity.BrowserTabEntity
 
 @Database(
     entities = [
-        TabEntity::class,
+        BrowserTabEntity::class,
         BookmarkEntity::class,
         HistoryEntity::class,
         ConnectionEntity::class

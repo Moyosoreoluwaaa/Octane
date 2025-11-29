@@ -26,14 +26,12 @@ class WebViewManager(
         Timber.d("═══════════════════════════════════════")
 
         return WebView(context.applicationContext).apply {
-            // ✅ CRITICAL FIX #1: Enable hardware acceleration
+            // ✅ CRITICAL: Enable hardware acceleration
             setLayerType(View.LAYER_TYPE_HARDWARE, null)
-            Timber.d("✅ Hardware acceleration: ENABLED")
 
-            // ✅ CRITICAL FIX #2: High renderer priority
+            // ✅ CRITICAL: High renderer priority for trading charts
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 setRendererPriorityPolicy(WebView.RENDERER_PRIORITY_IMPORTANT, false)
-                Timber.d("✅ Renderer priority: IMPORTANT")
             }
 
             // Configure settings
@@ -55,16 +53,10 @@ class WebViewManager(
             // Setup cookie persistence
             setupCookies(this)
 
-            // ✅ CRITICAL FIX #4: Enable remote debugging
+            // ✅ CRITICAL: Enable remote debugging
             if (BuildConfig.DEBUG) {
                 WebView.setWebContentsDebuggingEnabled(true)
-                Timber.d("✅ Remote debugging: ENABLED")
-                featureManager.logAvailableFeatures()
-                logWebViewInfo()
             }
-
-            Timber.d("WebView fully configured and ready!")
-            Timber.d("═══════════════════════════════════════")
         }
     }
 
@@ -75,24 +67,18 @@ class WebViewManager(
             javaScriptEnabled = true
             javaScriptCanOpenWindowsAutomatically = true
 
-            // ═══ Storage (IndexedDB + localStorage) ═══
+            // ═══ Storage ═══
             domStorageEnabled = true
-
-            // ✅ FIXED: Use suppression for deprecated but necessary API
             @Suppress("DEPRECATION")
             databaseEnabled = true
 
             // ═══ Caching ═══
+            // LOAD_DEFAULT is safest for DeFi apps to ensure fresh prices
             cacheMode = WebSettings.LOAD_DEFAULT
-
-            // Note: Application cache APIs removed in API 33+
-            // PWAs now use Service Workers instead
 
             // ═══ Network ═══
             blockNetworkLoads = false
             blockNetworkImage = false
-
-            // ✅ CRITICAL: Allow mixed content (HTTPS pages with HTTP resources)
             mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
 
             // ═══ Security ═══
@@ -100,21 +86,16 @@ class WebViewManager(
                 safeBrowsingEnabled = true
             }
 
-            // ✅ CRITICAL FIX #5: File access for local assets
             allowContentAccess = true
             allowFileAccess = true
-
-            // ✅ CRITICAL: Enable file access from file URLs (needed for some PWAs)
             @Suppress("DEPRECATION")
-            allowFileAccessFromFileURLs = false // Security: Keep disabled for web content
+            allowFileAccessFromFileURLs = false
             @Suppress("DEPRECATION")
-            allowUniversalAccessFromFileURLs = false // Security: Keep disabled
+            allowUniversalAccessFromFileURLs = false
 
             // ═══ Viewport ═══
             useWideViewPort = true
             loadWithOverviewMode = true
-
-            // ═══ Zoom ═══
             setSupportZoom(true)
             builtInZoomControls = true
             displayZoomControls = false
@@ -122,131 +103,52 @@ class WebViewManager(
             // ═══ Media ═══
             mediaPlaybackRequiresUserGesture = false
 
-            // ✅ CRITICAL FIX #6: Layout algorithm for modern sites
-            layoutAlgorithm = WebSettings.LayoutAlgorithm.TEXT_AUTOSIZING
+            // ═══ CRITICAL FIXES FOR BLACK SCREENS ═══
 
-            // ✅ CRITICAL FIX #7: Keep default User-Agent (don't modify)
-            // Custom UA causes CAPTCHA issues
-            Timber.d("User Agent: ${userAgentString.take(80)}...")
+            // 1. Layout Algorithm: MUST be NORMAL for React/Next.js apps.
+            // TEXT_AUTOSIZING causes 0px height bugs on "div#root"
+            layoutAlgorithm = WebSettings.LayoutAlgorithm.NORMAL
+            // 2. Offscreen Pre-Raster: DISABLED.
+            // This feature crashes WebGL contexts on many Android GPUs.
+            offscreenPreRaster = false
 
-            // ✅ CRITICAL FIX #8: Performance optimizations
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                offscreenPreRaster = true
-            }
+            // 3. User Agent: Keep default to avoid anti-bot checks,
+            // but append a tag if you need to identify your app.
+            // userAgentString = "$userAgentString Octane/1.0"
 
-            // ✅ CRITICAL FIX #9: Support multiple windows (for popups, OAuth)
+            // ═══ Modern Features ═══
             setSupportMultipleWindows(true)
-
-            // ✅ CRITICAL FIX #10: Geolocation (helps with some sites)
             setGeolocationEnabled(true)
 
-            // ✅ CRITICAL FIX #11: Force Standards Mode rendering
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                // This ensures the WebView always uses modern rendering
-                layoutAlgorithm = WebSettings.LayoutAlgorithm.TEXT_AUTOSIZING
-            }
-
-            // ✅ CRITICAL FIX #12: Enable images automatically
-            loadsImagesAutomatically = true
-
-            // ✅ CRITICAL FIX #13: Enable all plugins
-            @Suppress("DEPRECATION")
-            pluginState = WebSettings.PluginState.ON_DEMAND
-
-            // ✅ NEW: Text encoding
+            // Text encoding
             defaultTextEncodingName = "utf-8"
 
-            // ✅ NEW: Fix text size
-            textZoom = 100
-
-            // ✅ NEW: Enable loading resources (CSS, JS, images)
-            loadsImagesAutomatically = true
-            blockNetworkImage = false
-            blockNetworkLoads = false
-
-            // ✅ CRITICAL FIX #14: Disable save form data (privacy)
+            // Disable saving form data (Security)
             @Suppress("DEPRECATION")
             saveFormData = false
-
-            // ✅ CRITICAL FIX #15: Fix rendering on older devices
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                mixedContentMode = WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-            }
         }
     }
 
     private fun setupCookies(webView: WebView) {
         try {
             val cookieManager = CookieManager.getInstance()
-
-            // Enable cookies
             cookieManager.setAcceptCookie(true)
 
-            // ✅ CRITICAL: Enable third-party cookies (required for reCAPTCHA, OAuth, DApps)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-                cookieManager.setAcceptThirdPartyCookies(webView, true)
-            }
-
-            // Ensure cookies persist
+            // ✅ CRITICAL: Enable third-party cookies (Required for RPCs, Auth, and iframes)
+            cookieManager.setAcceptThirdPartyCookies(webView, true)
             cookieManager.flush()
-
-            Timber.d("✅ Cookies: Accept=${cookieManager.acceptCookie()}, ThirdParty=true")
         } catch (e: Exception) {
             Timber.e(e, "Failed to setup cookies")
         }
     }
 
-    private fun WebView.logWebViewInfo() {
-        Timber.d("─────────────────────────────────────")
-        Timber.d("WebView Configuration Summary:")
-        Timber.d("   JavaScript: ${settings.javaScriptEnabled}")
-        Timber.d("   DOM Storage: ${settings.domStorageEnabled}")
-        @Suppress("DEPRECATION")
-        Timber.d("   Database: ${settings.databaseEnabled}")
-        Timber.d("   Mixed Content: ${settings.mixedContentMode}")
-        Timber.d("   Layout Algorithm: ${settings.layoutAlgorithm}")
-        Timber.d("   Hardware Layer: ${layerType == View.LAYER_TYPE_HARDWARE}")
-        Timber.d("   Offscreen Pre-Raster: ${settings.offscreenPreRaster}")
-        Timber.d("   Images Auto: ${settings.loadsImagesAutomatically}")
-        Timber.d("   Block Network: ${settings.blockNetworkLoads}")
-        Timber.d("   Cache Mode: ${settings.cacheMode}")
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Timber.d("   Renderer Priority: IMPORTANT")
-        }
-        Timber.d("─────────────────────────────────────")
-    }
-
     companion object {
         fun isWebViewAvailable(context: Context): Boolean {
             return try {
-                val packageInfo = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    WebViewCompat.getCurrentWebViewPackage(context)
-                } else {
-                    null
-                }
-                if (packageInfo != null) {
-                    Timber.d("WebView available: ${packageInfo.versionName}")
-                    true
-                } else {
-                    false
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "WebView not available")
-                false
-            }
-        }
-
-        fun getWebViewVersion(context: Context): String? {
-            return try {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    WebViewCompat.getCurrentWebViewPackage(context)?.versionName
-                } else {
-                    null
-                }
-            } catch (_: Exception) {
-                null
-            }
+                    WebViewCompat.getCurrentWebViewPackage(context) != null
+                } else true
+            } catch (_: Exception) { false }
         }
     }
 }

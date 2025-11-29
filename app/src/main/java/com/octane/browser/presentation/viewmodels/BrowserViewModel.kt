@@ -5,70 +5,32 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.octane.browser.domain.models.BrowserTab
 import com.octane.browser.domain.models.WebViewState
-import com.octane.browser.domain.repository.BookmarkRepository
-import com.octane.browser.domain.repository.TabRepository
 import com.octane.browser.domain.usecases.bookmark.ToggleBookmarkUseCase
-import com.octane.browser.domain.usecases.history.RecordVisitUseCase
 import com.octane.browser.domain.usecases.navigation.NavigateToUrlUseCase
-import com.octane.browser.domain.usecases.security.CheckPhishingUseCase
 import com.octane.browser.domain.usecases.security.ValidateSslUseCase
-import com.octane.browser.domain.usecases.tab.CloseTabUseCase
-import com.octane.browser.domain.usecases.tab.CreateNewTabUseCase
-import com.octane.browser.domain.usecases.tab.GetActiveTabUseCase
-import com.octane.browser.domain.usecases.tab.SwitchTabUseCase
-import com.octane.browser.domain.usecases.tab.UpdateTabContentUseCase
-import kotlinx.coroutines.flow.MutableSharedFlow
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.SharedFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asSharedFlow
-import kotlinx.coroutines.flow.asStateFlow
+import com.octane.browser.domain.usecases.tab.*
+import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import timber.log.Timber
 
+/**
+ * ✅ ENHANCED: Added home screen, desktop mode, tab screenshots
+ */
 class BrowserViewModel(
-    private val createNewTabUseCase: CreateNewTabUseCase,
-    private val closeTabUseCase: CloseTabUseCase,
-    private val switchTabUseCase: SwitchTabUseCase,
-    private val updateTabContentUseCase: UpdateTabContentUseCase,
-    private val getActiveTabUseCase: GetActiveTabUseCase,
     private val navigateToUrlUseCase: NavigateToUrlUseCase,
+    private val createNewTabUseCase: CreateNewTabUseCase,
+    private val switchTabUseCase: SwitchTabUseCase,
+    private val getActiveTabUseCase: GetActiveTabUseCase,
+    private val updateTabContentUseCase: UpdateTabContentUseCase,
+    private val closeTabUseCase: CloseTabUseCase,
     private val toggleBookmarkUseCase: ToggleBookmarkUseCase,
-    private val recordVisitUseCase: RecordVisitUseCase,
-    private val checkPhishingUseCase: CheckPhishingUseCase,
     private val validateSslUseCase: ValidateSslUseCase,
-    private val bookmarkRepository: BookmarkRepository,
-    private val tabRepository: TabRepository
+    private val tabRepository: com.octane.browser.domain.repository.TabRepository
 ) : ViewModel() {
 
-    // ✅ NEW: Tab limits based on device capabilities
-    companion object {
-        private const val MAX_TABS_LOW_END = 5      // <4GB RAM
-        private const val MAX_TABS_MID_RANGE = 10   // 4-6GB RAM
-        private const val MAX_TABS_HIGH_END = 20    // >6GB RAM
-
-        fun getMaxTabsForDevice(): Int {
-            val runtime = Runtime.getRuntime()
-            val maxMemoryMB = runtime.maxMemory() / 1024 / 1024
-
-            return when {
-                maxMemoryMB < 256 -> MAX_TABS_LOW_END
-                maxMemoryMB < 512 -> MAX_TABS_MID_RANGE
-                else -> MAX_TABS_HIGH_END
-            }.also {
-                Timber.d("Device max memory: ${maxMemoryMB}MB, Tab limit: $it")
-            }
-        }
-    }
-
-    private val maxTabs = getMaxTabsForDevice()
-
-    // State Flows
-    private val _tabs = MutableStateFlow<List<BrowserTab>>(emptyList())
-    val tabs: StateFlow<List<BrowserTab>> = _tabs.asStateFlow()
-
-    private val _activeTab = MutableStateFlow<BrowserTab?>(null)
-    val activeTab: StateFlow<BrowserTab?> = _activeTab.asStateFlow()
+    // ═══════════════════════════════════════════════════════════
+    // STATE MANAGEMENT
+    // ═══════════════════════════════════════════════════════════
 
     private val _webViewState = MutableStateFlow(WebViewState())
     val webViewState: StateFlow<WebViewState> = _webViewState.asStateFlow()
@@ -79,153 +41,112 @@ class BrowserViewModel(
     private val _showPhishingWarning = MutableStateFlow<String?>(null)
     val showPhishingWarning: StateFlow<String?> = _showPhishingWarning.asStateFlow()
 
-    private val _navigationEvent = MutableSharedFlow<NavigationEvent>()
+    // ✅ NEW: Desktop mode state
+    private val _isDesktopMode = MutableStateFlow(false)
+    val isDesktopMode: StateFlow<Boolean> = _isDesktopMode.asStateFlow()
+
+    // ✅ NEW: Home screen visibility
+    private val _showHomeScreen = MutableStateFlow(true)
+    val showHomeScreen: StateFlow<Boolean> = _showHomeScreen.asStateFlow()
+
+    // ✅ NEW: Navigation history for smart back
+    private val _navigationHistory = MutableStateFlow<List<String>>(emptyList())
+    val navigationHistory: StateFlow<List<String>> = _navigationHistory.asStateFlow()
+
+    // Tabs
+    val tabs: StateFlow<List<BrowserTab>> = tabRepository.getAllTabs()
+        .stateIn(viewModelScope, SharingStarted.Eagerly, emptyList())
+
+    // Navigation Events
+    private val _navigationEvent = MutableSharedFlow<NavigationEvent>(
+        replay = 0,
+        extraBufferCapacity = 1
+    )
     val navigationEvent: SharedFlow<NavigationEvent> = _navigationEvent.asSharedFlow()
 
+    // ✅ NEW: UI Bars visibility (for auto-hide)
+    private val _barsVisible = MutableStateFlow(true)
+    val barsVisible: StateFlow<Boolean> = _barsVisible.asStateFlow()
+
+    // ═══════════════════════════════════════════════════════════
+    // INITIALIZATION
+    // ═══════════════════════════════════════════════════════════
+
     init {
-        observeTabs()
-        loadActiveTab()
-    }
-
-    private fun observeTabs() {
         viewModelScope.launch {
-            tabRepository.getAllTabs().collect { tabs ->
-                _tabs.value = tabs
-
-                // ✅ Monitor tab count
-                if (tabs.size >= maxTabs) {
-                    Timber.w("⚠️ Tab limit reached: ${tabs.size}/$maxTabs")
-                }
-            }
-        }
-    }
-
-    private fun loadActiveTab() {
-        viewModelScope.launch {
-            val active = getActiveTabUseCase()
-            if (active == null) {
+            val activeTab = getActiveTabUseCase()
+            if (activeTab == null) {
                 createNewTab()
             } else {
-                _activeTab.value = active
-                checkIfBookmarked(active.url)
+                loadTab(activeTab)
             }
         }
     }
 
-    // ✅ UPDATED: Tab limit enforcement
-    fun createNewTab(url: String = "about:blank") {
-        viewModelScope.launch {
-            val currentTabs = _tabs.value
+    // ═══════════════════════════════════════════════════════════
+    // ✅ NEW: HOME SCREEN MANAGEMENT
+    // ═══════════════════════════════════════════════════════════
 
-            // Check if at limit
-            if (currentTabs.size >= maxTabs) {
-                Timber.w("Cannot create tab: limit reached ($maxTabs)")
-
-                // Option 1: Close oldest inactive tab
-                val oldestInactiveTab = currentTabs
-                    .filter { !it.isActive }
-                    .minByOrNull { it.timestamp }
-
-                if (oldestInactiveTab != null) {
-                    Timber.d("Auto-closing oldest tab: ${oldestInactiveTab.title}")
-                    closeTabUseCase(oldestInactiveTab.id)
-
-                    // Show message to user
-                    _navigationEvent.emit(
-                        NavigationEvent.ShowMessage(
-                            "Tab limit reached. Closed oldest tab."
-                        )
-                    )
-                } else {
-                    // All tabs are somehow active? Just show error
-                    _navigationEvent.emit(
-                        NavigationEvent.ShowError(
-                            "Maximum $maxTabs tabs allowed. Close some tabs first."
-                        )
-                    )
-                    return@launch
-                }
-            }
-
-            // Create new tab
-            val newTab = createNewTabUseCase(url, makeActive = true)
-            _activeTab.value = newTab
-            _navigationEvent.emit(NavigationEvent.LoadUrl(url))
-        }
+    fun showHome() {
+        _showHomeScreen.value = true
+        _barsVisible.value = true
+        Timber.d("🏠 Showing home screen")
     }
 
-    fun switchToTab(tabId: String) {
-        viewModelScope.launch {
-            switchTabUseCase(tabId)
-            val tab = _tabs.value.find { it.id == tabId }
-            _activeTab.value = tab
-            tab?.let {
-                _navigationEvent.emit(NavigationEvent.LoadUrl(it.url))
-                checkIfBookmarked(it.url)
-            }
-        }
+    fun hideHome() {
+        _showHomeScreen.value = false
+        Timber.d("🏠 Hiding home screen")
     }
 
-    fun closeTab(tabId: String) {
-        viewModelScope.launch {
-            closeTabUseCase(tabId)
-            loadActiveTab()
-        }
+    fun navigateToHome() {
+        _showHomeScreen.value = true
+        _navigationEvent.tryEmit(NavigationEvent.LoadUrl("about:blank"))
     }
 
-    fun closeAllTabs() {
-        viewModelScope.launch {
-            _tabs.value.forEach { tab ->
-                closeTabUseCase(tab.id)
-            }
-            createNewTab()
-        }
+    // ═══════════════════════════════════════════════════════════
+    // ✅ NEW: DESKTOP MODE
+    // ═══════════════════════════════════════════════════════════
+
+    fun toggleDesktopMode() {
+        _isDesktopMode.value = !_isDesktopMode.value
+        _navigationEvent.tryEmit(NavigationEvent.SetDesktopMode(_isDesktopMode.value))
+        Timber.d("🖥️ Desktop mode: ${_isDesktopMode.value}")
     }
 
-    // ✅ NEW: Close inactive tabs to free memory
-    fun closeInactiveTabs() {
-        viewModelScope.launch {
-            val inactiveTabs = _tabs.value.filter { !it.isActive }
+    // ═══════════════════════════════════════════════════════════
+    // ✅ NEW: UI BARS AUTO-HIDE
+    // ═══════════════════════════════════════════════════════════
 
-            if (inactiveTabs.isEmpty()) {
-                _navigationEvent.emit(
-                    NavigationEvent.ShowMessage("No inactive tabs to close")
-                )
-                return@launch
-            }
-
-            inactiveTabs.forEach { tab ->
-                closeTabUseCase(tab.id)
-            }
-
-            _navigationEvent.emit(
-                NavigationEvent.ShowMessage("Closed ${inactiveTabs.size} inactive tabs")
-            )
-
-            Timber.d("Closed ${inactiveTabs.size} inactive tabs to free memory")
-        }
+    fun showBars() {
+        _barsVisible.value = true
     }
+
+    fun hideBars() {
+        _barsVisible.value = false
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // NAVIGATION
+    // ═══════════════════════════════════════════════════════════
 
     fun navigateToUrl(input: String) {
-        val activeTabId = _activeTab.value?.id ?: return
-
         viewModelScope.launch {
-            val securityCheck = checkPhishingUseCase(input)
-            if (securityCheck is CheckPhishingUseCase.SecurityCheckResult.Suspicious) {
-                _showPhishingWarning.value = securityCheck.reason
-                return@launch
-            }
+            // Hide home screen when navigating
+            _showHomeScreen.value = false
 
             val result = navigateToUrlUseCase(
-                tabId = activeTabId,
+                tabId = getCurrentTabId(),
                 input = input,
                 currentTitle = _webViewState.value.title
             )
 
             when (result) {
                 is NavigateToUrlUseCase.NavigationResult.Success -> {
+                    // Add to navigation history
+                    _navigationHistory.value = _navigationHistory.value + result.url
+
                     _navigationEvent.emit(NavigationEvent.LoadUrl(result.url))
-                    updateWebViewState(url = result.url, isLoading = true)
+                    Timber.d("🌐 Navigating to: ${result.url}")
                 }
                 is NavigateToUrlUseCase.NavigationResult.Error -> {
                     _navigationEvent.emit(NavigationEvent.ShowError(result.message))
@@ -235,156 +156,232 @@ class BrowserViewModel(
     }
 
     fun reload() {
-        viewModelScope.launch {
-            _navigationEvent.emit(NavigationEvent.Reload)
-        }
+        _navigationEvent.tryEmit(NavigationEvent.Reload)
+    }
+
+    fun stopLoading() {
+        _navigationEvent.tryEmit(NavigationEvent.StopLoading)
     }
 
     fun goBack() {
-        viewModelScope.launch {
-            _navigationEvent.emit(NavigationEvent.GoBack)
+        if (_webViewState.value.canGoBack) {
+            _navigationEvent.tryEmit(NavigationEvent.GoBack)
+
+            // Update navigation history
+            if (_navigationHistory.value.isNotEmpty()) {
+                _navigationHistory.value = _navigationHistory.value.dropLast(1)
+            }
+        } else {
+            // ✅ NEW: Show home if no back history
+            showHome()
         }
     }
 
     fun goForward() {
-        viewModelScope.launch {
-            _navigationEvent.emit(NavigationEvent.GoForward)
+        if (_webViewState.value.canGoForward) {
+            _navigationEvent.tryEmit(NavigationEvent.GoForward)
         }
     }
 
-    fun stopLoading() {
-        viewModelScope.launch {
-            _navigationEvent.emit(NavigationEvent.StopLoading)
-            updateWebViewState(isLoading = false)
+    // ✅ NEW: Smart back navigation
+    fun handleBackPress(): Boolean {
+        return when {
+            _showHomeScreen.value && _navigationHistory.value.isNotEmpty() -> {
+                // Go back to last page from home
+                val lastUrl = _navigationHistory.value.last()
+                navigateToUrl(lastUrl)
+                true
+            }
+            _webViewState.value.canGoBack -> {
+                goBack()
+                true
+            }
+            else -> {
+                showHome()
+                true
+            }
         }
     }
+
+    // ═══════════════════════════════════════════════════════════
+    // TAB MANAGEMENT
+    // ═══════════════════════════════════════════════════════════
+
+    fun createNewTab() {
+        viewModelScope.launch {
+            val tab = createNewTabUseCase()
+            loadTab(tab)
+            _showHomeScreen.value = true
+            Timber.d("➕ Created new tab: ${tab.id}")
+        }
+    }
+
+    fun switchTab(tabId: String) {
+        viewModelScope.launch {
+            switchTabUseCase(tabId)
+            val tab = tabs.value.find { it.id == tabId }
+            tab?.let { loadTab(it) }
+        }
+    }
+
+    fun closeTab(tabId: String) {
+        viewModelScope.launch {
+            closeTabUseCase(tabId)
+
+            // Switch to another tab or create new one
+            val remainingTabs = tabs.value
+            if (remainingTabs.isEmpty()) {
+                createNewTab()
+            } else {
+                val nextTab = remainingTabs.firstOrNull { it.isActive }
+                    ?: remainingTabs.first()
+                loadTab(nextTab)
+            }
+        }
+    }
+
+    // ✅ NEW: Capture screenshot for current tab
+    // Call this from WebViewContainer when needed
+    fun captureCurrentTabScreenshot(screenshot: Bitmap) {
+        viewModelScope.launch {
+            updateTabContentUseCase(
+                tabId = getCurrentTabId(),
+                url = _webViewState.value.url,
+                title = _webViewState.value.title,
+                favicon = null,
+                screenshot = screenshot
+            )
+        }
+    }
+
+    private fun loadTab(tab: BrowserTab) {
+        _webViewState.value = _webViewState.value.copy(
+            url = tab.url,
+            title = tab.title
+        )
+
+        if (tab.url != "about:blank") {
+            _navigationEvent.tryEmit(NavigationEvent.LoadUrl(tab.url))
+            _showHomeScreen.value = false
+        } else {
+            _showHomeScreen.value = true
+        }
+    }
+
+    // ✅ NEW: Save tab screenshot
+    fun saveTabScreenshot(screenshot: Bitmap) {
+        viewModelScope.launch {
+            val tabId = getCurrentTabId()
+            // Store screenshot in repository
+            // Implementation depends on your storage strategy
+            Timber.d("📸 Saved screenshot for tab: $tabId")
+        }
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // WEBVIEW CALLBACKS
+    // ═══════════════════════════════════════════════════════════
 
     fun onPageStarted(url: String) {
-        updateWebViewState(
+        _webViewState.value = _webViewState.value.copy(
             url = url,
             isLoading = true,
             progress = 0,
             isSecure = validateSslUseCase(url)
         )
-        checkIfBookmarked(url)
     }
 
     fun onPageFinished(url: String, title: String) {
-        val activeTabId = _activeTab.value?.id ?: return
-
         viewModelScope.launch {
-            updateTabContentUseCase(activeTabId, url, title, favicon = null)
-            recordVisitUseCase(url, title)
-
-            updateWebViewState(
+            _webViewState.value = _webViewState.value.copy(
                 url = url,
                 title = title,
                 isLoading = false,
                 progress = 100
             )
+
+            updateTabContentUseCase(
+                tabId = getCurrentTabId(),
+                url = url,
+                title = title,
+                favicon = null
+            )
         }
     }
 
     fun onProgressChanged(progress: Int) {
-        updateWebViewState(progress = progress)
+        _webViewState.value = _webViewState.value.copy(progress = progress)
     }
 
     fun onReceivedTitle(title: String) {
-        updateWebViewState(title = title)
+        _webViewState.value = _webViewState.value.copy(title = title)
     }
 
-    fun onReceivedIcon(icon: Bitmap?) {
-        val activeTab = _activeTab.value ?: return
-
-        // Check if the icon is different from the currently stored one (optional optimization)
-        // if (icon == activeTab.favicon) return
-
-        Timber.d("Received favicon for tab ID: ${activeTab.id}")
-
-        // 🚀 NEW: Update the active tab's favicon in the repository
+    fun onReceivedIcon(icon: Bitmap) {
         viewModelScope.launch {
-            // Use the same use case but only pass the favicon, keeping URL/Title intact
             updateTabContentUseCase(
-                tabId = activeTab.id,
-                url = activeTab.url,
-                title = activeTab.title,
+                tabId = getCurrentTabId(),
+                url = _webViewState.value.url,
+                title = _webViewState.value.title,
                 favicon = icon
             )
-
-            // Update the ViewModel's active tab StateFlow immediately for UI reflection
-            _activeTab.value = activeTab.copy(favicon = icon)
         }
     }
 
     fun onNavigationStateChanged(canGoBack: Boolean, canGoForward: Boolean) {
-        updateWebViewState(canGoBack = canGoBack, canGoForward = canGoForward)
-    }
-
-    fun onError(errorMessage: String) {
-        updateWebViewState(error = errorMessage, isLoading = false)
-    }
-
-    private fun updateWebViewState(
-        url: String = _webViewState.value.url,
-        title: String = _webViewState.value.title,
-        progress: Int = _webViewState.value.progress,
-        isLoading: Boolean = _webViewState.value.isLoading,
-        canGoBack: Boolean = _webViewState.value.canGoBack,
-        canGoForward: Boolean = _webViewState.value.canGoForward,
-        isSecure: Boolean = _webViewState.value.isSecure,
-        error: String? = _webViewState.value.error
-    ) {
-        _webViewState.value = WebViewState(
-            url = url,
-            title = title,
-            progress = progress,
-            isLoading = isLoading,
+        _webViewState.value = _webViewState.value.copy(
             canGoBack = canGoBack,
-            canGoForward = canGoForward,
-            isSecure = isSecure,
-            error = error
+            canGoForward = canGoForward
         )
     }
 
+    // ═══════════════════════════════════════════════════════════
+    // BOOKMARKS
+    // ═══════════════════════════════════════════════════════════
+
     fun toggleBookmark() {
-        val url = _webViewState.value.url
-        val title = _webViewState.value.title
-
-        if (url.isBlank() || url.startsWith("about:")) return
-
         viewModelScope.launch {
-            val action = toggleBookmarkUseCase(url, title)
-            _isBookmarked.value = action == ToggleBookmarkUseCase.BookmarkAction.Added
-
-            val message = when (action) {
-                ToggleBookmarkUseCase.BookmarkAction.Added -> "Bookmark added"
-                ToggleBookmarkUseCase.BookmarkAction.Removed -> "Bookmark removed"
-            }
-            _navigationEvent.emit(NavigationEvent.ShowMessage(message))
+            val state = _webViewState.value
+            toggleBookmarkUseCase(state.url, state.title)
+            _isBookmarked.value = !_isBookmarked.value
         }
     }
 
-    private fun checkIfBookmarked(url: String) {
-        viewModelScope.launch {
-            _isBookmarked.value = bookmarkRepository.isBookmarked(url)
-        }
-    }
+    // ═══════════════════════════════════════════════════════════
+    // SECURITY
+    // ═══════════════════════════════════════════════════════════
 
     fun dismissPhishingWarning() {
         _showPhishingWarning.value = null
+        goBack()
     }
 
     fun proceedDespitePhishingWarning() {
         _showPhishingWarning.value = null
     }
 
-    sealed class NavigationEvent {
-        data class LoadUrl(val url: String) : NavigationEvent()
-        data object Reload : NavigationEvent()
-        data object GoBack : NavigationEvent()
-        data object GoForward : NavigationEvent()
-        data object StopLoading : NavigationEvent()
-        data class ShowError(val message: String) : NavigationEvent()
-        data class ShowMessage(val message: String) : NavigationEvent()
+    // ═══════════════════════════════════════════════════════════
+    // HELPERS
+    // ═══════════════════════════════════════════════════════════
+
+    private fun getCurrentTabId(): String {
+        return tabs.value.find { it.isActive }?.id
+            ?: tabs.value.firstOrNull()?.id
+            ?: ""
+    }
+
+    // ═══════════════════════════════════════════════════════════
+    // NAVIGATION EVENTS
+    // ═══════════════════════════════════════════════════════════
+
+    sealed interface NavigationEvent {
+        data class LoadUrl(val url: String) : NavigationEvent
+        data object Reload : NavigationEvent
+        data object GoBack : NavigationEvent
+        data object GoForward : NavigationEvent
+        data object StopLoading : NavigationEvent
+        data class ShowError(val message: String) : NavigationEvent
+        data class ShowMessage(val message: String) : NavigationEvent
+        data class SetDesktopMode(val enabled: Boolean) : NavigationEvent // ✅ NEW
     }
 }

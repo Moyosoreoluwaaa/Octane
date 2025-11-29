@@ -1,5 +1,6 @@
 package com.octane.browser.webview
 
+import android.graphics.Bitmap
 import android.os.Build
 import android.os.Bundle
 import android.webkit.WebView
@@ -9,45 +10,76 @@ import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.core.graphics.createBitmap
+import androidx.core.graphics.scale
 import androidx.core.os.bundleOf
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import com.octane.browser.webview.bridge.WalletBridge
 import org.koin.compose.koinInject
 import timber.log.Timber
 
-/**
- * ✅ UPDATED: Now exposes WebView reference for diagnostics
- */
 @Composable
 fun WebViewContainer(
     modifier: Modifier = Modifier,
     browserViewModel: BrowserViewModel = koinInject(),
     webViewManager: WebViewManager = koinInject(),
     walletBridge: WalletBridge = koinInject(),
-    onWebViewCreated: ((WebView) -> Unit)? = null // ✅ NEW callback
+    onScrollUp: () -> Unit = {},
+    onScrollDown: () -> Unit = {},
+    onWebViewCreated: ((WebView) -> Unit)? = null
 ) {
-    // ✅ Preserve WebView state across config changes (rotation, etc.)
     val savedBundle: Bundle = rememberSaveable { bundleOf() }
 
-    // ✅ Remember WebView instance to avoid recreation
+    // Scroll threshold to prevent accidental triggering
+    val scrollThreshold = 20
+
     val webView = remember {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             webViewManager.createWebView(browserViewModel).also { view ->
                 walletBridge.setWebView(view)
 
-                // Restore previous state if available
                 if (!savedBundle.isEmpty) {
                     view.restoreState(savedBundle)
-                    Timber.d("📦 Restored WebView state")
                 }
 
-                // ✅ NEW: Notify parent that WebView is created
-                onWebViewCreated?.invoke(view)
+                // ✅ FIX: Native Scroll Listener
+                // This detects scroll inside the WebView without stealing touches from Compose
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    view.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
+                        val diff = scrollY - oldScrollY
+                        when {
+                            diff > scrollThreshold -> onScrollDown() // Scrolling down, hide bars
+                            diff < -scrollThreshold -> onScrollUp()  // Scrolling up, show bars
+                        }
+                    }
+                }
 
-                Timber.d("✅ WebView created")
+                onWebViewCreated?.invoke(view)
             }
         } else {
             TODO("VERSION.SDK_INT < O")
+        }
+    }
+
+    // Auto-capture screenshot
+    LaunchedEffect(Unit) {
+        kotlinx.coroutines.delay(1000)
+        while (true) {
+            try {
+                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
+                    if (webView.width > 0 && webView.height > 0) {
+                        val bitmap = createBitmap(webView.width, webView.height)
+                        val canvas = android.graphics.Canvas(bitmap)
+                        webView.draw(canvas)
+                        val thumbnail = bitmap.scale(400, (400 * bitmap.height) / bitmap.width.coerceAtLeast(1))
+                        bitmap.recycle()
+                        browserViewModel.captureCurrentTabScreenshot(thumbnail)
+                    }
+                }
+            } catch (e: Exception) {
+                Timber.e(e, "Failed to capture screenshot")
+            }
+            kotlinx.coroutines.delay(30000)
         }
     }
 
@@ -58,50 +90,35 @@ fun WebViewContainer(
         )
     }
 
-    // ✅ Collect navigation events in LaunchedEffect (proper SharedFlow handling)
+    // Collect navigation events
     LaunchedEffect(Unit) {
         browserViewModel.navigationEvent.collect { event ->
             when (event) {
                 is BrowserViewModel.NavigationEvent.LoadUrl -> {
-                    Timber.d("🌐 Loading: ${event.url}")
-                    if (webView.url != event.url) {
-                        webView.loadUrl(event.url)
-                    }
+                    if (webView.url != event.url) webView.loadUrl(event.url)
                 }
-                is BrowserViewModel.NavigationEvent.Reload -> {
-                    Timber.d("🔄 Reloading")
+                is BrowserViewModel.NavigationEvent.Reload -> webView.reload()
+                is BrowserViewModel.NavigationEvent.GoBack -> if (webView.canGoBack()) webView.goBack()
+                is BrowserViewModel.NavigationEvent.GoForward -> if (webView.canGoForward()) webView.goForward()
+                is BrowserViewModel.NavigationEvent.StopLoading -> webView.stopLoading()
+                is BrowserViewModel.NavigationEvent.SetDesktopMode -> {
+                    webView.settings.apply {
+                        userAgentString = if (event.enabled) {
+                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
+                        } else null
+                        useWideViewPort = event.enabled
+                        loadWithOverviewMode = event.enabled
+                    }
                     webView.reload()
-                }
-                is BrowserViewModel.NavigationEvent.GoBack -> {
-                    Timber.d("⬅️ Going back")
-                    if (webView.canGoBack()) {
-                        webView.goBack()
-                    }
-                }
-                is BrowserViewModel.NavigationEvent.GoForward -> {
-                    Timber.d("➡️ Going forward")
-                    if (webView.canGoForward()) {
-                        webView.goForward()
-                    }
-                }
-                is BrowserViewModel.NavigationEvent.StopLoading -> {
-                    Timber.d("⛔ Stopping")
-                    webView.stopLoading()
                 }
                 else -> {}
             }
         }
     }
 
-    // ✅ Save state on dispose and cleanup
     DisposableEffect(Unit) {
         onDispose {
-            Timber.d("🧹 Disposing WebView")
-
-            // Save state for restoration
             webView.saveState(savedBundle)
-
-            // Cleanup
             webView.stopLoading()
             webView.destroy()
         }

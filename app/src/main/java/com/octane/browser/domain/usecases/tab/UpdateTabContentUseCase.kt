@@ -4,10 +4,19 @@ import android.graphics.Bitmap
 import com.octane.browser.domain.repository.TabRepository
 import kotlinx.coroutines.flow.first
 
+/**
+ * ✅ ENHANCED: Screenshot parameter added
+ */
 class UpdateTabContentUseCase(
     private val tabRepository: TabRepository
 ) {
-    suspend operator fun invoke(tabId: String, url: String, title: String, favicon: Bitmap?) {
+    suspend operator fun invoke(
+        tabId: String,
+        url: String,
+        title: String,
+        favicon: Bitmap?,
+        screenshot: Bitmap? = null // ✅ NEW: Optional screenshot
+    ) {
         val tab = tabRepository.getAllTabs().first()
             .find { it.id == tabId } ?: return
 
@@ -15,8 +24,8 @@ class UpdateTabContentUseCase(
             url = url,
             title = title,
             timestamp = System.currentTimeMillis(),
-            favicon = null
-
+            favicon = favicon,
+            screenshot = screenshot // ✅ NEW
         )
 
         tabRepository.updateTab(updatedTab)

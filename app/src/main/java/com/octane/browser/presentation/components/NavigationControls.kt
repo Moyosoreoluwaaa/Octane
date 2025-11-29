@@ -3,37 +3,24 @@ package com.octane.browser.presentation.components
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.Home
-import androidx.compose.material.icons.rounded.MoreVert
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.octane.browser.design.BrowserColors
 import com.octane.browser.design.BrowserDimens
-import com.octane.browser.design.BrowserTypography
 import com.octane.browser.domain.models.WebViewState
 
+/**
+ * ✅ ENHANCED: Menu moved here from address bar
+ */
 @Composable
 fun NavigationControls(
     webViewState: WebViewState,
@@ -42,14 +29,15 @@ fun NavigationControls(
     onForward: () -> Unit,
     onHome: () -> Unit,
     onTabManager: () -> Unit,
+    onMenuClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
         modifier = modifier
             .fillMaxWidth()
             .height(64.dp),
-        shape = MaterialTheme.shapes.large, // ✅ CHANGED
-        color = MaterialTheme.colorScheme.surface, // ✅ CHANGED
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surface,
         shadowElevation = BrowserDimens.BrowserElevationHigh
     ) {
         Row(
@@ -66,8 +54,8 @@ fun NavigationControls(
                     Icons.Rounded.ArrowBack,
                     contentDescription = "Back",
                     tint = if (webViewState.canGoBack)
-                        MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f) // ✅ CHANGED
+                        MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 )
             }
 
@@ -80,8 +68,8 @@ fun NavigationControls(
                     Icons.Rounded.ArrowForward,
                     contentDescription = "Forward",
                     tint = if (webViewState.canGoForward)
-                        MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f) // ✅ CHANGED
+                        MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
                 )
             }
 
@@ -90,14 +78,14 @@ fun NavigationControls(
                 modifier = Modifier
                     .size(48.dp)
                     .clip(CircleShape)
-                    .background(MaterialTheme.colorScheme.primary) // ✅ CHANGED
+                    .background(MaterialTheme.colorScheme.primary)
                     .clickable { onHome() },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     Icons.Rounded.Home,
                     contentDescription = "Home",
-                    tint = MaterialTheme.colorScheme.onPrimary, // ✅ CHANGED
+                    tint = MaterialTheme.colorScheme.onPrimary,
                     modifier = Modifier.size(24.dp)
                 )
             }
@@ -109,7 +97,7 @@ fun NavigationControls(
                     .clip(RoundedCornerShape(BrowserDimens.BrowserShapeRoundedSmall))
                     .border(
                         2.dp,
-                        MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
+                        MaterialTheme.colorScheme.onSurface,
                         RoundedCornerShape(BrowserDimens.BrowserShapeRoundedSmall)
                     )
                     .clickable { onTabManager() },
@@ -117,19 +105,19 @@ fun NavigationControls(
             ) {
                 Text(
                     text = "$tabCount",
-                    style = MaterialTheme.typography.labelMedium.copy( // ✅ CHANGED
+                    style = MaterialTheme.typography.labelMedium.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             }
 
-            // Menu Button
-            IconButton(onClick = { /* Menu */ }) {
+            // ✅ Menu Button (moved from address bar)
+            IconButton(onClick = onMenuClick) {
                 Icon(
-                    Icons.Rounded.MoreVert,
+                    Icons.Rounded.Menu,
                     contentDescription = "Menu",
-                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
             }
         }

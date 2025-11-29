@@ -1,21 +1,31 @@
 package com.octane.browser.data.mappers
 
-import com.octane.browser.data.local.db.entities.TabEntity
+import com.octane.browser.data.local.db.entity.BrowserTabEntity
 import com.octane.browser.domain.models.BrowserTab
 
-fun TabEntity.toDomain(): BrowserTab = BrowserTab(
-    id = id,
-    url = url,
-    title = title,
-    favicon = null, // Bitmaps not stored in DB
-    timestamp = timestamp,
-    isActive = isActive
-)
+/**
+ * ✅ ENHANCED: Screenshot mapping
+ */
+fun BrowserTabEntity.toDomain(): BrowserTab {
+    return BrowserTab(
+        id = id,
+        url = url,
+        title = title,
+        timestamp = timestamp,
+        isActive = isActive,
+        favicon = BrowserTabEntity.byteArrayToBitmap(faviconBytes),
+        screenshot = BrowserTabEntity.byteArrayToBitmap(screenshotBytes) // ✅ NEW
+    )
+}
 
-fun BrowserTab.toEntity(): TabEntity = TabEntity(
-    id = id,
-    url = url,
-    title = title,
-    timestamp = timestamp,
-    isActive = isActive
-)
+fun BrowserTab.toEntity(): BrowserTabEntity {
+    return BrowserTabEntity(
+        id = id,
+        url = url,
+        title = title,
+        timestamp = timestamp,
+        isActive = isActive,
+        faviconBytes = BrowserTabEntity.bitmapToByteArray(favicon),
+        screenshotBytes = BrowserTabEntity.bitmapToByteArray(screenshot) // ✅ NEW
+    )
+}

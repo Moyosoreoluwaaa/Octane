@@ -39,6 +39,7 @@ class SettingsDataStoreImpl(
         val ENABLE_WEB3 = booleanPreferencesKey("enable_web3")
         val THEME = intPreferencesKey("theme")
         val USE_DYNAMIC_COLORS = booleanPreferencesKey("use_dynamic_colors")
+        val TAB_LAYOUT_GRID = booleanPreferencesKey("tab_layout_grid") // New Key
     }
     
     override fun observeSettings(): Flow<BrowserSettings> {
@@ -154,7 +155,21 @@ class SettingsDataStoreImpl(
         }
         Timber.d("Search engine updated: $url")
     }
-    
+
+    // New function to observe ONLY layout
+    override fun observeTabLayout(): Flow<Boolean> {
+        return context.dataStore.data.map { prefs ->
+            prefs[PreferenceKeys.TAB_LAYOUT_GRID] ?: true // Default to Grid (true)
+        }
+    }
+
+    // New function to update layout
+    override suspend fun updateTabLayout(isGrid: Boolean) {
+        context.dataStore.edit { prefs ->
+            prefs[PreferenceKeys.TAB_LAYOUT_GRID] = isGrid
+        }
+    }
+
     override suspend fun clearAllSettings() {
         context.dataStore.edit { preferences ->
             preferences.clear()

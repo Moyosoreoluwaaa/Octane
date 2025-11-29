@@ -4,7 +4,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -24,19 +23,26 @@ import androidx.compose.ui.unit.dp
 import com.octane.browser.design.BrowserDimens
 import com.octane.browser.domain.models.WebViewState
 
+/**
+ * ✅ ENHANCED: Added desktop mode toggle and home button
+ */
 @Composable
 fun AddressBar(
     webViewState: WebViewState,
     isBookmarked: Boolean,
+    isDesktopMode: Boolean,
     onNavigate: (String) -> Unit,
     onReload: () -> Unit,
     onStop: () -> Unit,
     onBookmarkToggle: () -> Unit,
     onMenuClick: () -> Unit,
+    onDesktopModeToggle: () -> Unit,
+    onHomeClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     var urlInput by remember { mutableStateOf(webViewState.url) }
     var isEditing by remember { mutableStateOf(false) }
+    var showOptionsMenu by remember { mutableStateOf(false) }
 
     LaunchedEffect(webViewState.url) {
         if (!isEditing) {
@@ -44,94 +50,163 @@ fun AddressBar(
         }
     }
 
-    Row(
-        modifier = modifier.fillMaxWidth(),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingUnit)
-    ) {
-        // LEFT: Menu Button (Circular)
-        IconButton(
-            onClick = onMenuClick,
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    // ✅ CHANGED: Use Material theme colors
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
-                    CircleShape
+    Column(modifier = modifier.fillMaxWidth()) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingUnit)
+        ) {
+            // LEFT: Home Button
+            IconButton(
+                onClick = onHomeClick,
+                modifier = Modifier
+                    .size(40.dp)
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                        CircleShape
+                    )
+            ) {
+                Icon(
+                    Icons.Rounded.Home,
+                    contentDescription = "Home",
+                    tint = MaterialTheme.colorScheme.onSurface
                 )
-        ) {
-            Icon(
-                Icons.Rounded.Menu,
-                contentDescription = "Menu",
-                tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-            )
-        }
+            }
 
-        // CENTER: Address Pill
-        Surface(
-            modifier = Modifier
-                .weight(1f)
-                .height(44.dp)
-                .clickable { isEditing = true },
-            shape = MaterialTheme.shapes.medium, // ✅ CHANGED
-            color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f), // ✅ CHANGED
-            shadowElevation = BrowserDimens.BrowserElevationLow
-        ) {
+            // CENTER: Address Pill
+            Surface(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(44.dp)
+                    .clickable { isEditing = true },
+                shape = MaterialTheme.shapes.medium,
+                color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
+                shadowElevation = BrowserDimens.BrowserElevationLow
+            ) {
+                Box {
+                    // Progress Indicator
+                    if (webViewState.isLoading) {
+                        LinearProgressIndicator(
+                            progress = { webViewState.progress / 100f },
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .alpha(0.1f),
+                            color = MaterialTheme.colorScheme.primary,
+                            trackColor = Color.Transparent
+                        )
+                    }
+
+                    // Content
+                    if (isEditing) {
+                        AddressBarEditMode(
+                            urlInput = urlInput,
+                            onUrlChange = { urlInput = it },
+                            isSecure = webViewState.isSecure,
+                            onNavigate = {
+                                onNavigate(urlInput)
+                                isEditing = false
+                            },
+                            onClear = { urlInput = "" }
+                        )
+                    } else {
+                        AddressBarDisplayMode(
+                            url = webViewState.url,
+                            isSecure = webViewState.isSecure,
+                            isLoading = webViewState.isLoading,
+                            onReload = onReload,
+                            onStop = onStop
+                        )
+                    }
+                }
+            }
+
+            // RIGHT: Options Menu
             Box {
-                // Progress Indicator
-                if (webViewState.isLoading) {
-                    LinearProgressIndicator(
-                        progress = { webViewState.progress / 100f },
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .alpha(0.1f),
-                        color = MaterialTheme.colorScheme.primary, // ✅ CHANGED
-                        trackColor = Color.Transparent
+                IconButton(
+                    onClick = { showOptionsMenu = true },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .background(
+                            MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
+                            CircleShape
+                        )
+                ) {
+                    Icon(
+                        Icons.Rounded.MoreVert,
+                        contentDescription = "Options",
+                        tint = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
-                // Content
-                if (isEditing) {
-                    AddressBarEditMode(
-                        urlInput = urlInput,
-                        onUrlChange = { urlInput = it },
-                        isSecure = webViewState.isSecure,
-                        onNavigate = {
-                            onNavigate(urlInput)
-                            isEditing = false
+                // Options Dropdown
+                DropdownMenu(
+                    expanded = showOptionsMenu,
+                    onDismissRequest = { showOptionsMenu = false }
+                ) {
+                    // Desktop Mode Toggle
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    Icons.Rounded.Computer,
+                                    contentDescription = null
+                                )
+                                Text(if (isDesktopMode) "Mobile Mode" else "Desktop Mode")
+                            }
                         },
-                        onClear = { urlInput = "" }
+                        onClick = {
+                            onDesktopModeToggle()
+                            showOptionsMenu = false
+                        }
                     )
-                } else {
-                    AddressBarDisplayMode(
-                        url = webViewState.url,
-                        isSecure = webViewState.isSecure,
-                        isLoading = webViewState.isLoading,
-                        onReload = onReload,
-                        onStop = onStop
+
+                    Divider()
+
+                    // Bookmark
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(
+                                    if (isBookmarked) Icons.Rounded.Star
+                                    else Icons.Rounded.StarBorder,
+                                    contentDescription = null,
+                                    tint = if (isBookmarked)
+                                        MaterialTheme.colorScheme.primary
+                                    else MaterialTheme.colorScheme.onSurface
+                                )
+                                Text(if (isBookmarked) "Remove Bookmark" else "Bookmark")
+                            }
+                        },
+                        onClick = {
+                            onBookmarkToggle()
+                            showOptionsMenu = false
+                        }
+                    )
+
+                    // Menu
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                Icon(Icons.Rounded.Menu, contentDescription = null)
+                                Text("Menu")
+                            }
+                        },
+                        onClick = {
+                            onMenuClick()
+                            showOptionsMenu = false
+                        }
                     )
                 }
             }
-        }
-
-        // RIGHT: Bookmark Button
-        IconButton(
-            onClick = onBookmarkToggle,
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
-                    CircleShape
-                )
-        ) {
-            Icon(
-                if (isBookmarked) Icons.Rounded.Star
-                else Icons.Rounded.StarBorder,
-                contentDescription = "Bookmark",
-                tint = if (isBookmarked)
-                    MaterialTheme.colorScheme.primary // ✅ CHANGED
-                else MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-            )
         }
     }
 }
@@ -151,9 +226,9 @@ private fun AddressBarEditMode(
             .fillMaxSize()
             .padding(horizontal = 12.dp),
         singleLine = true,
-        textStyle = MaterialTheme.typography.bodySmall.copy( // ✅ CHANGED
+        textStyle = MaterialTheme.typography.bodySmall.copy(
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
+            color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Start
         ),
         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Go),
@@ -170,8 +245,8 @@ private fun AddressBarEditMode(
                     contentDescription = "Security",
                     modifier = Modifier.size(14.dp),
                     tint = if (isSecure)
-                        MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-                    else MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
+                        MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
 
                 Spacer(Modifier.width(8.dp))
@@ -181,8 +256,8 @@ private fun AddressBarEditMode(
                     if (urlInput.isEmpty()) {
                         Text(
                             "Search or enter URL",
-                            style = MaterialTheme.typography.bodySmall, // ✅ CHANGED
-                            color = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                     innerTextField()
@@ -198,7 +273,7 @@ private fun AddressBarEditMode(
                             Icons.Rounded.Close,
                             contentDescription = "Clear",
                             modifier = Modifier.size(16.dp),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -228,8 +303,8 @@ private fun AddressBarDisplayMode(
             contentDescription = "Security",
             modifier = Modifier.size(14.dp),
             tint = if (isSecure)
-                MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-            else MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
+                MaterialTheme.colorScheme.onSurface
+            else MaterialTheme.colorScheme.onSurfaceVariant
         )
 
         Spacer(Modifier.width(8.dp))
@@ -237,10 +312,10 @@ private fun AddressBarDisplayMode(
         // Domain Text
         Text(
             text = extractDomain(url),
-            style = MaterialTheme.typography.bodySmall.copy( // ✅ CHANGED
+            style = MaterialTheme.typography.bodySmall.copy(
                 fontWeight = FontWeight.SemiBold
             ),
-            color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
+            color = MaterialTheme.colorScheme.onSurface,
             maxLines = 1,
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f),
@@ -257,7 +332,7 @@ private fun AddressBarDisplayMode(
                 else Icons.Rounded.Refresh,
                 contentDescription = if (isLoading) "Stop" else "Reload",
                 modifier = Modifier.size(16.dp),
-                tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                tint = MaterialTheme.colorScheme.onSurface
             )
         }
     }
