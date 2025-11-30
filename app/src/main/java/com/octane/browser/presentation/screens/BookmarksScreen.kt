@@ -1,161 +1,69 @@
 package com.octane.browser.presentation.screens
 
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.*
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Delete
+import androidx.compose.material.icons.filled.Star
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.ListItem
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.dp
-import com.octane.browser.design.*
-import com.octane.browser.presentation.components.BookmarkItem
-import com.octane.browser.presentation.components.EmptyState
+import androidx.navigation.NavController
+import com.octane.browser.domain.models.Bookmark
+import com.octane.browser.presentation.navigation.BrowserRoute
 import com.octane.browser.presentation.viewmodels.BookmarkViewModel
 import org.koin.androidx.compose.koinViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun BookmarksScreen(
-    onBack: () -> Unit,
-    onOpenUrl: (String) -> Unit,
-    bookmarkViewModel: BookmarkViewModel = koinViewModel()
+    navController: NavController,
+    viewModel: BookmarkViewModel = koinViewModel()
 ) {
-    val filteredBookmarks by bookmarkViewModel.filteredBookmarks.collectAsState()
-    val searchQuery by bookmarkViewModel.searchQuery.collectAsState()
+    val bookmarks by viewModel.bookmarks.collectAsState()
 
-    var showSearchBar by remember { mutableStateOf(false) }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background) // ✅ CHANGED
-    ) {
-        Column(
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Bookmarks") },
+                navigationIcon = {
+                    IconButton(onClick = { navController.popBackStack() }) {
+                        Icon(Icons.AutoMirrored.Filled.ArrowBack, "Back")
+                    }
+                }
+            )
+        }
+    ) { padding ->
+        LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(top = 72.dp)
+                .padding(padding)
         ) {
-            if (filteredBookmarks.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Rounded.StarBorder,
-                    title = if (searchQuery.isEmpty()) "No Bookmarks" else "No Results",
-                    message = if (searchQuery.isEmpty())
-                        "Tap the star icon in the browser to bookmark pages"
-                    else
-                        "No bookmarks match your search"
-                )
-            } else {
-                LazyColumn(
-                    contentPadding = PaddingValues(
-                        horizontal = BrowserDimens.BrowserPaddingScreenEdge
-                    ),
-                    verticalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingUnit),
-                    modifier = Modifier.fillMaxSize()
-                ) {
-                    items(filteredBookmarks, key = { it.id }) { bookmark ->
-                        BookmarkItem(
-                            bookmark = bookmark,
-                            onClick = {
-                                onOpenUrl(bookmark.url)
-                            },
-                            onDelete = {
-                                bookmarkViewModel.removeBookmark(bookmark.id)
-                            }
+            items(bookmarks) { bookmark ->
+                BookmarkItem(
+                    bookmark = bookmark,
+                    onClick = {
+                        // ✅ FIXED: Create new tab every time
+                        navController.navigate(
+                            BrowserRoute(
+                                url = bookmark.url,
+                                forceNewTab = true
+                            )
                         )
-                    }
-                }
-            }
-        }
-
-        if (showSearchBar) {
-            BookmarkSearchBar(
-                query = searchQuery,
-                onQueryChange = { bookmarkViewModel.updateSearchQuery(it) },
-                onClose = {
-                    bookmarkViewModel.updateSearchQuery("")
-                    showSearchBar = false
-                },
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-            )
-        } else {
-            BookmarkTopBar(
-                onBack = onBack,
-                onSearch = { showSearchBar = true },
-                modifier = Modifier
-                    .align(Alignment.TopCenter)
-                    .padding(
-                        start = BrowserDimens.BrowserPaddingScreenEdge,
-                        end = BrowserDimens.BrowserPaddingScreenEdge
-                    )
-            )
-        }
-    }
-}
-
-@Composable
-private fun BookmarkTopBar(
-    onBack: () -> Unit,
-    onSearch: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
-        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh), // ✅ CHANGED
-        shadowElevation = BrowserDimens.BrowserElevationMedium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = BrowserDimens.BrowserSpacingMedium),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            IconButton(
-                onClick = onBack,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
-                        CircleShape
-                    )
-            ) {
-                Icon(
-                    Icons.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-                )
-            }
-
-            Text(
-                text = "Bookmarks",
-                style = MaterialTheme.typography.headlineSmall, // ✅ CHANGED
-                color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-            )
-
-            IconButton(
-                onClick = onSearch,
-                modifier = Modifier
-                    .size(40.dp)
-                    .background(
-                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // ✅ CHANGED
-                        CircleShape
-                    )
-            ) {
-                Icon(
-                    Icons.Rounded.Search,
-                    contentDescription = "Search",
-                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                    },
+                    onDelete = { viewModel.removeBookmark(bookmark.id) } // ✅ FIXED: Use removeBookmark
                 )
             }
         }
@@ -163,72 +71,22 @@ private fun BookmarkTopBar(
 }
 
 @Composable
-private fun BookmarkSearchBar(
-    query: String,
-    onQueryChange: (String) -> Unit,
-    onClose: () -> Unit,
-    modifier: Modifier = Modifier
+fun BookmarkItem(
+    bookmark: Bookmark,
+    onClick: () -> Unit,
+    onDelete: () -> Unit
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
-        color = MaterialTheme.colorScheme.surface.copy(alpha = BrowserOpacity.BrowserOpacitySurfaceHigh), // ✅ CHANGED
-        shadowElevation = BrowserDimens.BrowserElevationMedium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = BrowserDimens.BrowserSpacingMedium),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            IconButton(
-                onClick = onClose,
-                modifier = Modifier.size(40.dp)
-            ) {
-                Icon(
-                    Icons.Rounded.ArrowBack,
-                    contentDescription = "Close Search",
-                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-                )
+    ListItem(
+        headlineContent = { Text(bookmark.title) },
+        supportingContent = { Text(bookmark.url) },
+        leadingContent = {
+            Icon(Icons.Default.Star, contentDescription = null)
+        },
+        trailingContent = {
+            IconButton(onClick = onDelete) {
+                Icon(Icons.Default.Delete, "Delete")
             }
-
-            Spacer(modifier = Modifier.width(BrowserDimens.BrowserSpacingSmall))
-
-            BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                modifier = Modifier.weight(1f),
-                textStyle = MaterialTheme.typography.bodyMedium.copy( // ✅ CHANGED
-                    color = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
-                ),
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(imeAction = ImeAction.Search),
-                decorationBox = { innerTextField ->
-                    if (query.isEmpty()) {
-                        Text(
-                            "Search bookmarks...",
-                            style = MaterialTheme.typography.bodyMedium, // ✅ CHANGED
-                            color = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
-                        )
-                    }
-                    innerTextField()
-                }
-            )
-
-            if (query.isNotEmpty()) {
-                IconButton(
-                    onClick = { onQueryChange("") },
-                    modifier = Modifier.size(40.dp)
-                ) {
-                    Icon(
-                        Icons.Rounded.Close,
-                        contentDescription = "Clear",
-                        modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
-                    )
-                }
-            }
-        }
-    }
+        },
+        modifier = Modifier.clickable(onClick = onClick)
+    )
 }

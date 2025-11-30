@@ -26,22 +26,19 @@ import com.octane.browser.design.BrowserDimens
 import com.octane.browser.presentation.components.BrowserAddressBar
 import com.octane.browser.presentation.components.BrowserMenu
 import com.octane.browser.presentation.components.NavigationControls
-import com.octane.browser.presentation.navigation.HomeRoute
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import com.octane.browser.webview.WebViewContainer
 import kotlinx.coroutines.delay
 import timber.log.Timber
 
 /**
- * ✅ FINAL FIX: Prevent navigation loops
- *
- * Back Button Logic:
- * 1. Close menu if open
- * 2. WebView back if possible
- * 3. Pop to HomeRoute (NOT navigate, to avoid loops)
+ * ✅ ENHANCED: Support for tabId and forceNewTab
  */
 @Composable
 fun BrowserScreen(
+    url: String,
+    tabId: String?,
+    forceNewTab: Boolean,
     onOpenTabManager: () -> Unit,
     onOpenBookmarks: () -> Unit,
     onOpenHistory: () -> Unit,
@@ -59,17 +56,30 @@ fun BrowserScreen(
     var showMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    LaunchedEffect(barsVisible) {
-        if (barsVisible) {
-            delay(3000)
-            browserViewModel.hideBars()
+    // ✅ Handle initial load
+    LaunchedEffect(url, tabId, forceNewTab) {
+        when {
+            // Load specific tab
+            tabId != null -> {
+                browserViewModel.loadTab(tabId)
+            }
+            // Create new tab with URL
+            url.isNotBlank() && forceNewTab -> {
+                browserViewModel.navigateToUrlWithNewTab(url, forceNewTab = true)
+            }
+            // Navigate in current tab
+            url.isNotBlank() -> {
+                browserViewModel.navigateToUrl(url)
+            }
         }
     }
 
-    // ═══════════════════════════════════════════════════════════════
-    // ✅ FIXED: No navigation loops
-    // ═══════════════════════════════════════════════════════════════
-    // BrowserScreen.kt
+    LaunchedEffect(barsVisible) {
+        if (barsVisible) {
+            delay(7000)
+            browserViewModel.hideBars()
+        }
+    }
 
     BackHandler(enabled = true) {
         when {
@@ -147,7 +157,6 @@ fun BrowserScreen(
                 onMenuClick = { showMenu = true },
                 onDesktopModeToggle = { browserViewModel.toggleDesktopMode() },
                 onHomeClick = {
-                    // ✅ FIX: Pop instead of navigate
                     navController.popBackStack()
                 },
                 modifier = Modifier.padding(
@@ -177,7 +186,6 @@ fun BrowserScreen(
                 onBack = { browserViewModel.goBack() },
                 onForward = { browserViewModel.goForward() },
                 onHome = {
-                    // ✅ FIX: Pop instead of navigate
                     navController.popBackStack()
                 },
                 onTabManager = onOpenTabManager,

@@ -3,7 +3,11 @@ package com.octane.browser.presentation.navigation
 import kotlinx.serialization.Serializable
 
 @Serializable
-object BrowserRoute
+data class BrowserRoute(
+    val url: String = "",
+    val tabId: String? = null,  // ✅ NEW: Identify which tab to load
+    val forceNewTab: Boolean = false  // ✅ NEW: Force create new tab
+)
 
 @Serializable
 object HomeRoute

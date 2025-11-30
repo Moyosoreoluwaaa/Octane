@@ -14,13 +14,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
- * ✅ FIXED: Proper tab state management
- *
- * Key Changes:
- * 1. Store WebView state PER TAB (not shared)
- * 2. Save scroll position when switching tabs
- * 3. Restore tab state when switching back
- * 4. Handle navigation events properly
+ * ✅ ENHANCED: Per-tab state isolation + Force new tabs on navigation
  */
 class BrowserViewModel(
     private val navigateToUrlUseCase: NavigateToUrlUseCase,
@@ -34,10 +28,7 @@ class BrowserViewModel(
     private val tabRepository: com.octane.browser.domain.repository.TabRepository
 ) : ViewModel() {
 
-
     // UI STATE
-
-
     private val _webViewState = MutableStateFlow(WebViewState())
     val webViewState: StateFlow<WebViewState> = _webViewState.asStateFlow()
 
@@ -62,7 +53,7 @@ class BrowserViewModel(
     private val _barsVisible = MutableStateFlow(true)
     val barsVisible: StateFlow<Boolean> = _barsVisible.asStateFlow()
 
-    // ✅ NEW: Track current scroll position
+    // ✅ Track current scroll position
     private var currentScrollX = 0
     private var currentScrollY = 0
 
@@ -73,7 +64,6 @@ class BrowserViewModel(
                 Timber.d("🆕 No tabs - creating first tab")
                 createNewTab()
             } else {
-                // ✅ Load active tab state
                 val activeTab = tabsList.find { it.isActive } ?: tabsList.first()
                 loadTabState(activeTab)
                 Timber.d("📂 Loaded active tab: ${activeTab.title}")
@@ -82,20 +72,42 @@ class BrowserViewModel(
     }
 
     fun navigateToHomeScreen() {
-        _webViewState.value = WebViewState() // Reset to empty
+        _webViewState.value = WebViewState()
     }
 
-    // TAB MANAGEMENT
+    // ✅ NEW: Navigate with URL and create new tab if needed
+    fun navigateToUrlWithNewTab(url: String, forceNewTab: Boolean = false) {
+        viewModelScope.launch {
+            if (forceNewTab) {
+                // Save current tab state
+                saveCurrentTabState()
 
-    /**
-     * ✅ Navigate to URL in current tab
-     */
+                // Create new tab
+                val newTab = createNewTabUseCase(url = "", makeActive = true)
+
+                // Reset WebView state
+                _webViewState.value = WebViewState()
+                currentScrollX = 0
+                currentScrollY = 0
+
+                // Navigate to URL in new tab
+                val result = navigateToUrlUseCase(newTab.id, url, "")
+                if (result is NavigateToUrlUseCase.NavigationResult.Success) {
+                    _navigationEvent.emit(NavigationEvent.LoadUrl(result.url))
+                    Timber.d("🌐 Created new tab and loading: ${result.url}")
+                }
+            } else {
+                // Navigate in current tab
+                navigateToUrl(url)
+            }
+        }
+    }
+
     fun navigateToUrl(url: String) {
         viewModelScope.launch {
             val currentTab = tabs.value.find { it.isActive }
 
             if (currentTab == null) {
-                // ✅ Process URL first, then emit
                 val result = navigateToUrlUseCase.invoke("temp", url, "")
                 if (result is NavigateToUrlUseCase.NavigationResult.Success) {
                     val newTab = createNewTabUseCase(url = result.url, makeActive = true)
@@ -105,7 +117,6 @@ class BrowserViewModel(
             } else {
                 saveCurrentTabState()
 
-                // ✅ Get processed URL from use case
                 val result = navigateToUrlUseCase(currentTab.id, url)
                 if (result is NavigateToUrlUseCase.NavigationResult.Success) {
                     _navigationEvent.emit(NavigationEvent.LoadUrl(result.url))
@@ -115,18 +126,11 @@ class BrowserViewModel(
         }
     }
 
-    /**
-     * ✅ Create new empty tab
-     */
     fun createNewTab() {
         viewModelScope.launch {
-            // Save current tab state
             saveCurrentTabState()
-
-            // Create new tab
             createNewTabUseCase(url = "", makeActive = true)
 
-            // Reset WebView state for new tab
             _webViewState.value = WebViewState()
             currentScrollX = 0
             currentScrollY = 0
@@ -135,18 +139,25 @@ class BrowserViewModel(
         }
     }
 
-    /**
-     * ✅ Switch to existing tab (with state restoration)
-     */
-    fun switchTab(tabId: String) {
+    // ✅ NEW: Load specific tab by ID
+    fun loadTab(tabId: String) {
         viewModelScope.launch {
-            // 1. Save current tab state
             saveCurrentTabState()
 
-            // 2. Switch tab in repository
+            val tab = tabs.value.find { it.id == tabId }
+            if (tab != null) {
+                switchTabUseCase(tabId)
+                loadTabState(tab)
+                Timber.d("🔄 Loaded tab: ${tab.title}")
+            }
+        }
+    }
+
+    fun switchTab(tabId: String) {
+        viewModelScope.launch {
+            saveCurrentTabState()
             switchTabUseCase(tabId)
 
-            // 3. Load new tab state
             val tab = tabs.value.find { it.id == tabId }
             if (tab != null) {
                 loadTabState(tab)
@@ -155,19 +166,14 @@ class BrowserViewModel(
         }
     }
 
-    /**
-     * ✅ Close tab (handle last tab case)
-     */
     fun closeTab(tabId: String) {
         viewModelScope.launch {
             closeTabUseCase(tabId)
 
             val remainingTabs = tabs.value
             if (remainingTabs.isEmpty()) {
-                // No tabs left - create new one
                 createNewTab()
             } else {
-                // Load next active tab
                 val nextTab = remainingTabs.firstOrNull { it.isActive }
                     ?: remainingTabs.first()
                 loadTabState(nextTab)
@@ -175,13 +181,7 @@ class BrowserViewModel(
         }
     }
 
-
     // TAB STATE PERSISTENCE
-
-
-    /**
-     * ✅ Save current tab's WebView state to database
-     */
     private suspend fun saveCurrentTabState() {
         val currentTab = tabs.value.find { it.isActive } ?: return
 
@@ -202,9 +202,6 @@ class BrowserViewModel(
         Timber.d("💾 Saved tab state: ${updatedTab.title} (scroll: $currentScrollY)")
     }
 
-    /**
-     * ✅ Load tab state from database to UI
-     */
     private fun loadTabState(tab: BrowserTab) {
         _webViewState.value = WebViewState(
             url = tab.url,
@@ -219,7 +216,6 @@ class BrowserViewModel(
         currentScrollX = tab.scrollX
         currentScrollY = tab.scrollY
 
-        // Emit events to restore WebView
         if (tab.url.isNotBlank() && tab.url != "about:blank") {
             _navigationEvent.tryEmit(NavigationEvent.LoadUrl(tab.url))
             _navigationEvent.tryEmit(NavigationEvent.RestoreScroll(tab.scrollX, tab.scrollY))
@@ -228,10 +224,7 @@ class BrowserViewModel(
         Timber.d("📂 Loaded tab state: ${tab.title} (scroll: ${tab.scrollY})")
     }
 
-
-    // WEBVIEW CALLBACKS (Called from WebViewContainer)
-
-
+    // WEBVIEW CALLBACKS
     fun onPageStarted(url: String) {
         _webViewState.value = _webViewState.value.copy(
             url = url,
@@ -250,7 +243,6 @@ class BrowserViewModel(
                 progress = 100
             )
 
-            // Update tab in database
             val currentTab = tabs.value.find { it.isActive }
             if (currentTab != null) {
                 updateTabContentUseCase(
@@ -290,18 +282,11 @@ class BrowserViewModel(
         )
     }
 
-    /**
-     * ✅ NEW: Track scroll position changes
-     */
     fun onScrollChanged(scrollX: Int, scrollY: Int) {
         currentScrollX = scrollX
         currentScrollY = scrollY
-        // Auto-save every 2 seconds of scrolling (debounced in practice)
     }
 
-    /**
-     * ✅ Capture screenshot with correct scroll position
-     */
     fun captureCurrentTabScreenshot(screenshot: Bitmap) {
         viewModelScope.launch {
             val currentTab = tabs.value.find { it.isActive } ?: return@launch
@@ -317,7 +302,6 @@ class BrowserViewModel(
     }
 
     // NAVIGATION CONTROLS
-
     fun reload() {
         _navigationEvent.tryEmit(NavigationEvent.Reload)
     }
@@ -353,7 +337,6 @@ class BrowserViewModel(
     }
 
     // BOOKMARKS
-
     fun toggleBookmark() {
         viewModelScope.launch {
             val state = _webViewState.value
@@ -363,7 +346,6 @@ class BrowserViewModel(
     }
 
     // SECURITY
-
     fun dismissPhishingWarning() {
         _showPhishingWarning.value = null
         goBack()
@@ -374,7 +356,6 @@ class BrowserViewModel(
     }
 
     // NAVIGATION EVENTS
-
     sealed interface NavigationEvent {
         data class LoadUrl(val url: String) : NavigationEvent
         data class RestoreScroll(val x: Int, val y: Int) : NavigationEvent

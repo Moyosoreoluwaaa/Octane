@@ -5,17 +5,13 @@ import androidx.compose.ui.Modifier
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
+import androidx.navigation.toRoute
 import com.octane.browser.presentation.screens.*
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import org.koin.androidx.compose.koinViewModel
 
 /**
- * ✅ FINAL FIX: Prevent navigation loops
- *
- * Key Changes:
- * 1. Home button doesn't use navigate() - just saves state and pops
- * 2. Bookmarks/History properly restore BrowserRoute
- * 3. No circular navigation patterns
+ * ✅ ENHANCED: Proper tab isolation and new tab creation
  */
 @Composable
 fun BrowserNavGraph(
@@ -29,24 +25,20 @@ fun BrowserNavGraph(
         startDestination = HomeRoute,
         modifier = modifier
     ) {
-        // ═══════════════════════════════════════════════════════════════
+
         // HOME SCREEN
-        // ═══════════════════════════════════════════════════════════════
         composable<HomeRoute> {
             BrowserHomeScreen(
-                onOpenUrl = { url ->
-                    browserViewModel.navigateToUrl(url)
-                    navController.navigate(BrowserRoute) {
-                        launchSingleTop = true
-                        restoreState = true
-                    }
+                onOpenUrl = { query ->
+                    navController.navigate(
+                        BrowserRoute(url = query, forceNewTab = false)
+                    )
                 },
                 onOpenSettings = {
                     navController.navigate(SettingsRoute)
                 },
                 onNewTabAndGoHome = {
                     browserViewModel.createNewTab()
-                    // Stay on home
                 },
                 onOpenBookmarks = {
                     navController.navigate(BookmarksRoute)
@@ -58,31 +50,24 @@ fun BrowserNavGraph(
             )
         }
 
-        // ═══════════════════════════════════════════════════════════════
-        // BROWSER SCREEN (Main Viewing)
-        // ═══════════════════════════════════════════════════════════════
-        composable<BrowserRoute> {
+        // BROWSER SCREEN
+        composable<BrowserRoute> { backStackEntry ->
+            val route = backStackEntry.toRoute<BrowserRoute>()
+
             BrowserScreen(
-                onOpenTabManager = {
-                    navController.navigate(TabManagerRoute)
-                },
-                onOpenBookmarks = {
-                    navController.navigate(BookmarksRoute)
-                },
-                onOpenHistory = {
-                    navController.navigate(HistoryRoute)
-                },
-                onOpenSettings = {
-                    navController.navigate(SettingsRoute)
-                },
+                url = route.url,
+                tabId = route.tabId,
+                forceNewTab = route.forceNewTab,
+                onOpenTabManager = { navController.navigate(TabManagerRoute) },
+                onOpenBookmarks = { navController.navigate(BookmarksRoute) },
+                onOpenHistory = { navController.navigate(HistoryRoute) },
+                onOpenSettings = { navController.navigate(SettingsRoute) },
                 browserViewModel = browserViewModel,
                 navController = navController
             )
         }
 
-        // ═══════════════════════════════════════════════════════════════
         // TAB MANAGER
-        // ═══════════════════════════════════════════════════════════════
         composable<TabManagerRoute> {
             TabManagerScreen(
                 onBack = {
@@ -95,8 +80,10 @@ fun BrowserNavGraph(
                     }
                 },
                 onSelectTab = { tabId ->
-                    browserViewModel.switchTab(tabId)
-                    navController.navigate(BrowserRoute) {
+                    // ✅ Navigate to BrowserRoute with specific tabId
+                    navController.navigate(
+                        BrowserRoute(tabId = tabId, forceNewTab = false)
+                    ) {
                         popUpTo<TabManagerRoute> { inclusive = true }
                         launchSingleTop = true
                     }
@@ -105,45 +92,17 @@ fun BrowserNavGraph(
             )
         }
 
-        // ═══════════════════════════════════════════════════════════════
         // BOOKMARKS
-        // ═══════════════════════════════════════════════════════════════
         composable<BookmarksRoute> {
-            BookmarksScreen(
-                onBack = {
-                    navController.popBackStack()
-                },
-                onOpenUrl = { url ->
-                    browserViewModel.navigateToUrl(url)
-                    navController.navigate(BrowserRoute) {
-                        popUpTo<BookmarksRoute> { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            )
+            BookmarksScreen(navController)
         }
 
-        // ═══════════════════════════════════════════════════════════════
         // HISTORY
-        // ═══════════════════════════════════════════════════════════════
         composable<HistoryRoute> {
-            HistoryScreen(
-                onBack = {
-                    navController.popBackStack()
-                },
-                onOpenUrl = { url ->
-                    browserViewModel.navigateToUrl(url)
-                    navController.navigate(BrowserRoute) {
-                        popUpTo<HistoryRoute> { inclusive = true }
-                        launchSingleTop = true
-                    }
-                }
-            )
+            HistoryScreen(navController)
         }
 
-        // ═══════════════════════════════════════════════════════════════
         // SETTINGS
-        // ═══════════════════════════════════════════════════════════════
         composable<SettingsRoute> {
             SettingsScreen(
                 onBack = {
@@ -152,9 +111,7 @@ fun BrowserNavGraph(
             )
         }
 
-        // ═══════════════════════════════════════════════════════════════
         // CONNECTIONS
-        // ═══════════════════════════════════════════════════════════════
         composable<ConnectionsRoute> {
             ConnectionsScreen(
                 onBack = {
