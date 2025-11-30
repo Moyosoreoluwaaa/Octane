@@ -12,6 +12,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
@@ -27,13 +28,14 @@ import timber.log.Timber
 import kotlin.math.abs
 
 /**
- * ✅ FIXED: Proper scroll state tracking and restoration
+ * ✅ ENHANCED: Proper scroll state tracking + Dark Theme Support
  *
- * Key Changes:
- * 1. Track scroll position in real-time
- * 2. Restore scroll when loading tab
- * 3. Debounced saving to avoid database spam
- * 4. Proper lifecycle handling
+ * Key Features:
+ * 1. Real-time scroll position tracking
+ * 2. Debounced saving to avoid database spam
+ * 3. Automatic dark theme detection and application
+ * 4. Configuration change handling
+ * 5. Screenshot capture on lifecycle pause
  */
 @Composable
 fun WebViewContainer(
@@ -44,11 +46,15 @@ fun WebViewContainer(
 ) {
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
+    val context = LocalContext.current // ✅ NEW: Get context for theme detection
     var webView by remember { mutableStateOf<WebView?>(null) }
 
     // ✅ Track pending scroll restoration
     var pendingScrollX by remember { mutableStateOf<Int?>(null) }
     var pendingScrollY by remember { mutableStateOf<Int?>(null) }
+
+    // ✅ NEW: Track system theme changes (proper Compose way)
+    val isDarkMode = androidx.compose.foundation.isSystemInDarkTheme()
 
     // Screenshot capture on lifecycle pause
     DisposableEffect(lifecycleOwner) {
@@ -72,6 +78,14 @@ fun WebViewContainer(
         }
     }
 
+    // ✅ NEW: Update theme when system theme changes
+    LaunchedEffect(isDarkMode) {
+        webView?.let { wv ->
+            WebViewThemeManager.setupTheme(wv, context)
+            Timber.d("🎨 Theme updated: Dark Mode = $isDarkMode")
+        }
+    }
+
     // Navigation events
     LaunchedEffect(Unit) {
         browserViewModel.navigationEvent.collect { event ->
@@ -82,10 +96,8 @@ fun WebViewContainer(
                         wv.loadUrl(event.url)
                     }
 
-                    // ✅ NEW: Restore scroll position
                     is BrowserViewModel.NavigationEvent.RestoreScroll -> {
                         Timber.d("📜 Restoring scroll: (${event.x}, ${event.y})")
-                        // Store pending scroll - will be applied after page loads
                         pendingScrollX = event.x
                         pendingScrollY = event.y
                     }
@@ -128,10 +140,10 @@ fun WebViewContainer(
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
 
+                // ✅ Setup WebView with callbacks
                 setupWebView(
                     browserViewModel = browserViewModel,
                     onScrollRestored = {
-                        // ✅ Apply pending scroll after page loads
                         if (pendingScrollX != null && pendingScrollY != null) {
                             scrollTo(pendingScrollX!!, pendingScrollY!!)
                             Timber.d("✅ Scroll restored: ($pendingScrollX, $pendingScrollY)")
@@ -141,13 +153,19 @@ fun WebViewContainer(
                     }
                 )
 
+                // ✅ NEW: Setup dark theme (initial)
+                WebViewThemeManager.setupTheme(this, context)
+                WebViewThemeManager.logThemeConfiguration(this, context)
+
+                // ✅ Setup scroll listener
                 setupScrollListener(onScrollUp, onScrollDown, browserViewModel)
 
                 webView = this
             }
         },
         update = { wv ->
-            // Update is called on recomposition - don't recreate WebView
+            // ✅ NEW: Update theme on recomposition
+            WebViewThemeManager.setupTheme(wv, context)
         }
     )
 }

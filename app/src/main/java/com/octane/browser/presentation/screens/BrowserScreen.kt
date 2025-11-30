@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -19,6 +20,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
 import com.octane.browser.design.BrowserColors
@@ -32,7 +34,7 @@ import kotlinx.coroutines.delay
 import timber.log.Timber
 
 /**
- * ✅ ENHANCED: Support for tabId and forceNewTab
+ * ✅ ENHANCED: Support for dark theme + tabId and forceNewTab
  */
 @Composable
 fun BrowserScreen(
@@ -46,6 +48,7 @@ fun BrowserScreen(
     browserViewModel: BrowserViewModel,
     navController: NavController
 ) {
+    val context = LocalContext.current
     val webViewState by browserViewModel.webViewState.collectAsState()
     val isBookmarked by browserViewModel.isBookmarked.collectAsState()
     val tabs by browserViewModel.tabs.collectAsState()
@@ -56,24 +59,30 @@ fun BrowserScreen(
     var showMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // ✅ Handle initial load
+    // ✅ NEW: Track system theme
+    val isDarkTheme = isSystemInDarkTheme()
+
+    // ✅ NEW: Log theme changes
+    LaunchedEffect(isDarkTheme) {
+        Timber.d("🎨 System theme changed: Dark Mode = $isDarkTheme")
+    }
+
+    // Handle initial load
     LaunchedEffect(url, tabId, forceNewTab) {
         when {
-            // Load specific tab
             tabId != null -> {
                 browserViewModel.loadTab(tabId)
             }
-            // Create new tab with URL
             url.isNotBlank() && forceNewTab -> {
                 browserViewModel.navigateToUrlWithNewTab(url, forceNewTab = true)
             }
-            // Navigate in current tab
             url.isNotBlank() -> {
                 browserViewModel.navigateToUrl(url)
             }
         }
     }
 
+    // Auto-hide bars after delay
     LaunchedEffect(barsVisible) {
         if (barsVisible) {
             delay(7000)
@@ -81,6 +90,7 @@ fun BrowserScreen(
         }
     }
 
+    // Back handler
     BackHandler(enabled = true) {
         when {
             showMenu -> {
@@ -100,6 +110,7 @@ fun BrowserScreen(
         }
     }
 
+    // Navigation event handling
     LaunchedEffect(Unit) {
         browserViewModel.navigationEvent.collect { event ->
             when (event) {
@@ -117,7 +128,7 @@ fun BrowserScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-        // WebView
+        // WebView with Dark Theme Support
         WebViewContainer(
             browserViewModel = browserViewModel,
             modifier = Modifier.fillMaxSize(),
@@ -201,6 +212,7 @@ fun BrowserScreen(
         }
     }
 
+    // Browser Menu
     if (showMenu) {
         BrowserMenu(
             onDismiss = { showMenu = false },
@@ -213,6 +225,7 @@ fun BrowserScreen(
         )
     }
 
+    // Phishing Warning Dialog
     showPhishingWarning?.let { warning ->
         AlertDialog(
             onDismissRequest = { browserViewModel.dismissPhishingWarning() },

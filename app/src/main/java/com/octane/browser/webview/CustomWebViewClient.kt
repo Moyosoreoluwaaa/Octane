@@ -35,24 +35,29 @@ class CustomWebViewClient(
             )
         }
 
-        // Inject Polyfills (Aborts, WebSocket, etc)
+        // Inject Polyfills
         injectPolyfills(view)
+
+        // ✅ NEW: Inject dark theme CSS for better compatibility
+        injectDarkThemeHelpers(view)
     }
 
     override fun onPageFinished(view: WebView?, url: String?) {
         super.onPageFinished(view, url)
 
         view?.let { webView ->
-            // ✅ CRITICAL FIX: Force Layout Height
-            // React/Next.js apps often default to 0 height in Android WebView
+            // ✅ Force Layout Height (React/Next.js fix)
             webView.evaluateJavascript("""
                 (function() {
                     var style = document.createElement('style');
                     style.innerHTML = 'html, body, #__next, #root, #app { height: 100% !important; width: 100% !important; min-height: 100vh; }';
                     document.head.appendChild(style);
-                    console.log('[Octane] 📏 Forced 100% height layout');
+                    console.log('[Octane] 📐 Forced 100% height layout');
                 })();
             """, null)
+
+            // ✅ NEW: Ensure dark theme is properly applied
+            WebViewThemeManager.setupTheme(webView, context)
 
             url?.let {
                 val loadTime = System.currentTimeMillis() - loadStartTime
@@ -75,34 +80,23 @@ class CustomWebViewClient(
 
         Timber.d("🔗 Navigation Requested: $url")
 
-        // 1. Handle Special Schemes (Wallets, Tel, Mail)
+        // Handle Special Schemes
         if (isSpecialScheme(url)) {
             handleSpecialScheme(url)
             return true
         }
 
-        // 2. Handle Internal Navigation
-        // Allow if HTTP/S AND (Same Host OR Subdomain OR User typed it)
+        // Handle Internal Navigation
         if (url.startsWith("http://") || url.startsWith("https://")) {
-
-            // ✅ FIX: Subdomain handling
-            // If moving from app.uniswap.org -> uniswap.org, keep internal
             if (isSubdomainNavigation(currentUrl, url)) {
                 return false // Load in WebView
             }
-
-            // Default: Load all standard web links internally
-            return false
+            return false // Load all HTTP/S internally
         }
 
         handleSpecialScheme(url)
         return true
     }
-
-    // ✅ CRITICAL FIX: WASM & Headers
-    // Do NOT intercept standard GET requests. Doing so strips the "Content-Type: application/wasm"
-    // and "Content-Encoding: gzip" headers sent by Raydium/Jupiter, causing the black screen.
-    // In CustomWebViewClient.kt
 
     override fun shouldInterceptRequest(
         view: WebView?,
@@ -110,7 +104,7 @@ class CustomWebViewClient(
     ): WebResourceResponse? {
         val method = request?.method ?: "GET"
 
-        // ✅ ONLY Handle CORS Preflight (OPTIONS)
+        // Only Handle CORS Preflight (OPTIONS)
         if (method.equals("OPTIONS", ignoreCase = true)) {
             val headers = mapOf(
                 "Access-Control-Allow-Origin" to "*",
@@ -124,22 +118,15 @@ class CustomWebViewClient(
             )
         }
 
-        // ❌ DO NOT return super.shouldInterceptRequest(view, request)
-        // ❌ DO NOT construct a new WebResourceResponse for GET requests
-
-        // ✅ RETURN NULL: This tells WebView "You handle the network fetch."
-        // This preserves all original headers (GZIP, WASM, Cache-Control).
+        // ✅ Return null to preserve original headers (WASM, GZIP, etc.)
         return null
     }
 
-    // Helper: Detect Subdomain navigation
     private fun isSubdomainNavigation(current: String, target: String): Boolean {
         if (current.isEmpty()) return true
         try {
             val currentHost = current.toUri().host?.removePrefix("www.") ?: return false
             val targetHost = target.toUri().host?.removePrefix("www.") ?: return false
-
-            // Check if they share a base domain (Simple check)
             return currentHost.contains(targetHost) || targetHost.contains(currentHost)
         } catch (_: Exception) {
             return false
@@ -165,7 +152,6 @@ class CustomWebViewClient(
     }
 
     override fun onReceivedSslError(view: WebView?, handler: SslErrorHandler?, error: SslError?) {
-        // In production, be careful. For DeFi, sometimes RPC nodes have cert issues.
         val trustedDomains = listOf("raydium.io", "jupiter.ag", "solana.com")
         val url = error?.url ?: ""
 
@@ -177,11 +163,62 @@ class CustomWebViewClient(
     }
 
     private fun injectPolyfills(view: WebView?) {
-        // Inject your existing WebSocket/AbortController polyfills here
-        // (Copied from your original file for brevity, ensure it's included)
         view?.evaluateJavascript("""
-            if (!window.AbortController) { console.log('Polyfilling AbortController'); }
-            // ... [Insert your specific polyfill code from previous file here] ...
+            (function() {
+                // AbortController Polyfill
+                if (!window.AbortController) {
+                    console.log('[Octane] Polyfilling AbortController');
+                    window.AbortController = function() {
+                        this.signal = { aborted: false };
+                        this.abort = function() { this.signal.aborted = true; };
+                    };
+                }
+                
+                // WebSocket Polyfill enhancements
+                if (window.WebSocket) {
+                    const OriginalWebSocket = window.WebSocket;
+                    window.WebSocket = function(url, protocols) {
+                        console.log('[Octane] WebSocket connecting to:', url);
+                        return new OriginalWebSocket(url, protocols);
+                    };
+                    window.WebSocket.prototype = OriginalWebSocket.prototype;
+                }
+            })();
         """, null)
+    }
+
+    /**
+     * ✅ NEW: Inject dark theme CSS helpers
+     *
+     * This helps websites that don't properly implement prefers-color-scheme
+     * by adding a fallback color-scheme meta tag
+     */
+    private fun injectDarkThemeHelpers(view: WebView?) {
+        val isDarkMode = WebViewThemeManager.isDarkMode(context)
+
+        if (isDarkMode) {
+            view?.evaluateJavascript("""
+                (function() {
+                    // Check if color-scheme meta tag exists
+                    var metaTag = document.querySelector('meta[name="color-scheme"]');
+                    
+                    if (!metaTag) {
+                        console.log('[Octane] 🎨 Adding color-scheme meta tag');
+                        metaTag = document.createElement('meta');
+                        metaTag.name = 'color-scheme';
+                        metaTag.content = 'dark light';
+                        document.head.appendChild(metaTag);
+                    } else {
+                        console.log('[Octane] 🎨 Site already has color-scheme:', metaTag.content);
+                    }
+                    
+                    // Log prefers-color-scheme detection
+                    if (window.matchMedia) {
+                        var darkModeQuery = window.matchMedia('(prefers-color-scheme: dark)');
+                        console.log('[Octane] 🎨 prefers-color-scheme: dark =', darkModeQuery.matches);
+                    }
+                })();
+            """, null)
+        }
     }
 }
