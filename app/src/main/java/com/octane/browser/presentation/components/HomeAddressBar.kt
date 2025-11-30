@@ -61,7 +61,6 @@ import com.octane.browser.domain.models.WebViewState
 fun HomeAddressBar(
     webViewState: WebViewState,
     onNavigate: (String) -> Unit,
-    onOpenMenu: () -> Unit,
     onNewTab: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -74,22 +73,6 @@ fun HomeAddressBar(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(BrowserDimens.BrowserSpacingUnit)
     ) {
-        // LEFT: Menu Button
-        IconButton(
-            onClick = onOpenMenu,
-            modifier = Modifier
-                .size(40.dp)
-                .background(
-                    MaterialTheme.colorScheme.surfaceContainerHigh,
-                    CircleShape
-                )
-        ) {
-            Icon(
-                Icons.Rounded.Menu,
-                contentDescription = "Menu",
-                tint = MaterialTheme.colorScheme.onSurface
-            )
-        }
 
         // CENTER: Search Field (Always editable)
         Surface(

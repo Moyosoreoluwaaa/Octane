@@ -1,72 +1,58 @@
 package com.octane.browser.presentation.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.ArrowBack
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.History
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.material3.TopAppBar
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.remember
+import androidx.compose.material.icons.rounded.ArrowBack
+import androidx.compose.material.icons.rounded.Delete
+import androidx.compose.material.icons.rounded.History
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
 import androidx.navigation.NavController
+import com.octane.browser.design.BrowserDimens
+import com.octane.browser.design.BrowserOpacity
 import com.octane.browser.domain.models.HistoryEntry
-import com.octane.browser.presentation.navigation.BrowserRoute // ✅ FIXED: Correct import
+import com.octane.browser.presentation.navigation.BrowserRoute
 import com.octane.browser.presentation.viewmodels.HistoryViewModel
 import org.koin.androidx.compose.koinViewModel
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HistoryScreen(
     navController: NavController,
     viewModel: HistoryViewModel = koinViewModel()
 ) {
-    val history by viewModel.historyEntries.collectAsState() // ✅ FIXED: Use historyEntries
+    val history by viewModel.historyEntries.collectAsState()
 
-    Scaffold(
-        topBar = {
-            TopAppBar(
-                title = { Text("History") },
-                navigationIcon = {
-                    IconButton(onClick = { navController.popBackStack() }) {
-                        Icon(Icons.Default.ArrowBack, "Back")
-                    }
-                },
-                actions = {
-                    IconButton(onClick = { viewModel.clearAllHistory() }) {
-                        Icon(Icons.Default.Delete, "Clear All")
-                    }
-                }
-            )
-        }
-    ) { padding ->
+    Box(
+        modifier = Modifier
+            .fillMaxSize()
+            .background(MaterialTheme.colorScheme.background)
+    ) {
+        // Content Area
         LazyColumn(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(padding)
+                .padding(top = 72.dp, bottom = 16.dp),
+            contentPadding = PaddingValues(horizontal = BrowserDimens.BrowserPaddingScreenEdge),
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
             items(history) { entry ->
-                HistoryItem(
+                HistoryItemCard(
                     entry = entry,
                     onClick = {
-                        // ✅ FIXED: Create new tab every time
                         navController.navigate(
                             BrowserRoute(
                                 url = entry.url,
@@ -78,11 +64,86 @@ fun HistoryScreen(
                 )
             }
         }
+
+        // Floating Top Bar
+        HistoryTopBar(
+            onBack = { navController.popBackStack() },
+            onClearAll = { viewModel.clearAllHistory() },
+            modifier = Modifier
+                .align(Alignment.TopCenter)
+                .padding(horizontal = BrowserDimens.BrowserPaddingScreenEdge)
+        )
     }
 }
 
 @Composable
-fun HistoryItem(
+private fun HistoryTopBar(
+    onBack: () -> Unit,
+    onClearAll: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+        color = MaterialTheme.colorScheme.surface.copy(
+            alpha = BrowserOpacity.BrowserOpacitySurfaceHigh
+        ),
+        shadowElevation = BrowserDimens.BrowserElevationMedium
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(56.dp)
+                .padding(horizontal = BrowserDimens.BrowserSpacingMedium),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween
+        ) {
+            // Back Button
+            IconButton(
+                onClick = onBack,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        MaterialTheme.colorScheme.surface.copy(alpha = 0.9f)
+                    )
+            ) {
+                Icon(
+                    Icons.Rounded.ArrowBack,
+                    contentDescription = "Back",
+                    tint = MaterialTheme.colorScheme.onSurface
+                )
+            }
+
+            // Title
+            Text(
+                text = "History",
+                style = MaterialTheme.typography.headlineSmall,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+
+            // Clear All Button
+            IconButton(
+                onClick = onClearAll,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
+                    )
+            ) {
+                Icon(
+                    Icons.Rounded.Delete,
+                    contentDescription = "Clear All",
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun HistoryItemCard(
     entry: HistoryEntry,
     onClick: () -> Unit,
     onDelete: () -> Unit
@@ -92,25 +153,86 @@ fun HistoryItem(
         dateFormat.format(Date(entry.visitedAt))
     }
 
-    ListItem(
-        headlineContent = { Text(entry.title) },
-        supportingContent = {
-            Column {
-                Text(entry.url)
+    Surface(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick),
+        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+        color = MaterialTheme.colorScheme.surface.copy(
+            alpha = BrowserOpacity.BrowserOpacitySurfaceMedium
+        ),
+        shadowElevation = BrowserDimens.BrowserElevationLow
+    ) {
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(BrowserDimens.BrowserSpacingMedium),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            // Icon
+            Surface(
+                modifier = Modifier.size(40.dp),
+                shape = CircleShape,
+                color = MaterialTheme.colorScheme.primaryContainer
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Icon(
+                        Icons.Rounded.History,
+                        contentDescription = null,
+                        modifier = Modifier.size(20.dp),
+                        tint = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
+                }
+            }
+
+            Spacer(Modifier.width(12.dp))
+
+            // Content
+            Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    "$dateText • ${entry.visitCount} visit${if (entry.visitCount > 1) "s" else ""}",
-                    style = MaterialTheme.typography.bodySmall
+                    text = entry.title,
+                    style = MaterialTheme.typography.bodyLarge.copy(
+                        fontWeight = FontWeight.Medium
+                    ),
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                Text(
+                    text = entry.url,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+
+                Spacer(Modifier.height(2.dp))
+
+                Text(
+                    text = "$dateText • ${entry.visitCount} visit${if (entry.visitCount > 1) "s" else ""}",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-        },
-        leadingContent = {
-            Icon(Icons.Default.History, contentDescription = null)
-        },
-        trailingContent = {
-            IconButton(onClick = onDelete) {
-                Icon(Icons.Default.Delete, "Delete")
+
+            // Delete Button
+            IconButton(
+                onClick = onDelete,
+                modifier = Modifier
+                    .size(40.dp)
+                    .clip(CircleShape)
+                    .background(
+                        MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.3f)
+                    )
+            ) {
+                Icon(
+                    Icons.Rounded.Delete,
+                    contentDescription = "Delete",
+                    modifier = Modifier.size(20.dp),
+                    tint = MaterialTheme.colorScheme.error
+                )
             }
-        },
-        modifier = Modifier.clickable(onClick = onClick)
-    )
+        }
+    }
 }

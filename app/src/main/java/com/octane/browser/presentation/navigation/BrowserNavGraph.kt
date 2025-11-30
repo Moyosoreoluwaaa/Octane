@@ -46,7 +46,10 @@ fun BrowserNavGraph(
                 onOpenHistory = {
                     navController.navigate(HistoryRoute)
                 },
-                browserViewModel = browserViewModel
+                browserViewModel = browserViewModel,
+                onNavigateToTabs = {
+                    navController.navigate(TabManagerRoute)
+                }
             )
         }
 

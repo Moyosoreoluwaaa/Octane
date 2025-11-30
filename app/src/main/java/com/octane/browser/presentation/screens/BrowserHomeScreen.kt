@@ -3,53 +3,28 @@ package com.octane.browser.presentation.screens
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Public
-import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.rounded.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.octane.browser.design.BrowserDimens
 import com.octane.browser.domain.models.QuickAccessLink
-import com.octane.browser.presentation.components.BrowserMenu
 import com.octane.browser.presentation.components.HomeAddressBar
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
-import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun BrowserHomeScreen(
@@ -58,61 +33,59 @@ fun BrowserHomeScreen(
     onOpenBookmarks: () -> Unit,
     onOpenHistory: () -> Unit,
     onNewTabAndGoHome: () -> Unit,
+    onNavigateToTabs: () -> Unit,
     browserViewModel: BrowserViewModel
 ) {
-    // Dummy state for Quick Access links
     val quickAccessLinks = remember {
         mutableStateListOf(
             QuickAccessLink(1, "https://google.com", "Google", null),
             QuickAccessLink(2, "https://github.com", "GitHub", null),
-            QuickAccessLink(3, "https://compose.com", "Compose Docs", null),
-            QuickAccessLink(4, "https://octane.com", "Octane Home", null)
+            QuickAccessLink(3, "https://youtube.com", "YouTube", null),
+            QuickAccessLink(4, "https://twitter.com", "Twitter", null)
         )
     }
     val webViewState by browserViewModel.webViewState.collectAsState()
-    var showMenu by remember { mutableStateOf(false) }
+    val tabs by browserViewModel.tabs.collectAsState()
 
     Scaffold(
         topBar = {
-            // Reusing AddressBar's aesthetic for a search/navigation input
             Row(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(BrowserDimens.BrowserPaddingScreenEdge),
-                verticalAlignment = Alignment.CenterVertically
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Dummy WebViewState for AddressBar input context
-                val dummyState = com.octane.browser.domain.models.WebViewState(
-                    url = "about:home",
-                    title = "Home",
-                    isLoading = false,
-                    canGoBack = false,
-                    canGoForward = false,
-                    isSecure = true
-                )
+                // Avatar (replaces menu)
+                Surface(
+                    onClick = onOpenSettings,
+                    modifier = Modifier.size(48.dp),
+                    shape = CircleShape,
+                    color = MaterialTheme.colorScheme.primaryContainer
+                ) {
+                    Box(contentAlignment = Alignment.Center) {
+                        Icon(
+                            Icons.Rounded.Person,
+                            contentDescription = "Profile",
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                }
 
+                // Address Bar
                 HomeAddressBar(
                     webViewState = webViewState,
                     onNavigate = onOpenUrl,
-                    onOpenMenu = { showMenu = true }, // Use settings icon as menu for simplicity here
-                    onNewTab = onNewTabAndGoHome, // Wire up the new callback
+                    onNewTab = onNewTabAndGoHome,
                     modifier = Modifier.weight(1f)
                 )
-                Spacer(Modifier.width(12.dp))
 
-                IconButton(
-                    onClick = onOpenSettings,
-                    modifier = Modifier
-                        .size(48.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.surfaceContainerHigh)
-                ) {
-                    Icon(
-                        Icons.Rounded.Settings,
-                        contentDescription = "Settings",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
+                // Tab Counter
+                TabCounterButton(
+                    tabCount = tabs.size,
+                    onClick = onNavigateToTabs
+                )
             }
         }
     ) { padding ->
@@ -121,15 +94,26 @@ fun BrowserHomeScreen(
                 .fillMaxSize()
                 .padding(padding)
         ) {
+            // Quick Actions
+            QuickActionsRow(
+                onBookmarks = onOpenBookmarks,
+                onHistory = onOpenHistory,
+                onTabs = onNavigateToTabs,
+                modifier = Modifier.padding(horizontal = BrowserDimens.BrowserPaddingScreenEdge)
+            )
+
+            Spacer(Modifier.height(24.dp))
+
+            // Quick Access Title
             Text(
                 text = "Quick Access",
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(
-                    horizontal = BrowserDimens.BrowserPaddingScreenEdge,
-                    vertical = 16.dp
-                )
+                modifier = Modifier.padding(horizontal = BrowserDimens.BrowserPaddingScreenEdge)
             )
 
+            Spacer(Modifier.height(16.dp))
+
+            // Quick Access Grid
             LazyVerticalGrid(
                 columns = GridCells.Fixed(4),
                 contentPadding = PaddingValues(horizontal = BrowserDimens.BrowserPaddingScreenEdge),
@@ -143,7 +127,6 @@ fun BrowserHomeScreen(
                 // Add button
                 item {
                     QuickAccessAddButton(onAdd = {
-                        // In a real app, this would open a dialog to enter URL/Title
                         quickAccessLinks.add(
                             QuickAccessLink(
                                 id = quickAccessLinks.size + 1,
@@ -156,23 +139,107 @@ fun BrowserHomeScreen(
                 }
             }
         }
+    }
+}
 
-        if (showMenu) {
-            BrowserMenu(
-                onDismiss = { showMenu = false },
-                onBookmarks = { showMenu = false; onOpenBookmarks() },
-                onHistory = { showMenu = false; onOpenHistory() },
-                onSettings = { showMenu = false; onOpenSettings() },
-                onNewTab = { showMenu = false; browserViewModel.createNewTab() },
-                onShare = { showMenu = false },
-                onRefresh = { showMenu = false; browserViewModel.reload() }
+@Composable
+private fun QuickActionsRow(
+    onBookmarks: () -> Unit,
+    onHistory: () -> Unit,
+    onTabs: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Row(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(12.dp)
+    ) {
+        QuickActionCard(
+            icon = Icons.Rounded.Star,
+            label = "Bookmarks",
+            onClick = onBookmarks,
+            modifier = Modifier.weight(1f)
+        )
+
+        QuickActionCard(
+            icon = Icons.Rounded.History,
+            label = "History",
+            onClick = onHistory,
+            modifier = Modifier.weight(1f)
+        )
+
+        QuickActionCard(
+            icon = Icons.Rounded.Tab,
+            label = "Tabs",
+            onClick = onTabs,
+            modifier = Modifier.weight(1f)
+        )
+    }
+}
+
+@Composable
+private fun QuickActionCard(
+    icon: ImageVector,
+    label: String,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Surface(
+        onClick = onClick,
+        modifier = modifier.height(80.dp),
+        shape = RoundedCornerShape(BrowserDimens.BrowserShapeRoundedMedium),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        shadowElevation = BrowserDimens.BrowserElevationLow
+    ) {
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(12.dp),
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.Center
+        ) {
+            Icon(
+                icon,
+                contentDescription = null,
+                modifier = Modifier.size(24.dp),
+                tint = MaterialTheme.colorScheme.primary
+            )
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
         }
     }
 }
 
 @Composable
-fun QuickAccessItem(link: QuickAccessLink, onClick: (String) -> Unit) {
+private fun TabCounterButton(
+    tabCount: Int,
+    onClick: () -> Unit
+) {
+    Surface(
+        onClick = onClick,
+        modifier = Modifier.size(48.dp),
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Box(contentAlignment = Alignment.Center) {
+            Text(
+                text = "$tabCount",
+                style = MaterialTheme.typography.labelLarge.copy(
+                    fontWeight = FontWeight.Bold
+                ),
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
+    }
+}
+
+@Composable
+private fun QuickAccessItem(link: QuickAccessLink, onClick: (String) -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         modifier = Modifier.clickable { onClick(link.url) }
@@ -215,7 +282,7 @@ fun QuickAccessItem(link: QuickAccessLink, onClick: (String) -> Unit) {
 }
 
 @Composable
-fun QuickAccessAddButton(onAdd: () -> Unit) {
+private fun QuickAccessAddButton(onAdd: () -> Unit) {
     Column(horizontalAlignment = Alignment.CenterHorizontally) {
         Surface(
             modifier = Modifier
