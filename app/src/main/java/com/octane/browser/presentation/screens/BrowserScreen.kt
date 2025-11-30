@@ -69,6 +69,8 @@ fun BrowserScreen(
     // ═══════════════════════════════════════════════════════════════
     // ✅ FIXED: No navigation loops
     // ═══════════════════════════════════════════════════════════════
+    // BrowserScreen.kt
+
     BackHandler(enabled = true) {
         when {
             showMenu -> {
@@ -82,8 +84,7 @@ fun BrowserScreen(
             }
 
             else -> {
-                Timber.d("🔙 Back: Popping to HomeRoute")
-                // ✅ FIX: Use popBackStack instead of navigate to avoid loop
+                browserViewModel.navigateToHomeScreen()
                 navController.popBackStack()
             }
         }

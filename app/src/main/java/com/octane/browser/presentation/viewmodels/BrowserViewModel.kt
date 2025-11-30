@@ -34,9 +34,9 @@ class BrowserViewModel(
     private val tabRepository: com.octane.browser.domain.repository.TabRepository
 ) : ViewModel() {
 
-    
+
     // UI STATE
-    
+
 
     private val _webViewState = MutableStateFlow(WebViewState())
     val webViewState: StateFlow<WebViewState> = _webViewState.asStateFlow()
@@ -81,9 +81,11 @@ class BrowserViewModel(
         }
     }
 
-    
+    fun navigateToHomeScreen() {
+        _webViewState.value = WebViewState() // Reset to empty
+    }
+
     // TAB MANAGEMENT
-    
 
     /**
      * ✅ Navigate to URL in current tab
@@ -93,18 +95,22 @@ class BrowserViewModel(
             val currentTab = tabs.value.find { it.isActive }
 
             if (currentTab == null) {
-                // Create new tab with URL
-                val newTab = createNewTabUseCase(url = url, makeActive = true)
-                _navigationEvent.emit(NavigationEvent.LoadUrl(url))
-                Timber.d("🌐 Created new tab and loading: $url")
+                // ✅ Process URL first, then emit
+                val result = navigateToUrlUseCase.invoke("temp", url, "")
+                if (result is NavigateToUrlUseCase.NavigationResult.Success) {
+                    val newTab = createNewTabUseCase(url = result.url, makeActive = true)
+                    _navigationEvent.emit(NavigationEvent.LoadUrl(result.url))
+                    Timber.d("🌐 Created new tab and loading: ${result.url}")
+                }
             } else {
-                // ✅ Save current tab state before navigating
                 saveCurrentTabState()
 
-                // Load URL in existing tab
-                navigateToUrlUseCase(currentTab.id, url)
-                _navigationEvent.emit(NavigationEvent.LoadUrl(url))
-                Timber.d("🌐 Loading in active tab: $url")
+                // ✅ Get processed URL from use case
+                val result = navigateToUrlUseCase(currentTab.id, url)
+                if (result is NavigateToUrlUseCase.NavigationResult.Success) {
+                    _navigationEvent.emit(NavigationEvent.LoadUrl(result.url))
+                    Timber.d("🌐 Loading in active tab: ${result.url}")
+                }
             }
         }
     }
@@ -169,9 +175,9 @@ class BrowserViewModel(
         }
     }
 
-    
+
     // TAB STATE PERSISTENCE
-    
+
 
     /**
      * ✅ Save current tab's WebView state to database
@@ -222,9 +228,9 @@ class BrowserViewModel(
         Timber.d("📂 Loaded tab state: ${tab.title} (scroll: ${tab.scrollY})")
     }
 
-    
+
     // WEBVIEW CALLBACKS (Called from WebViewContainer)
-    
+
 
     fun onPageStarted(url: String) {
         _webViewState.value = _webViewState.value.copy(
