@@ -1,11 +1,14 @@
 package com.octane.browser.webview
 
+import android.annotation.SuppressLint
 import android.graphics.Bitmap
+import android.graphics.Color
 import android.view.ViewGroup
 import android.webkit.WebView
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -17,24 +20,21 @@ import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import com.octane.browser.domain.managers.ThemeManager
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import org.koin.compose.koinInject
 import timber.log.Timber
 import kotlin.math.abs
 
 /**
- * ✅ FIXED: Proper scroll state tracking and restoration
- *
- * Key Changes:
- * 1. Track scroll position in real-time
- * 2. Restore scroll when loading tab
- * 3. Debounced saving to avoid database spam
- * 4. Proper lifecycle handling
+ * ✅ FIXED: WebView with proper dark mode support that respects ThemeManager
  */
+@SuppressLint("SetJavaScriptEnabled")
 @Composable
 fun WebViewContainer(
     browserViewModel: BrowserViewModel,
@@ -42,11 +42,18 @@ fun WebViewContainer(
     onScrollUp: () -> Unit,
     onScrollDown: () -> Unit
 ) {
+    // ✅ INJECT ThemeManager to get current theme
+    val themeManager: ThemeManager = koinInject()
+    val currentTheme by themeManager.currentTheme.collectAsState()
+
     val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
     val coroutineScope = rememberCoroutineScope()
     var webView by remember { mutableStateOf<WebView?>(null) }
 
-    // ✅ Track pending scroll restoration
+    // ✅ Calculate if we should use dark mode
+    val isDarkMode = WebViewDarkModeManager.rememberIsDarkMode(currentTheme)
+
+    // Track pending scroll restoration
     var pendingScrollX by remember { mutableStateOf<Int?>(null) }
     var pendingScrollY by remember { mutableStateOf<Int?>(null) }
 
@@ -72,6 +79,20 @@ fun WebViewContainer(
         }
     }
 
+    // ✅ REACT TO THEME CHANGES
+    LaunchedEffect(currentTheme, isDarkMode) {
+        webView?.let { wv ->
+            Timber.d("🎨 Theme changed to: $currentTheme (isDark: $isDarkMode)")
+            WebViewDarkModeManager.setupDarkMode(wv, currentTheme)
+
+            // Set background color to prevent white flash
+            wv.setBackgroundColor(if (isDarkMode) Color.BLACK else Color.WHITE)
+
+            // Optional: reload to apply theme to current page
+            // wv.reload()
+        }
+    }
+
     // Navigation events
     LaunchedEffect(Unit) {
         browserViewModel.navigationEvent.collect { event ->
@@ -82,10 +103,8 @@ fun WebViewContainer(
                         wv.loadUrl(event.url)
                     }
 
-                    // ✅ NEW: Restore scroll position
                     is BrowserViewModel.NavigationEvent.RestoreScroll -> {
                         Timber.d("📜 Restoring scroll: (${event.x}, ${event.y})")
-                        // Store pending scroll - will be applied after page loads
                         pendingScrollX = event.x
                         pendingScrollY = event.y
                     }
@@ -121,17 +140,37 @@ fun WebViewContainer(
 
     AndroidView(
         modifier = modifier,
-        factory = { context ->
-            WebView(context).apply {
+        factory = { factoryContext ->
+            WebView(factoryContext).apply {
                 layoutParams = ViewGroup.LayoutParams(
                     ViewGroup.LayoutParams.MATCH_PARENT,
                     ViewGroup.LayoutParams.MATCH_PARENT
                 )
 
+                // ✅ Set initial background based on theme
+                setBackgroundColor(if (isDarkMode) Color.BLACK else Color.WHITE)
+
+                // Basic settings
+                settings.apply {
+                    javaScriptEnabled = true
+                    domStorageEnabled = true
+                    loadWithOverviewMode = true
+                    useWideViewPort = true
+                    builtInZoomControls = true
+                    displayZoomControls = false
+                    setSupportZoom(true)
+                    setSupportMultipleWindows(false)
+                    cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+                    mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+                }
+
+                // ✅ APPLY DARK MODE
+                WebViewDarkModeManager.setupDarkMode(this, currentTheme)
+
+                // Setup callbacks
                 setupWebView(
                     browserViewModel = browserViewModel,
                     onScrollRestored = {
-                        // ✅ Apply pending scroll after page loads
                         if (pendingScrollX != null && pendingScrollY != null) {
                             scrollTo(pendingScrollX!!, pendingScrollY!!)
                             Timber.d("✅ Scroll restored: ($pendingScrollX, $pendingScrollY)")
@@ -147,13 +186,57 @@ fun WebViewContainer(
             }
         },
         update = { wv ->
-            // Update is called on recomposition - don't recreate WebView
+            // Update is called on recomposition
+            // Don't recreate WebView, just update dark mode if needed
         }
     )
 }
 
 /**
- * ✅ Scroll detection with state tracking
+ * Setup WebView callbacks
+ */
+private fun WebView.setupWebView(
+    browserViewModel: BrowserViewModel,
+    onScrollRestored: () -> Unit
+) {
+    webViewClient = object : android.webkit.WebViewClient() {
+        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+            url?.let { browserViewModel.onPageStarted(it) }
+        }
+
+        override fun onPageFinished(view: WebView?, url: String?) {
+            url?.let {
+                browserViewModel.onPageFinished(it, view?.title ?: "")
+                browserViewModel.onNavigationStateChanged(
+                    canGoBack = view?.canGoBack() == true,
+                    canGoForward = view?.canGoForward() == true
+                )
+
+                // Restore scroll after page loads
+                view?.post {
+                    onScrollRestored()
+                }
+            }
+        }
+    }
+
+    webChromeClient = object : android.webkit.WebChromeClient() {
+        override fun onProgressChanged(view: WebView?, newProgress: Int) {
+            browserViewModel.onProgressChanged(newProgress)
+        }
+
+        override fun onReceivedTitle(view: WebView?, title: String?) {
+            title?.let { browserViewModel.onReceivedTitle(it) }
+        }
+
+        override fun onReceivedIcon(view: WebView?, icon: Bitmap?) {
+            icon?.let { browserViewModel.onReceivedIcon(it) }
+        }
+    }
+}
+
+/**
+ * Scroll detection with state tracking
  */
 private fun WebView.setupScrollListener(
     onScrollUp: () -> Unit,
@@ -171,7 +254,7 @@ private fun WebView.setupScrollListener(
         val delta = currentScrollY - lastScrollY
 
         // UI bar visibility
-        if (Math.abs(delta) > scrollThreshold) {
+        if (abs(delta) > scrollThreshold) {
             when {
                 delta > 0 -> {
                     if (!isScrollingDown) {
@@ -188,12 +271,12 @@ private fun WebView.setupScrollListener(
             }
         }
 
-        // ✅ Track scroll position (debounced)
+        // Track scroll position (debounced)
         scrollTrackingJob?.cancel()
         scrollTrackingJob = kotlinx.coroutines.CoroutineScope(
-            kotlinx.coroutines.Dispatchers.Main
+            Dispatchers.Main
         ).launch {
-            delay(500) // Wait for scroll to stop
+            delay(500)
             browserViewModel.onScrollChanged(scrollX, currentScrollY)
         }
 
@@ -233,59 +316,3 @@ private suspend fun captureWebViewScreenshot(webView: WebView): Bitmap? =
             null
         }
     }
-
-/**
- * Setup WebView callbacks
- */
-private fun WebView.setupWebView(
-    browserViewModel: BrowserViewModel,
-    onScrollRestored: () -> Unit
-) {
-    settings.apply {
-        javaScriptEnabled = true
-        domStorageEnabled = true
-        loadWithOverviewMode = true
-        useWideViewPort = true
-        builtInZoomControls = true
-        displayZoomControls = false
-        setSupportZoom(true)
-        setSupportMultipleWindows(false)
-        cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
-        mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
-    }
-
-    webViewClient = object : android.webkit.WebViewClient() {
-        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
-            url?.let { browserViewModel.onPageStarted(it) }
-        }
-
-        override fun onPageFinished(view: WebView?, url: String?) {
-            url?.let {
-                browserViewModel.onPageFinished(it, view?.title ?: "")
-                browserViewModel.onNavigationStateChanged(
-                    canGoBack = view?.canGoBack() ?: false,
-                    canGoForward = view?.canGoForward() ?: false
-                )
-
-                // ✅ Restore scroll after page loads
-                view?.post {
-                    onScrollRestored()
-                }
-            }
-        }
-    }
-
-    webChromeClient = object : android.webkit.WebChromeClient() {
-        override fun onProgressChanged(view: WebView?, newProgress: Int) {
-            browserViewModel.onProgressChanged(newProgress)
-        }
-
-        override fun onReceivedTitle(view: WebView?, title: String?) {
-            title?.let { browserViewModel.onReceivedTitle(it) }
-        }
-
-        override fun onReceivedIcon(view: WebView?, icon: Bitmap?) {
-            icon?.let { browserViewModel.onReceivedIcon(it) }
-        }
-    }
-}
