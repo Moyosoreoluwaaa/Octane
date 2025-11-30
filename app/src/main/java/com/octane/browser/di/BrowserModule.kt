@@ -6,6 +6,7 @@ import androidx.room.Room
 import com.octane.browser.data.local.datastore.SettingsDataStore
 import com.octane.browser.data.local.datastore.SettingsDataStoreImpl
 import com.octane.browser.data.local.db.BrowserDatabase
+import com.octane.browser.data.local.db.MIGRATION_1_2
 import com.octane.browser.data.repository.*
 import com.octane.browser.domain.managers.ThemeManager
 import com.octane.browser.domain.repository.*
@@ -50,15 +51,13 @@ val browserModule = module {
     // ========================================
 
     single {
-        Timber.d("Initializing Browser Database...")
         Room.databaseBuilder(
             androidContext(),
             BrowserDatabase::class.java,
             "octane_browser.db"
         )
-            .fallbackToDestructiveMigration(false) // For development
+            .addMigrations(MIGRATION_1_2) // ✅ Add migration
             .build()
-            .also { Timber.d("✅ Database initialized") }
     }
 
     single { get<BrowserDatabase>().tabDao() }
@@ -185,7 +184,6 @@ val browserModule = module {
 
     factory {
         NavigateToUrlUseCase(
-            validateUrlUseCase = get(),
             updateTabContentUseCase = get(),
             recordVisitUseCase = get()
         )

@@ -1,51 +1,49 @@
 package com.octane.browser.domain.usecases.validation
 
-import android.util.Patterns
-import java.net.URI
-
+/**
+ * ✅ SIMPLIFIED: Minimal validation - let search engine handle everything
+ *
+ * Rules:
+ * 1. If it starts with http:// or https:// → Use as-is (direct URL)
+ * 2. Everything else → Send to Google search
+ *
+ * This way:
+ * - "Rema" → Google search for "Rema"
+ * - "bold" → Google search for "bold"
+ * - "elastic" → Google search for "elastic"
+ * - "github.com" → Google search for "github.com" (user can click result)
+ * - "https://github.com" → Direct navigation
+ */
 class ValidateUrlUseCase {
+
     operator fun invoke(input: String): UrlValidationResult {
         val trimmed = input.trim()
 
-        return when {
-            trimmed.isEmpty() -> UrlValidationResult.Empty
-
-            // Already a valid URL
-            isValidUrl(trimmed) -> UrlValidationResult.ValidUrl(trimmed)
-
-            // Domain-like (contains dot, no spaces)
-            isDomainLike(trimmed) -> {
-                val withProtocol = "https://$trimmed"
-                UrlValidationResult.ValidUrl(withProtocol)
-            }
-
-            // Looks like a search query
-            else -> UrlValidationResult.SearchQuery(trimmed)
+        if (trimmed.isEmpty()) {
+            return UrlValidationResult.Empty
         }
-    }
 
-    private fun isValidUrl(input: String): Boolean {
-        return try {
-            val uri = URI(input)
-            uri.scheme != null && uri.host != null &&
-                    (uri.scheme == "http" || uri.scheme == "https")
-        } catch (e: Exception) {
-            false
+        // ✅ ONLY check for explicit protocols - nothing else
+        if (trimmed.startsWith("http://") || trimmed.startsWith("https://")) {
+            return UrlValidationResult.ValidUrl(trimmed)
         }
-    }
 
-    private fun isDomainLike(input: String): Boolean {
-        return input.contains(".") &&
-                !input.contains(" ") &&
-                Patterns.WEB_URL.matcher("https://$input").matches()
+        // ✅ Everything else is a search query - let Google figure it out
+        return UrlValidationResult.SearchQuery(trimmed)
     }
 
     sealed class UrlValidationResult {
-        object Empty : UrlValidationResult()
+        data object Empty : UrlValidationResult()
+
         data class ValidUrl(val url: String) : UrlValidationResult()
+
         data class SearchQuery(val query: String) : UrlValidationResult() {
-            fun toSearchUrl(searchEngine: String = "https://www.google.com/search?q="): String {
-                return "$searchEngine${java.net.URLEncoder.encode(query, "UTF-8")}"
+            /**
+             * ✅ Simple Google search - no fancy logic
+             */
+            fun toSearchUrl(): String {
+                val encodedQuery = java.net.URLEncoder.encode(query, "UTF-8")
+                return "https://www.google.com/search?q=$encodedQuery"
             }
         }
     }

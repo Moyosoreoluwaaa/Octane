@@ -45,8 +45,8 @@ fun TabPreview(
             .fillMaxWidth()
             .height(140.dp)
             .clickable(onClick = onClick),
-        shape = MaterialTheme.shapes.medium, // ✅ CHANGED
-        color = MaterialTheme.colorScheme.surface, // ✅ CHANGED
+        shape = MaterialTheme.shapes.medium, // âœ… CHANGED
+        color = MaterialTheme.colorScheme.surface, // âœ… CHANGED
         shadowElevation = if (isActive)
             BrowserDimens.BrowserElevationMedium
         else
@@ -69,18 +69,18 @@ fun TabPreview(
                         contentDescription = null,
                         modifier = Modifier.size(BrowserDimens.BrowserSizeIconMedium),
                         tint = if (isActive)
-                            MaterialTheme.colorScheme.primary // ✅ CHANGED
+                            MaterialTheme.colorScheme.primary // âœ… CHANGED
                         else
-                            MaterialTheme.colorScheme.onSurfaceVariant // ✅ CHANGED
+                            MaterialTheme.colorScheme.onSurfaceVariant // âœ… CHANGED
                     )
 
                     // Title
                     Text(
                         text = tab.title.ifEmpty { "New Tab" },
-                        style = MaterialTheme.typography.bodyMedium.copy( // ✅ CHANGED
+                        style = MaterialTheme.typography.bodyMedium.copy( // âœ… CHANGED
                             fontWeight = if (isActive) FontWeight.SemiBold else FontWeight.Normal
                         ),
-                        color = MaterialTheme.colorScheme.onSurface, // ✅ CHANGED
+                        color = MaterialTheme.colorScheme.onSurface, // âœ… CHANGED
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis,
                         modifier = Modifier.weight(1f)
@@ -92,8 +92,8 @@ fun TabPreview(
                 // URL
                 Text(
                     text = tab.url.takeIf { it != "about:blank" } ?: "New Tab",
-                    style = MaterialTheme.typography.bodySmall, // ✅ CHANGED
-                    color = MaterialTheme.colorScheme.onSurfaceVariant, // ✅ CHANGED
+                    style = MaterialTheme.typography.bodySmall, // âœ… CHANGED
+                    color = MaterialTheme.colorScheme.onSurfaceVariant, // âœ… CHANGED
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
@@ -107,7 +107,7 @@ fun TabPreview(
                     .padding(4.dp)
                     .size(32.dp)
                     .background(
-                        MaterialTheme.colorScheme.surfaceVariant, // ✅ CHANGED
+                        MaterialTheme.colorScheme.surfaceVariant, // âœ… CHANGED
                         CircleShape
                     )
             ) {
@@ -115,7 +115,7 @@ fun TabPreview(
                     Icons.Rounded.Close,
                     contentDescription = "Close Tab",
                     modifier = Modifier.size(16.dp),
-                    tint = MaterialTheme.colorScheme.onSurface // ✅ CHANGED
+                    tint = MaterialTheme.colorScheme.onSurface // âœ… CHANGED
                 )
             }
 
@@ -132,7 +132,7 @@ fun TabPreview(
                                 bottomEnd = BrowserDimens.BrowserShapeRoundedMedium
                             )
                         )
-                        .background(MaterialTheme.colorScheme.primary) // ✅ CHANGED
+                        .background(MaterialTheme.colorScheme.primary) // âœ… CHANGED
                 )
             }
         }

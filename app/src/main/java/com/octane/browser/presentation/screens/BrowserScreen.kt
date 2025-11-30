@@ -15,21 +15,8 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Warning
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.Button
-import androidx.compose.material3.Icon
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SnackbarHost
-import androidx.compose.material3.SnackbarHostState
-import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.unit.dp
@@ -43,8 +30,16 @@ import com.octane.browser.presentation.navigation.HomeRoute
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import com.octane.browser.webview.WebViewContainer
 import kotlinx.coroutines.delay
-import org.koin.androidx.compose.koinViewModel
+import timber.log.Timber
 
+/**
+ * ✅ FINAL FIX: Prevent navigation loops
+ *
+ * Back Button Logic:
+ * 1. Close menu if open
+ * 2. WebView back if possible
+ * 3. Pop to HomeRoute (NOT navigate, to avoid loops)
+ */
 @Composable
 fun BrowserScreen(
     onOpenTabManager: () -> Unit,
@@ -58,31 +53,38 @@ fun BrowserScreen(
     val isBookmarked by browserViewModel.isBookmarked.collectAsState()
     val tabs by browserViewModel.tabs.collectAsState()
     val showPhishingWarning by browserViewModel.showPhishingWarning.collectAsState()
-    val showHomeScreen by browserViewModel.showHomeScreen.collectAsState()
     val barsVisible by browserViewModel.barsVisible.collectAsState()
     val isDesktopMode by browserViewModel.isDesktopMode.collectAsState()
 
     var showMenu by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
-    // Auto-hide timer
     LaunchedEffect(barsVisible) {
-        if (barsVisible && !showHomeScreen) {
-            delay(2000)
+        if (barsVisible) {
+            delay(3000)
             browserViewModel.hideBars()
         }
     }
 
+    // ═══════════════════════════════════════════════════════════════
+    // ✅ FIXED: No navigation loops
+    // ═══════════════════════════════════════════════════════════════
     BackHandler(enabled = true) {
-        if (showMenu) {
-            showMenu = false
-        } else if (webViewState.canGoBack) {
-            browserViewModel.goBack()
-        } else {
-            // ✅ Final destination when browser history is exhausted
-            navController.navigate(HomeRoute) {
-                // Pop the current BrowserRoute off the stack
-                popUpTo<HomeRoute> { inclusive = true }
+        when {
+            showMenu -> {
+                Timber.d("🔙 Back: Closing menu")
+                showMenu = false
+            }
+
+            webViewState.canGoBack -> {
+                Timber.d("🔙 Back: WebView go back")
+                browserViewModel.goBack()
+            }
+
+            else -> {
+                Timber.d("🔙 Back: Popping to HomeRoute")
+                // ✅ FIX: Use popBackStack instead of navigate to avoid loop
+                navController.popBackStack()
             }
         }
     }
@@ -90,9 +92,11 @@ fun BrowserScreen(
     LaunchedEffect(Unit) {
         browserViewModel.navigationEvent.collect { event ->
             when (event) {
-                is BrowserViewModel.NavigationEvent.ShowError -> snackbarHostState.showSnackbar(event.message)
-                is BrowserViewModel.NavigationEvent.ShowMessage -> snackbarHostState.showSnackbar(event.message)
-                else -> { }
+                is BrowserViewModel.NavigationEvent.ShowError ->
+                    snackbarHostState.showSnackbar(event.message)
+                is BrowserViewModel.NavigationEvent.ShowMessage ->
+                    snackbarHostState.showSnackbar(event.message)
+                else -> {}
             }
         }
     }
@@ -102,17 +106,13 @@ fun BrowserScreen(
             .fillMaxSize()
             .background(MaterialTheme.colorScheme.background)
     ) {
-
-        // WebView Content - Full Screen (Behind bars)
-        if (!showHomeScreen) {
-            WebViewContainer(
-                browserViewModel = browserViewModel,
-                modifier = Modifier.fillMaxSize(),
-                // ✅ FIX: Use native callbacks instead of gesture detector wrapper
-                onScrollUp = { browserViewModel.showBars() },
-                onScrollDown = { browserViewModel.hideBars() }
-            )
-        }
+        // WebView
+        WebViewContainer(
+            browserViewModel = browserViewModel,
+            modifier = Modifier.fillMaxSize(),
+            onScrollUp = { browserViewModel.showBars() },
+            onScrollDown = { browserViewModel.hideBars() }
+        )
 
         // Snackbar
         SnackbarHost(
@@ -122,7 +122,7 @@ fun BrowserScreen(
                 .padding(bottom = 100.dp)
         )
 
-        // Animated Address Bar (Floating)
+        // Address Bar
         AnimatedVisibility(
             visible = barsVisible,
             enter = slideInVertically(
@@ -145,17 +145,19 @@ fun BrowserScreen(
                 onBookmarkToggle = { browserViewModel.toggleBookmark() },
                 onMenuClick = { showMenu = true },
                 onDesktopModeToggle = { browserViewModel.toggleDesktopMode() },
-                onHomeClick = { browserViewModel.showHome() },
-                modifier = Modifier
-                    .padding(
-                        start = BrowserDimens.BrowserPaddingScreenEdge,
-                        end = BrowserDimens.BrowserPaddingScreenEdge,
-                        top = 8.dp
-                    )
+                onHomeClick = {
+                    // ✅ FIX: Pop instead of navigate
+                    navController.popBackStack()
+                },
+                modifier = Modifier.padding(
+                    start = BrowserDimens.BrowserPaddingScreenEdge,
+                    end = BrowserDimens.BrowserPaddingScreenEdge,
+                    top = 8.dp
+                )
             )
         }
 
-        // Animated Navigation Controls (Floating)
+        // Navigation Controls
         AnimatedVisibility(
             visible = barsVisible,
             enter = slideInVertically(
@@ -173,7 +175,10 @@ fun BrowserScreen(
                 tabCount = tabs.size,
                 onBack = { browserViewModel.goBack() },
                 onForward = { browserViewModel.goForward() },
-                onHome = { browserViewModel.navigateToHome() },
+                onHome = {
+                    // ✅ FIX: Pop instead of navigate
+                    navController.popBackStack()
+                },
                 onTabManager = onOpenTabManager,
                 onMenuClick = { showMenu = true },
                 modifier = Modifier
@@ -206,10 +211,14 @@ fun BrowserScreen(
             title = { Text("Security Warning") },
             text = { Text(warning) },
             confirmButton = {
-                Button(onClick = { browserViewModel.dismissPhishingWarning() }) { Text("Go Back") }
+                Button(onClick = { browserViewModel.dismissPhishingWarning() }) {
+                    Text("Go Back")
+                }
             },
             dismissButton = {
-                TextButton(onClick = { browserViewModel.proceedDespitePhishingWarning() }) { Text("Proceed Anyway") }
+                TextButton(onClick = { browserViewModel.proceedDespitePhishingWarning() }) {
+                    Text("Proceed Anyway")
+                }
             }
         )
     }

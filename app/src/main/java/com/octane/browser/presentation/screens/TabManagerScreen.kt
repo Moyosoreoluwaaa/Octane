@@ -1,5 +1,6 @@
 package com.octane.browser.presentation.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -13,399 +14,241 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
-import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.automirrored.rounded.ViewList
 import androidx.compose.material.icons.rounded.Add
+import androidx.compose.material.icons.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.GridView
-import androidx.compose.material.icons.rounded.Public
-import androidx.compose.material.icons.rounded.Tab
+import androidx.compose.material.icons.rounded.Language
+import androidx.compose.material.icons.rounded.ViewList
+import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.zIndex
 import com.octane.browser.design.BrowserDimens
 import com.octane.browser.domain.models.BrowserTab
-import com.octane.browser.presentation.components.EmptyState
+import com.octane.browser.presentation.components.TabPreview
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
 import com.octane.browser.presentation.viewmodels.TabManagerViewModel
 import org.koin.androidx.compose.koinViewModel
 
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TabManagerScreen(
     onBack: () -> Unit,
     onNewTab: () -> Unit,
-    browserViewModel: BrowserViewModel = koinViewModel(),
-    tabManagerViewModel: TabManagerViewModel = koinViewModel()
+    onSelectTab: (String) -> Unit, // ✅ NEW: Callback when tab is selected
+    browserViewModel: BrowserViewModel
 ) {
-
     val tabs by browserViewModel.tabs.collectAsState()
+    val tabManagerViewModel: TabManagerViewModel = koinViewModel()
     val isGridLayout by tabManagerViewModel.isGridLayout.collectAsState()
-    val onAddTabClick = {
-        // 1. Create the new tab (calls TabManagerViewModel)
-        tabManagerViewModel.createNewTab()
 
-        // 2. Navigate away to the Home Screen
-        onNewTab() // This triggers navigation to HomeRoute via BrowserNavGraph
-    }
-
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(MaterialTheme.colorScheme.background)
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(top = 72.dp) // Space for floating top bar
-        ) {
-            if (tabs.isEmpty()) {
-                EmptyState(
-                    icon = Icons.Rounded.Tab,
-                    title = "No Tabs",
-                    message = "Create a new tab to start browsing"
-                )
-            } else {
-                if (isGridLayout) {
-                    LazyVerticalGrid(
-                        columns = GridCells.Fixed(2),
-                        contentPadding = PaddingValues(
-                            horizontal = BrowserDimens.BrowserPaddingScreenEdge,
-                            vertical = 16.dp
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                        horizontalArrangement = Arrangement.spacedBy(12.dp)
-                    ) {
-                        items(tabs, key = { it.id }) { tab ->
-                            // ✅ Uses original aesthetic, adapted for Grid
-                            TabCardCommon(
-                                tab = tab,
-                                isGrid = true,
-                                onClick = { browserViewModel.switchTab(tab.id); onBack() },
-                                onClose = { browserViewModel.closeTab(tab.id) }
-                            )
-                        }
+    Scaffold(
+        topBar = {
+            TopAppBar(
+                title = { Text("Tabs (${tabs.size})") },
+                navigationIcon = {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.Rounded.ArrowBack, "Back")
                     }
-                } else {
-                    if (isGridLayout) {
-                        // ... (LazyVerticalGrid - UNCHANGED) ...
-                    } else {
-                        // ✅ MODIFIED: Use itemsIndexed for Z-Index
-                        LazyColumn(
-                            contentPadding = PaddingValues(
-                                horizontal = BrowserDimens.BrowserPaddingScreenEdge,
-                                vertical = 16.dp
-                            ),
-                            verticalArrangement = Arrangement.spacedBy(12.dp)
-                        ) {
-                            itemsIndexed(tabs, key = { _, tab -> tab.id }) { index, tab ->
-                                // Calculate Z-Index: Higher index means lower in the list,
-                                // but we want it to look "under" the previous one, so we reverse it.
-                                val zIndex = (tabs.size - index).toFloat()
+                },
+                actions = {
+                    // Grid/List Toggle
+                    IconButton(onClick = { tabManagerViewModel.toggleLayout() }) {
+                        Icon(
+                            if (isGridLayout) Icons.Rounded.ViewList
+                            else Icons.Rounded.GridView,
+                            "Toggle Layout"
+                        )
+                    }
 
-                                // Calculate Offset: Offset subsequent cards slightly to show the stack
-                                val offset = if (index > 0) 10.dp else 0.dp
-
-                                TabCardCommon(
-                                    tab = tab,
-                                    isGrid = false,
-                                    zIndex = zIndex, // ✅ PASS Z-INDEX
-                                    horizontalOffset = offset, // ✅ PASS OFFSET
-                                    onClick = { browserViewModel.switchTab(tab.id); onBack() },
-                                    onClose = { browserViewModel.closeTab(tab.id) }
-                                )
-                            }
-                        }
+                    // New Tab
+                    IconButton(onClick = onNewTab) {
+                        Icon(Icons.Rounded.Add, "New Tab")
                     }
                 }
-            }
-        }
-
-        // Top Bar (Restored Floating Design)
-        TabManagerTopBar(
-            tabCount = tabs.size,
-            isGrid = isGridLayout,
-            onBack = onBack,
-            onToggleLayout = { tabManagerViewModel.toggleLayout() },
-            onNewTab = onAddTabClick,
-            modifier = Modifier
-                .align(Alignment.TopCenter)
-                .padding(
-                    start = BrowserDimens.BrowserPaddingScreenEdge,
-                    end = BrowserDimens.BrowserPaddingScreenEdge,
-                    top = 8.dp
-                )
-        )
-    }
-}
-
-/**
- * Updated to accept Z-Index and Offset for stacking effect.
- */
-@Composable
-private fun TabCardCommon(
-    tab: BrowserTab,
-    isGrid: Boolean,
-    onClick: () -> Unit,
-    onClose: () -> Unit,
-    zIndex: Float = 0f, // Default to 0 for Grid/Safety
-    horizontalOffset: Dp = 0.dp // Default to 0 for Grid/Safety
-) {
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            // Apply Z-Index and Offset only in List mode
-            .then(
-                if (!isGrid) Modifier
-                    .offset(x = horizontalOffset)
-                    .zIndex(zIndex) else Modifier
             )
-            // List gets fixed height, Grid gets Aspect Ratio
-            .then(if (isGrid) Modifier.aspectRatio(0.7f) else Modifier.height(160.dp)),
-        shape = RoundedCornerShape(16.dp),
-        color = if (tab.isActive)
-            MaterialTheme.colorScheme.primaryContainer
-        else
-            MaterialTheme.colorScheme.surface,
-        shadowElevation = if (tab.isActive) 6.dp else 2.dp,
-        tonalElevation = if (tab.isActive) 4.dp else 0.dp
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxSize()
-                .clickable(onClick = onClick)
-        ) {
-            // 1. Background Screenshot
-            if (tab.screenshot != null) {
-                Image(
-                    bitmap = tab.screenshot.asImageBitmap(),
-                    contentDescription = "Tab preview",
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop,
-                    alpha = 0.8f // Slightly more opaque for better visibility
-                )
-            } else {
-                // Placeholder Gradient if no screenshot
-                Box(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .background(
-                            Brush.verticalGradient(
-                                colors = listOf(
-                                    MaterialTheme.colorScheme.surfaceVariant,
-                                    MaterialTheme.colorScheme.surface
-                                )
-                            )
-                        )
-                )
-            }
-
-            // 2. Gradient Overlay (Crucial for text readability on images)
+        }
+    ) { padding ->
+        if (tabs.isEmpty()) {
+            // Empty state
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(
-                        Brush.verticalGradient(
-                            colors = listOf(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.9f), // Top (Darker for text)
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.2f), // Middle (Clear)
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.8f)  // Bottom (Darker for URL)
-                            )
-                        )
-                    )
-            )
-
-            // 3. Content (Text & Icons)
-            Column(
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(12.dp)
+                    .padding(padding),
+                contentAlignment = Alignment.Center
             ) {
-                // Top Row: Favicon, Title, Close
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    // Favicon & Title
-                    Row(
-                        modifier = Modifier.weight(1f),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        if (tab.favicon != null) {
-                            Image(
-                                bitmap = tab.favicon.asImageBitmap(),
-                                contentDescription = null,
-                                modifier = Modifier
-                                    .size(20.dp)
-                                    .clip(CircleShape)
-                            )
-                        } else {
-                            Icon(
-                                Icons.Rounded.Public,
-                                contentDescription = null,
-                                modifier = Modifier.size(20.dp),
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        Text(
-                            text = tab.title.ifEmpty { "New Tab" },
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text("No tabs open", style = MaterialTheme.typography.headlineSmall)
+                    Spacer(Modifier.height(16.dp))
+                    Button(onClick = onNewTab) {
+                        Text("Open New Tab")
                     }
-
-                    Spacer(Modifier.width(4.dp))
-
-                    // Close Button (Small floating circle)
-                    IconButton(
-                        onClick = onClose,
-                        modifier = Modifier
-                            .size(28.dp)
-                            .background(
-                                MaterialTheme.colorScheme.surface.copy(alpha = 0.6f),
-                                CircleShape
-                            )
-                    ) {
-                        Icon(
-                            Icons.Rounded.Close,
-                            contentDescription = "Close",
-                            tint = MaterialTheme.colorScheme.onSurface,
-                            modifier = Modifier.size(16.dp)
+                }
+            }
+        } else {
+            if (isGridLayout) {
+                // Grid Layout with screenshots
+                LazyVerticalGrid(
+                    columns = GridCells.Fixed(2),
+                    contentPadding = PaddingValues(16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(padding)
+                ) {
+                    items(tabs, key = { it.id }) { tab ->
+                        TabPreviewCard(
+                            tab = tab,
+                            isActive = tab.isActive,
+                            onClick = { onSelectTab(tab.id) }, // ✅ Navigate to tab
+                            onClose = { browserViewModel.closeTab(tab.id) }
                         )
                     }
                 }
-
-                Spacer(Modifier.weight(1f))
-
-                // Bottom: URL (Only show domain for cleaner look)
-                Text(
-                    text = tab.url,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-
-            // 4. Active Indicator
-            if (tab.isActive) {
-                Box(
+            } else {
+                // List Layout
+                LazyColumn(
+                    contentPadding = PaddingValues(16.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
                     modifier = Modifier
-                        .align(Alignment.BottomEnd)
-                        .padding(12.dp)
-                        .size(8.dp)
-                        .background(MaterialTheme.colorScheme.primary, CircleShape)
-                )
+                        .fillMaxSize()
+                        .padding(padding)
+                ) {
+                    items(tabs, key = { it.id }) { tab ->
+                        TabPreview(
+                            tab = tab,
+                            isActive = tab.isActive,
+                            onClick = { onSelectTab(tab.id) }, // ✅ Navigate to tab
+                            onClose = { browserViewModel.closeTab(tab.id) }
+                        )
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun TabManagerTopBar(
-    tabCount: Int,
-    isGrid: Boolean,
-    onBack: () -> Unit,
-    onToggleLayout: () -> Unit,
-    onNewTab: () -> Unit,
+fun TabPreviewCard(
+    tab: BrowserTab,
+    isActive: Boolean,
+    onClick: () -> Unit,
+    onClose: () -> Unit,
     modifier: Modifier = Modifier
 ) {
     Surface(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .aspectRatio(0.7f) // Card ratio
+            .clickable(onClick = onClick),
         shape = MaterialTheme.shapes.medium,
-        color = MaterialTheme.colorScheme.surface.copy(alpha = 0.95f),
-        shadowElevation = BrowserDimens.BrowserElevationMedium
+        color = MaterialTheme.colorScheme.surface,
+        shadowElevation = if (isActive)
+            BrowserDimens.BrowserElevationMedium
+        else
+            BrowserDimens.BrowserElevationLow,
+        border = if (isActive)
+            BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+        else null
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(56.dp)
-                .padding(horizontal = 8.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
+        Box(modifier = Modifier.fillMaxSize()) {
+            Column(modifier = Modifier.fillMaxSize()) {
+                // ✅ Screenshot Preview
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .weight(1f)
+                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                ) {
+                    if (tab.screenshot != null) {
+                        Image(
+                            bitmap = tab.screenshot.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier.fillMaxSize(),
+                            contentScale = ContentScale.Crop
+                        )
+                    } else {
+                        // Placeholder
+                        Icon(
+                            Icons.Rounded.Language,
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(48.dp)
+                                .align(Alignment.Center),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // Title Bar
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(8.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    Icon(
+                        Icons.Rounded.Language,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp),
+                        tint = if (isActive)
+                            MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+
+                    Text(
+                        text = tab.title.ifEmpty { "New Tab" },
+                        style = MaterialTheme.typography.bodySmall,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                }
+            }
+
+            // Close Button
             IconButton(
-                onClick = onBack,
+                onClick = onClose,
                 modifier = Modifier
-                    .size(40.dp)
+                    .align(Alignment.TopEnd)
+                    .padding(4.dp)
+                    .size(28.dp)
                     .background(
                         MaterialTheme.colorScheme.surface.copy(alpha = 0.9f),
                         CircleShape
                     )
             ) {
                 Icon(
-                    Icons.AutoMirrored.Rounded.ArrowBack,
-                    contentDescription = "Back",
-                    tint = MaterialTheme.colorScheme.onSurface
+                    Icons.Rounded.Close,
+                    contentDescription = "Close",
+                    modifier = Modifier.size(16.dp)
                 )
-            }
-
-            Text(
-                text = "$tabCount Tab${if (tabCount != 1) "s" else ""}",
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // Layout Toggle
-                IconButton(onClick = onToggleLayout) {
-                    Icon(
-                        imageVector = if (isGrid) Icons.AutoMirrored.Rounded.ViewList else Icons.Rounded.GridView,
-                        contentDescription = "Toggle Layout",
-                        tint = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-
-                Spacer(Modifier.width(4.dp))
-
-                // New Tab
-                IconButton(
-                    onClick = onNewTab,
-                    modifier = Modifier
-                        .size(40.dp)
-                        .background(
-                            MaterialTheme.colorScheme.primaryContainer,
-                            CircleShape
-                        )
-                ) {
-                    Icon(
-                        Icons.Rounded.Add,
-                        contentDescription = "New Tab",
-                        tint = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
             }
         }
     }

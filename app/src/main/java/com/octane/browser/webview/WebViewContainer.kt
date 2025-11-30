@@ -1,126 +1,291 @@
 package com.octane.browser.webview
 
 import android.graphics.Bitmap
-import android.os.Build
-import android.os.Bundle
+import android.view.ViewGroup
 import android.webkit.WebView
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.runtime.*
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.viewinterop.AndroidView
 import androidx.core.graphics.createBitmap
 import androidx.core.graphics.scale
-import androidx.core.os.bundleOf
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
-import com.octane.browser.webview.bridge.WalletBridge
-import org.koin.compose.koinInject
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import timber.log.Timber
+import kotlin.math.abs
 
+/**
+ * ✅ FIXED: Proper scroll state tracking and restoration
+ *
+ * Key Changes:
+ * 1. Track scroll position in real-time
+ * 2. Restore scroll when loading tab
+ * 3. Debounced saving to avoid database spam
+ * 4. Proper lifecycle handling
+ */
 @Composable
 fun WebViewContainer(
+    browserViewModel: BrowserViewModel,
     modifier: Modifier = Modifier,
-    browserViewModel: BrowserViewModel = koinInject(),
-    webViewManager: WebViewManager = koinInject(),
-    walletBridge: WalletBridge = koinInject(),
-    onScrollUp: () -> Unit = {},
-    onScrollDown: () -> Unit = {},
-    onWebViewCreated: ((WebView) -> Unit)? = null
+    onScrollUp: () -> Unit,
+    onScrollDown: () -> Unit
 ) {
-    val savedBundle: Bundle = rememberSaveable { bundleOf() }
+    val lifecycleOwner = androidx.lifecycle.compose.LocalLifecycleOwner.current
+    val coroutineScope = rememberCoroutineScope()
+    var webView by remember { mutableStateOf<WebView?>(null) }
 
-    // Scroll threshold to prevent accidental triggering
-    val scrollThreshold = 20
+    // ✅ Track pending scroll restoration
+    var pendingScrollX by remember { mutableStateOf<Int?>(null) }
+    var pendingScrollY by remember { mutableStateOf<Int?>(null) }
 
-    val webView = remember {
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            webViewManager.createWebView(browserViewModel).also { view ->
-                walletBridge.setWebView(view)
-
-                if (!savedBundle.isEmpty) {
-                    view.restoreState(savedBundle)
-                }
-
-                // ✅ FIX: Native Scroll Listener
-                // This detects scroll inside the WebView without stealing touches from Compose
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    view.setOnScrollChangeListener { _, _, scrollY, _, oldScrollY ->
-                        val diff = scrollY - oldScrollY
-                        when {
-                            diff > scrollThreshold -> onScrollDown() // Scrolling down, hide bars
-                            diff < -scrollThreshold -> onScrollUp()  // Scrolling up, show bars
+    // Screenshot capture on lifecycle pause
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            when (event) {
+                Lifecycle.Event.ON_PAUSE -> {
+                    webView?.let { wv ->
+                        coroutineScope.launch {
+                            captureWebViewScreenshot(wv)?.let { screenshot ->
+                                browserViewModel.captureCurrentTabScreenshot(screenshot)
+                            }
                         }
                     }
-                }
-
-                onWebViewCreated?.invoke(view)
-            }
-        } else {
-            TODO("VERSION.SDK_INT < O")
-        }
-    }
-
-    // Auto-capture screenshot
-    LaunchedEffect(Unit) {
-        kotlinx.coroutines.delay(1000)
-        while (true) {
-            try {
-                kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.Main) {
-                    if (webView.width > 0 && webView.height > 0) {
-                        val bitmap = createBitmap(webView.width, webView.height)
-                        val canvas = android.graphics.Canvas(bitmap)
-                        webView.draw(canvas)
-                        val thumbnail = bitmap.scale(400, (400 * bitmap.height) / bitmap.width.coerceAtLeast(1))
-                        bitmap.recycle()
-                        browserViewModel.captureCurrentTabScreenshot(thumbnail)
-                    }
-                }
-            } catch (e: Exception) {
-                Timber.e(e, "Failed to capture screenshot")
-            }
-            kotlinx.coroutines.delay(30000)
-        }
-    }
-
-    Box(modifier = modifier.fillMaxSize()) {
-        AndroidView(
-            factory = { webView },
-            modifier = Modifier.fillMaxSize()
-        )
-    }
-
-    // Collect navigation events
-    LaunchedEffect(Unit) {
-        browserViewModel.navigationEvent.collect { event ->
-            when (event) {
-                is BrowserViewModel.NavigationEvent.LoadUrl -> {
-                    if (webView.url != event.url) webView.loadUrl(event.url)
-                }
-                is BrowserViewModel.NavigationEvent.Reload -> webView.reload()
-                is BrowserViewModel.NavigationEvent.GoBack -> if (webView.canGoBack()) webView.goBack()
-                is BrowserViewModel.NavigationEvent.GoForward -> if (webView.canGoForward()) webView.goForward()
-                is BrowserViewModel.NavigationEvent.StopLoading -> webView.stopLoading()
-                is BrowserViewModel.NavigationEvent.SetDesktopMode -> {
-                    webView.settings.apply {
-                        userAgentString = if (event.enabled) {
-                            "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/121.0.0.0 Safari/537.36"
-                        } else null
-                        useWideViewPort = event.enabled
-                        loadWithOverviewMode = event.enabled
-                    }
-                    webView.reload()
                 }
                 else -> {}
             }
         }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
     }
 
-    DisposableEffect(Unit) {
-        onDispose {
-            webView.saveState(savedBundle)
-            webView.stopLoading()
-            webView.destroy()
+    // Navigation events
+    LaunchedEffect(Unit) {
+        browserViewModel.navigationEvent.collect { event ->
+            webView?.let { wv ->
+                when (event) {
+                    is BrowserViewModel.NavigationEvent.LoadUrl -> {
+                        Timber.d("🌐 Loading URL: ${event.url}")
+                        wv.loadUrl(event.url)
+                    }
+
+                    // ✅ NEW: Restore scroll position
+                    is BrowserViewModel.NavigationEvent.RestoreScroll -> {
+                        Timber.d("📜 Restoring scroll: (${event.x}, ${event.y})")
+                        // Store pending scroll - will be applied after page loads
+                        pendingScrollX = event.x
+                        pendingScrollY = event.y
+                    }
+
+                    is BrowserViewModel.NavigationEvent.Reload -> {
+                        wv.reload()
+                    }
+                    is BrowserViewModel.NavigationEvent.GoBack -> {
+                        if (wv.canGoBack()) wv.goBack()
+                    }
+                    is BrowserViewModel.NavigationEvent.GoForward -> {
+                        if (wv.canGoForward()) wv.goForward()
+                    }
+                    is BrowserViewModel.NavigationEvent.StopLoading -> {
+                        wv.stopLoading()
+                    }
+                    is BrowserViewModel.NavigationEvent.SetDesktopMode -> {
+                        wv.settings.apply {
+                            userAgentString = if (event.enabled) {
+                                "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 " +
+                                        "(KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36"
+                            } else {
+                                null
+                            }
+                        }
+                        wv.reload()
+                    }
+                    else -> {}
+                }
+            }
+        }
+    }
+
+    AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            WebView(context).apply {
+                layoutParams = ViewGroup.LayoutParams(
+                    ViewGroup.LayoutParams.MATCH_PARENT,
+                    ViewGroup.LayoutParams.MATCH_PARENT
+                )
+
+                setupWebView(
+                    browserViewModel = browserViewModel,
+                    onScrollRestored = {
+                        // ✅ Apply pending scroll after page loads
+                        if (pendingScrollX != null && pendingScrollY != null) {
+                            scrollTo(pendingScrollX!!, pendingScrollY!!)
+                            Timber.d("✅ Scroll restored: ($pendingScrollX, $pendingScrollY)")
+                            pendingScrollX = null
+                            pendingScrollY = null
+                        }
+                    }
+                )
+
+                setupScrollListener(onScrollUp, onScrollDown, browserViewModel)
+
+                webView = this
+            }
+        },
+        update = { wv ->
+            // Update is called on recomposition - don't recreate WebView
+        }
+    )
+}
+
+/**
+ * ✅ Scroll detection with state tracking
+ */
+private fun WebView.setupScrollListener(
+    onScrollUp: () -> Unit,
+    onScrollDown: () -> Unit,
+    browserViewModel: BrowserViewModel
+) {
+    var lastScrollY = 0
+    var isScrollingDown = false
+    var scrollTrackingJob: Job? = null
+
+    val scrollThreshold = 10
+
+    viewTreeObserver.addOnScrollChangedListener {
+        val currentScrollY = scrollY
+        val delta = currentScrollY - lastScrollY
+
+        // UI bar visibility
+        if (Math.abs(delta) > scrollThreshold) {
+            when {
+                delta > 0 -> {
+                    if (!isScrollingDown) {
+                        isScrollingDown = true
+                        onScrollDown()
+                    }
+                }
+                delta < 0 -> {
+                    if (isScrollingDown) {
+                        isScrollingDown = false
+                        onScrollUp()
+                    }
+                }
+            }
+        }
+
+        // ✅ Track scroll position (debounced)
+        scrollTrackingJob?.cancel()
+        scrollTrackingJob = kotlinx.coroutines.CoroutineScope(
+            kotlinx.coroutines.Dispatchers.Main
+        ).launch {
+            delay(500) // Wait for scroll to stop
+            browserViewModel.onScrollChanged(scrollX, currentScrollY)
+        }
+
+        lastScrollY = currentScrollY
+    }
+}
+
+/**
+ * Captures WebView screenshot
+ */
+private suspend fun captureWebViewScreenshot(webView: WebView): Bitmap? =
+    withContext(Dispatchers.Main) {
+        try {
+            val width = webView.width
+            val height = webView.height
+
+            if (width <= 0 || height <= 0) {
+                Timber.w("Invalid WebView dimensions: ${width}x$height")
+                return@withContext null
+            }
+
+            val bitmap = createBitmap(width, height)
+            val canvas = android.graphics.Canvas(bitmap)
+            webView.draw(canvas)
+
+            val thumbnailWidth = 400
+            val thumbnailHeight = (height.toFloat() / width * thumbnailWidth).toInt()
+            val thumbnail = bitmap.scale(thumbnailWidth, thumbnailHeight)
+
+            bitmap.recycle()
+            Timber.d("📸 Screenshot: ${thumbnail.width}x${thumbnail.height}")
+
+            thumbnail
+
+        } catch (e: Exception) {
+            Timber.e(e, "Screenshot capture failed")
+            null
+        }
+    }
+
+/**
+ * Setup WebView callbacks
+ */
+private fun WebView.setupWebView(
+    browserViewModel: BrowserViewModel,
+    onScrollRestored: () -> Unit
+) {
+    settings.apply {
+        javaScriptEnabled = true
+        domStorageEnabled = true
+        loadWithOverviewMode = true
+        useWideViewPort = true
+        builtInZoomControls = true
+        displayZoomControls = false
+        setSupportZoom(true)
+        setSupportMultipleWindows(false)
+        cacheMode = android.webkit.WebSettings.LOAD_DEFAULT
+        mixedContentMode = android.webkit.WebSettings.MIXED_CONTENT_ALWAYS_ALLOW
+    }
+
+    webViewClient = object : android.webkit.WebViewClient() {
+        override fun onPageStarted(view: WebView?, url: String?, favicon: Bitmap?) {
+            url?.let { browserViewModel.onPageStarted(it) }
+        }
+
+        override fun onPageFinished(view: WebView?, url: String?) {
+            url?.let {
+                browserViewModel.onPageFinished(it, view?.title ?: "")
+                browserViewModel.onNavigationStateChanged(
+                    canGoBack = view?.canGoBack() ?: false,
+                    canGoForward = view?.canGoForward() ?: false
+                )
+
+                // ✅ Restore scroll after page loads
+                view?.post {
+                    onScrollRestored()
+                }
+            }
+        }
+    }
+
+    webChromeClient = object : android.webkit.WebChromeClient() {
+        override fun onProgressChanged(view: WebView?, newProgress: Int) {
+            browserViewModel.onProgressChanged(newProgress)
+        }
+
+        override fun onReceivedTitle(view: WebView?, title: String?) {
+            title?.let { browserViewModel.onReceivedTitle(it) }
+        }
+
+        override fun onReceivedIcon(view: WebView?, icon: Bitmap?) {
+            icon?.let { browserViewModel.onReceivedIcon(it) }
         }
     }
 }
