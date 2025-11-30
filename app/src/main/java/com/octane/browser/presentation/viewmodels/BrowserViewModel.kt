@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.octane.browser.domain.models.BrowserTab
 import com.octane.browser.domain.models.WebViewState
+import com.octane.browser.domain.repository.QuickAccessRepository
 import com.octane.browser.domain.usecases.bookmark.ToggleBookmarkUseCase
 import com.octane.browser.domain.usecases.navigation.NavigateToUrlUseCase
 import com.octane.browser.domain.usecases.security.ValidateSslUseCase
@@ -14,7 +15,7 @@ import kotlinx.coroutines.launch
 import timber.log.Timber
 
 /**
- * ✅ ENHANCED: Per-tab state isolation + Force new tabs on navigation
+ * ✅ ENHANCED: Auto-update Quick Access favicons when browsing
  */
 class BrowserViewModel(
     private val navigateToUrlUseCase: NavigateToUrlUseCase,
@@ -25,7 +26,8 @@ class BrowserViewModel(
     private val closeTabUseCase: CloseTabUseCase,
     private val toggleBookmarkUseCase: ToggleBookmarkUseCase,
     private val validateSslUseCase: ValidateSslUseCase,
-    private val tabRepository: com.octane.browser.domain.repository.TabRepository
+    private val tabRepository: com.octane.browser.domain.repository.TabRepository,
+    private val quickAccessRepository: QuickAccessRepository // ✅ NEW: For favicon updates
 ) : ViewModel() {
 
     // UI STATE
@@ -53,7 +55,6 @@ class BrowserViewModel(
     private val _barsVisible = MutableStateFlow(true)
     val barsVisible: StateFlow<Boolean> = _barsVisible.asStateFlow()
 
-    // ✅ Track current scroll position
     private var currentScrollX = 0
     private var currentScrollY = 0
 
@@ -75,29 +76,21 @@ class BrowserViewModel(
         _webViewState.value = WebViewState()
     }
 
-    // ✅ NEW: Navigate with URL and create new tab if needed
     fun navigateToUrlWithNewTab(url: String, forceNewTab: Boolean = false) {
         viewModelScope.launch {
             if (forceNewTab) {
-                // Save current tab state
                 saveCurrentTabState()
-
-                // Create new tab
                 val newTab = createNewTabUseCase(url = "", makeActive = true)
-
-                // Reset WebView state
                 _webViewState.value = WebViewState()
                 currentScrollX = 0
                 currentScrollY = 0
 
-                // Navigate to URL in new tab
                 val result = navigateToUrlUseCase(newTab.id, url, "")
                 if (result is NavigateToUrlUseCase.NavigationResult.Success) {
                     _navigationEvent.emit(NavigationEvent.LoadUrl(result.url))
                     Timber.d("🌐 Created new tab and loading: ${result.url}")
                 }
             } else {
-                // Navigate in current tab
                 navigateToUrl(url)
             }
         }
@@ -139,7 +132,6 @@ class BrowserViewModel(
         }
     }
 
-    // ✅ NEW: Load specific tab by ID
     fun loadTab(tabId: String) {
         viewModelScope.launch {
             saveCurrentTabState()
@@ -266,12 +258,19 @@ class BrowserViewModel(
     fun onReceivedIcon(icon: Bitmap) {
         viewModelScope.launch {
             val currentTab = tabs.value.find { it.isActive } ?: return@launch
+            val url = _webViewState.value.url
+
+            // Update tab favicon
             updateTabContentUseCase(
                 tabId = currentTab.id,
-                url = _webViewState.value.url,
+                url = url,
                 title = _webViewState.value.title,
                 favicon = icon
             )
+
+            // ✅ ENHANCED: Also update Quick Access favicon if URL matches
+            quickAccessRepository.updateFavicon(url, icon)
+            Timber.d("🎨 Updated favicon for: $url")
         }
     }
 

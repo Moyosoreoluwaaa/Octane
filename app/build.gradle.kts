@@ -76,6 +76,11 @@ android {
     }
 }
 
+// OR if using KSP specifically (which you are):
+ksp {
+    arg("room.schemaLocation", "$projectDir/schemas")
+}
+
 sqldelight {
     databases {
         create("OctaneDatabase") {
