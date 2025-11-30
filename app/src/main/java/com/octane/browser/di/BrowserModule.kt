@@ -6,7 +6,7 @@ import androidx.room.Room
 import com.octane.browser.data.local.datastore.SettingsDataStore
 import com.octane.browser.data.local.datastore.SettingsDataStoreImpl
 import com.octane.browser.data.local.db.BrowserDatabase
-import com.octane.browser.data.local.db.MIGRATION_1_2
+import com.octane.browser.data.local.db.MIGRATION_2_3
 import com.octane.browser.data.repository.*
 import com.octane.browser.domain.managers.ThemeManager
 import com.octane.browser.domain.repository.*
@@ -32,12 +32,8 @@ import org.koin.core.module.dsl.viewModel
 import org.koin.dsl.module
 import timber.log.Timber
 
-@RequiresApi(Build.VERSION_CODES.O)
 val browserModule = module {
-
-    // ========================================
     // CORE - Coroutine Scope
-    // ========================================
 
     single {
         Timber.d("Initializing Application CoroutineScope...")
@@ -46,9 +42,7 @@ val browserModule = module {
         }
     }
 
-    // ========================================
     // DATABASE & DAOs
-    // ========================================
 
     single {
         Room.databaseBuilder(
@@ -56,7 +50,7 @@ val browserModule = module {
             BrowserDatabase::class.java,
             "octane_browser.db"
         )
-            .addMigrations(MIGRATION_1_2) // ✅ Add migration
+            .addMigrations(MIGRATION_2_3) // ✅ Add migration
             .build()
     }
 
@@ -64,11 +58,11 @@ val browserModule = module {
     single { get<BrowserDatabase>().bookmarkDao() }
     single { get<BrowserDatabase>().historyDao() }
     single { get<BrowserDatabase>().connectionDao() }
+    single { get<BrowserDatabase>().quickAccessDao() }
 
-
-    // ========================================
+    
     // DATASTORE - Settings Persistence
-    // ========================================
+    
 
     single<SettingsDataStore> {
         Timber.d("Initializing SettingsDataStore...")
@@ -78,9 +72,9 @@ val browserModule = module {
     }
 
 
-    // ========================================
+    
     // REPOSITORIES
-    // ========================================
+    
 
     single<TabRepository> {
         TabRepositoryImpl(get())
@@ -105,10 +99,16 @@ val browserModule = module {
         }
     }
 
+    // ⭐️ FIX: Define QuickAccessRepository for BrowserViewModel to inject
+    single<QuickAccessRepository> {
+        // Assuming the implementation is QuickAccessRepositoryImpl which takes QuickAccessDao (get())
+        QuickAccessRepositoryImpl(get())
+    }
 
-    // ========================================
+
+    
     // MANAGERS - Theme & App-level State
-    // ========================================
+    
 
     single {
         Timber.d("Initializing ThemeManager...")
@@ -121,9 +121,9 @@ val browserModule = module {
     }
 
 
-    // ========================================
+    
     // USE CASES - Tab Management
-    // ========================================
+    
 
     factory { CreateNewTabUseCase(get()) }
     factory { CloseTabUseCase(get()) }
@@ -132,36 +132,36 @@ val browserModule = module {
     factory { GetActiveTabUseCase(get()) }
 
 
-    // ========================================
+    
     // USE CASES - Bookmarks
-    // ========================================
+    
 
     factory { AddBookmarkUseCase(get()) }
     factory { RemoveBookmarkUseCase(get()) }
     factory { ToggleBookmarkUseCase(get()) }
 
 
-    // ========================================
+    
     // USE CASES - History
-    // ========================================
+    
 
     factory { RecordVisitUseCase(get()) }
     factory { SearchHistoryUseCase(get()) }
     factory { ClearHistoryUseCase(get()) }
 
 
-    // ========================================
+    
     // USE CASES - Connections
-    // ========================================
+    
 
     factory { RequestConnectionUseCase(get()) }
     factory { DisconnectDAppUseCase(get()) }
     factory { GetConnectionUseCase(get()) }
 
 
-    // ========================================
+    
     // USE CASES - Settings
-    // ========================================
+    
 
     factory { ObserveSettingsUseCase(get()) }
     factory { UpdateSettingsUseCase(get()) }
@@ -169,18 +169,17 @@ val browserModule = module {
     factory { UpdateDynamicColorsUseCase(get()) }
 
 
-    // ========================================
+    
     // USE CASES - Validation & Security
-    // ========================================
 
     factory { ValidateUrlUseCase() }
     factory { CheckPhishingUseCase() }
     factory { ValidateSslUseCase() }
 
 
-    // ========================================
+    
     // USE CASES - Navigation
-    // ========================================
+    
 
     factory {
         NavigateToUrlUseCase(
@@ -190,9 +189,9 @@ val browserModule = module {
     }
 
 
-    // ========================================
+    
     // WEBVIEW COMPONENTS (CRITICAL ORDER)
-    // ========================================
+    
 
     // 1. WalletBridge (singleton - manages wallet integration)
     single {
@@ -228,9 +227,9 @@ val browserModule = module {
         )
     }
 
-    // ========================================
+    
     // WALLET INTEGRATION
-    // ========================================
+    
 
     single<WalletConnector> {
         // TODO: Replace with real WalletConnector when wallet module is ready
@@ -238,9 +237,9 @@ val browserModule = module {
     }
 
 
-    // ========================================
+    
     // VIEWMODELS
-    // ========================================
+    
 
     // BrowserViewModel - SHARED across browser screens
     viewModel {
@@ -253,7 +252,8 @@ val browserModule = module {
             navigateToUrlUseCase = get(),
             toggleBookmarkUseCase = get(),
             validateSslUseCase = get(),
-            tabRepository = get()
+            tabRepository = get(),
+            quickAccessRepository = get() // Now correctly injected
         )
     }
 
