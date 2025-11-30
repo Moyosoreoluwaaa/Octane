@@ -15,50 +15,49 @@ import com.octane.browser.data.local.db.entity.BrowserTabEntity
         BrowserTabEntity::class,
         BookmarkEntity::class,
         HistoryEntity::class,
-        ConnectionEntity::class
+        ConnectionEntity::class,
+        QuickAccessEntity::class // ✅ NEW TABLE
     ],
-    version = 2,
-    exportSchema = false
+    version = 3,
+    exportSchema = true
 )
 abstract class BrowserDatabase : RoomDatabase() {
     abstract fun tabDao(): TabDao
     abstract fun bookmarkDao(): BookmarkDao
     abstract fun historyDao(): HistoryDao
     abstract fun connectionDao(): ConnectionDao
+    abstract fun quickAccessDao(): QuickAccessDao // ✅ NEW DAO
 }
 
 
-// Add migration in BrowserModule.kt
-val MIGRATION_1_2 = object : Migration(1, 2) {
+/**
+* ✅ Migration Strategy (Add to your database builder)
+*
+* Example in your DI setup:
+*
+* Room.databaseBuilder(context, BrowserDatabase::class.java, DATABASE_NAME)
+*     .addMigrations(MIGRATION_1_2)
+*     .build()
+*/
+val MIGRATION_2_3 = object : Migration(2, 3) {
     override fun migrate(database: SupportSQLiteDatabase) {
-        // Add new columns with default values
+        // Create quick_access table
         database.execSQL("""
-            ALTER TABLE browser_tabs 
-            ADD COLUMN scrollX INTEGER NOT NULL DEFAULT 0
+            CREATE TABLE IF NOT EXISTS `quick_access` (
+                `id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+                `url` TEXT NOT NULL,
+                `title` TEXT NOT NULL,
+                `favicon` BLOB,
+                `position` INTEGER NOT NULL,
+                `createdAt` INTEGER NOT NULL,
+                `lastModified` INTEGER NOT NULL
+            )
         """)
+
+        // Create index for faster queries
         database.execSQL("""
-            ALTER TABLE browser_tabs 
-            ADD COLUMN scrollY INTEGER NOT NULL DEFAULT 0
-        """)
-        database.execSQL("""
-            ALTER TABLE browser_tabs 
-            ADD COLUMN canGoBack INTEGER NOT NULL DEFAULT 0
-        """)
-        database.execSQL("""
-            ALTER TABLE browser_tabs 
-            ADD COLUMN canGoForward INTEGER NOT NULL DEFAULT 0
-        """)
-        database.execSQL("""
-            ALTER TABLE browser_tabs 
-            ADD COLUMN progress INTEGER NOT NULL DEFAULT 0
-        """)
-        database.execSQL("""
-            ALTER TABLE browser_tabs 
-            ADD COLUMN isLoading INTEGER NOT NULL DEFAULT 0
-        """)
-        database.execSQL("""
-            ALTER TABLE browser_tabs 
-            ADD COLUMN isSecure INTEGER NOT NULL DEFAULT 0
+            CREATE INDEX IF NOT EXISTS `index_quick_access_position` 
+            ON `quick_access` (`position`)
         """)
     }
 }

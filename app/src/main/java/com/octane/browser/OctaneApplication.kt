@@ -10,6 +10,7 @@ import coil3.network.okhttp.OkHttpNetworkFetcherFactory
 import coil3.request.crossfade
 import com.octane.BuildConfig
 import com.octane.browser.di.browserModule
+import com.octane.browser.di.quickAccessModule
 import okhttp3.OkHttpClient
 import okio.Path.Companion.toOkioPath
 import org.koin.android.ext.koin.androidContext
@@ -34,7 +35,8 @@ class OctaneBrowserApplication : Application(), SingletonImageLoader.Factory {
             // Load modules IN ORDER (dependencies first)
             modules(
                 // ✅ Layer 4: Browser Module (self-contained)
-                browserModule      // Browser feature with all dependencies
+                browserModule,      // Browser feature with all dependencies
+                quickAccessModule
             )
         }
     }

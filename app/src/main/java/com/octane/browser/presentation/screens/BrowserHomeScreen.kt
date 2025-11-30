@@ -1,8 +1,8 @@
 package com.octane.browser.presentation.screens
 
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.grid.GridCells
 import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
@@ -23,8 +23,12 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.octane.browser.design.BrowserDimens
 import com.octane.browser.domain.models.QuickAccessLink
+import com.octane.browser.presentation.components.AddQuickAccessDialog
+import com.octane.browser.presentation.components.DeleteQuickAccessDialog
 import com.octane.browser.presentation.components.HomeAddressBar
 import com.octane.browser.presentation.viewmodels.BrowserViewModel
+import com.octane.browser.presentation.viewmodels.QuickAccessViewModel
+import org.koin.androidx.compose.koinViewModel
 
 @Composable
 fun BrowserHomeScreen(
@@ -34,20 +38,42 @@ fun BrowserHomeScreen(
     onOpenHistory: () -> Unit,
     onNewTabAndGoHome: () -> Unit,
     onNavigateToTabs: () -> Unit,
-    browserViewModel: BrowserViewModel
+    browserViewModel: BrowserViewModel,
+    quickAccessViewModel: QuickAccessViewModel = koinViewModel()
 ) {
-    val quickAccessLinks = remember {
-        mutableStateListOf(
-            QuickAccessLink(1, "https://google.com", "Google", null),
-            QuickAccessLink(2, "https://github.com", "GitHub", null),
-            QuickAccessLink(3, "https://youtube.com", "YouTube", null),
-            QuickAccessLink(4, "https://twitter.com", "Twitter", null)
-        )
-    }
     val webViewState by browserViewModel.webViewState.collectAsState()
     val tabs by browserViewModel.tabs.collectAsState()
+    val quickAccessLinks by quickAccessViewModel.quickAccessLinks.collectAsState()
+    val uiState by quickAccessViewModel.uiState.collectAsState()
+
+    var showAddDialog by remember { mutableStateOf(false) }
+    var showDeleteDialog by remember { mutableStateOf(false) }
+    var selectedLink by remember { mutableStateOf<QuickAccessLink?>(null) }
+    var linkToDelete by remember { mutableStateOf<QuickAccessLink?>(null) }
+
+    // Initialize default links on first launch
+    LaunchedEffect(Unit) {
+        quickAccessViewModel.initializeDefaultLinks()
+    }
+
+    // Show snackbar for success/error
+    val snackbarHostState = remember { SnackbarHostState() }
+    LaunchedEffect(uiState) {
+        when (val state = uiState) {
+            is QuickAccessViewModel.QuickAccessUiState.Success -> {
+                snackbarHostState.showSnackbar(state.message)
+                quickAccessViewModel.resetUiState()
+            }
+            is QuickAccessViewModel.QuickAccessUiState.Error -> {
+                snackbarHostState.showSnackbar(state.message)
+                quickAccessViewModel.resetUiState()
+            }
+            else -> {}
+        }
+    }
 
     Scaffold(
+        snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             Row(
                 modifier = Modifier
@@ -56,7 +82,7 @@ fun BrowserHomeScreen(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(12.dp)
             ) {
-                // Avatar (replaces menu)
+                // Avatar
                 Surface(
                     onClick = onOpenSettings,
                     modifier = Modifier.size(48.dp),
@@ -104,12 +130,32 @@ fun BrowserHomeScreen(
 
             Spacer(Modifier.height(24.dp))
 
-            // Quick Access Title
-            Text(
-                text = "Quick Access",
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = BrowserDimens.BrowserPaddingScreenEdge)
-            )
+            // Quick Access Header
+            Row(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = BrowserDimens.BrowserPaddingScreenEdge),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = "Quick Access",
+                    style = MaterialTheme.typography.titleLarge
+                )
+
+                IconButton(
+                    onClick = {
+                        selectedLink = null
+                        showAddDialog = true
+                    }
+                ) {
+                    Icon(
+                        Icons.Rounded.Add,
+                        contentDescription = "Add Quick Access",
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
 
             Spacer(Modifier.height(16.dp))
 
@@ -121,23 +167,176 @@ fun BrowserHomeScreen(
                 horizontalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 items(quickAccessLinks, key = { it.id }) { link ->
-                    QuickAccessItem(link = link, onClick = onOpenUrl)
-                }
-
-                // Add button
-                item {
-                    QuickAccessAddButton(onAdd = {
-                        quickAccessLinks.add(
-                            QuickAccessLink(
-                                id = quickAccessLinks.size + 1,
-                                url = "https://example.com/new",
-                                title = "New Link",
-                                favicon = null
-                            )
-                        )
-                    })
+                    QuickAccessItemWithActions(
+                        link = link,
+                        onClick = { onOpenUrl(link.url) },
+                        onEdit = {
+                            selectedLink = link
+                            showAddDialog = true
+                        },
+                        onDelete = {
+                            linkToDelete = link
+                            showDeleteDialog = true
+                        }
+                    )
                 }
             }
+
+            // Empty State
+            if (quickAccessLinks.isEmpty()) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = 60.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Icon(
+                            Icons.Rounded.Star,
+                            contentDescription = null,
+                            modifier = Modifier.size(48.dp),
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                        Spacer(Modifier.height(16.dp))
+                        Text(
+                            "No quick access links yet",
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(Modifier.height(8.dp))
+                        Button(onClick = { showAddDialog = true }) {
+                            Icon(Icons.Rounded.Add, contentDescription = null)
+                            Spacer(Modifier.width(8.dp))
+                            Text("Add Link")
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // Add/Edit Dialog
+    if (showAddDialog) {
+        AddQuickAccessDialog(
+            existingLink = selectedLink,
+            onDismiss = {
+                showAddDialog = false
+                selectedLink = null
+            },
+            onConfirm = { url, title ->
+                if (selectedLink != null) {
+                    // Update
+                    quickAccessViewModel.updateQuickAccess(
+                        selectedLink!!.copy(url = url, title = title)
+                    )
+                } else {
+                    // Add
+                    quickAccessViewModel.addQuickAccess(url, title)
+                }
+                showAddDialog = false
+                selectedLink = null
+            }
+        )
+    }
+
+    // Delete Confirmation
+    if (showDeleteDialog && linkToDelete != null) {
+        DeleteQuickAccessDialog(
+            linkTitle = linkToDelete!!.title,
+            onDismiss = {
+                showDeleteDialog = false
+                linkToDelete = null
+            },
+            onConfirm = {
+                quickAccessViewModel.deleteQuickAccess(linkToDelete!!.id)
+                showDeleteDialog = false
+                linkToDelete = null
+            }
+        )
+    }
+}
+
+@OptIn(ExperimentalFoundationApi::class)
+@Composable
+private fun QuickAccessItemWithActions(
+    link: QuickAccessLink,
+    onClick: () -> Unit,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+
+    Box {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            modifier = Modifier.combinedClickable(
+                onClick = onClick,
+                onLongClick = { showMenu = true }
+            )
+        ) {
+            Surface(
+                modifier = Modifier.size(64.dp),
+                shape = RoundedCornerShape(16.dp),
+                color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                shadowElevation = 4.dp
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    if (link.favicon != null) {
+                        Image(
+                            bitmap = link.favicon.asImageBitmap(),
+                            contentDescription = null,
+                            modifier = Modifier
+                                .size(40.dp)
+                                .clip(CircleShape)
+                        )
+                    } else {
+                        Icon(
+                            Icons.Rounded.Public,
+                            contentDescription = null,
+                            modifier = Modifier.size(32.dp),
+                            tint = MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+            }
+
+            Spacer(Modifier.height(4.dp))
+
+            Text(
+                text = link.title,
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+
+        // Context Menu
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text("Edit") },
+                onClick = {
+                    showMenu = false
+                    onEdit()
+                },
+                leadingIcon = { Icon(Icons.Rounded.Edit, null) }
+            )
+            DropdownMenuItem(
+                text = { Text("Delete") },
+                onClick = {
+                    showMenu = false
+                    onDelete()
+                },
+                leadingIcon = {
+                    Icon(
+                        Icons.Rounded.Delete,
+                        null,
+                        tint = MaterialTheme.colorScheme.error
+                    )
+                }
+            )
         }
     }
 }
@@ -235,79 +434,5 @@ private fun TabCounterButton(
                 color = MaterialTheme.colorScheme.onSurface
             )
         }
-    }
-}
-
-@Composable
-private fun QuickAccessItem(link: QuickAccessLink, onClick: (String) -> Unit) {
-    Column(
-        horizontalAlignment = Alignment.CenterHorizontally,
-        modifier = Modifier.clickable { onClick(link.url) }
-    ) {
-        Surface(
-            modifier = Modifier.size(64.dp),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainerHigh,
-            shadowElevation = 4.dp
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                if (link.favicon != null) {
-                    Image(
-                        bitmap = link.favicon.asImageBitmap(),
-                        contentDescription = null,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                    )
-                } else {
-                    Icon(
-                        Icons.Rounded.Public,
-                        contentDescription = null,
-                        modifier = Modifier.size(32.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
-        }
-
-        Spacer(Modifier.height(4.dp))
-
-        Text(
-            text = link.title,
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-    }
-}
-
-@Composable
-private fun QuickAccessAddButton(onAdd: () -> Unit) {
-    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-        Surface(
-            modifier = Modifier
-                .size(64.dp)
-                .clickable(onClick = onAdd),
-            shape = RoundedCornerShape(16.dp),
-            color = MaterialTheme.colorScheme.surfaceContainer,
-            shadowElevation = 2.dp
-        ) {
-            Box(contentAlignment = Alignment.Center) {
-                Icon(
-                    Icons.Rounded.Add,
-                    contentDescription = "Add Quick Access",
-                    modifier = Modifier.size(32.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        Spacer(Modifier.height(4.dp))
-
-        Text(
-            text = "Add",
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
